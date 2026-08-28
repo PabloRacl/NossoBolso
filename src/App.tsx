@@ -19,6 +19,22 @@ import { CategoryModal } from './components/categories/CategoryModal';
 import { DebtsView } from './components/debts/DebtsView';
 import { DebtContractModal } from './components/debts/DebtContractModal';
 import { AmortizacaoModal } from './components/debts/AmortizacaoModal';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const pageTransitionVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.05
+    }
+  },
+  exit: {
+    opacity: 0,
+    transition: { duration: 0.15 }
+  }
+};
 
 export const App: React.FC = () => {
   const { activePage, selectedMonth, setSelectedMonth } = useAppStore();
@@ -140,40 +156,51 @@ export const App: React.FC = () => {
 
   return (
     <AppLayout>
-      {activePage === 'dashboard' && (
-        <div className="flex flex-col gap-6">
-          <StatCards
-            totalBalance={totalBalance}
-            totalDebt={totalDebt}
-            periodIncome={periodIncome}
-            periodExpense={periodExpense}
-            totalIncome={totalIncome}
-            totalExpense={totalExpense}
-            periodLabel={periodLabel}
-            incomeCount={incomeCount}
-            expenseCount={expenseCount}
-          />
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activePage}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          variants={pageTransitionVariants}
+          className="w-full flex flex-col gap-6"
+        >
+          {activePage === 'dashboard' && (
+            <>
+              <StatCards
+                totalBalance={totalBalance}
+                totalDebt={totalDebt}
+                periodIncome={periodIncome}
+                periodExpense={periodExpense}
+                totalIncome={totalIncome}
+                totalExpense={totalExpense}
+                periodLabel={periodLabel}
+                incomeCount={incomeCount}
+                expenseCount={expenseCount}
+              />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <IncomeVsExpenseChart data={sixMonthsData} />
-            <ExpensePieChart data={pieChartData} />
-          </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <IncomeVsExpenseChart data={sixMonthsData} />
+                <ExpensePieChart data={pieChartData} />
+              </div>
 
-          <RecentTransactions transactions={periodTxs.length > 0 ? periodTxs : transactions} onDelete={handleDeleteTransaction} />
-        </div>
-      )}
+              <RecentTransactions transactions={periodTxs.length > 0 ? periodTxs : transactions} onDelete={handleDeleteTransaction} />
+            </>
+          )}
 
-      {activePage === 'transactions' && (
-        <TransactionTable transactions={transactions} onDelete={handleDeleteTransaction} />
-      )}
+          {activePage === 'transactions' && (
+            <TransactionTable transactions={transactions} onDelete={handleDeleteTransaction} />
+          )}
 
-      {activePage === 'wallets' && <WalletCards wallets={wallets} />}
+          {activePage === 'wallets' && <WalletCards wallets={wallets} />}
 
-      {activePage === 'debts' && <DebtsView />}
+          {activePage === 'debts' && <DebtsView />}
 
-      {activePage === 'goals' && <GoalCards goals={goals} />}
+          {activePage === 'goals' && <GoalCards goals={goals} />}
 
-      {activePage === 'reports' && <ReportsView transactions={transactions} goals={goals} />}
+          {activePage === 'reports' && <ReportsView transactions={transactions} goals={goals} />}
+        </motion.div>
+      </AnimatePresence>
 
       {/* Global Modals */}
       <TransactionModal />

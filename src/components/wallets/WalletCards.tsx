@@ -6,10 +6,22 @@ import { formatBRL } from '../../utils/formatters';
 import { useAppStore } from '../../store/useAppStore';
 import { Plus, Trash2 } from 'lucide-react';
 import { db } from '../../services/db';
+import { motion } from 'framer-motion';
 
 interface WalletCardsProps {
   wallets: Wallet[];
 }
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.05
+    }
+  }
+};
 
 export const WalletCards: React.FC<WalletCardsProps> = ({ wallets }) => {
   const { setWalletModalOpen } = useAppStore();
@@ -29,7 +41,12 @@ export const WalletCards: React.FC<WalletCardsProps> = ({ wallets }) => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+      >
         {wallets.map((w) => (
           <Card key={w.id} className="relative overflow-hidden group hover:border-[#00FF88]/40 transition-all">
             <div className="flex items-start justify-between mb-4">
@@ -77,7 +94,7 @@ export const WalletCards: React.FC<WalletCardsProps> = ({ wallets }) => {
             )}
           </Card>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 };

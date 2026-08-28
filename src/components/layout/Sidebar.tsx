@@ -24,7 +24,7 @@ export const Sidebar: React.FC = () => {
             👛
           </div>
           <div>
-            <h1 className="font-extrabold text-lg tracking-tight text-[#F8FAFC]">NossoBolso</h1>
+            <h1 className="font-extrabold text-lg tracking-tight text-[#F8FAFC]">Nosso Bolso</h1>
             <span className="text-xs font-semibold text-[#00FF88] tracking-widest uppercase">Finance OS</span>
           </div>
         </div>
@@ -56,7 +56,7 @@ export const Sidebar: React.FC = () => {
       {/* Footer Info */}
       <div className="p-3 bg-[#162032]/80 border border-[#2E3B52] rounded-xl flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-[#00FF88]" />
-        <span className="text-xs font-medium text-[#94A3B8]">v2.0 — NossoBolso Engine</span>
+        <span className="text-xs font-medium text-[#94A3B8]">v2.0 — Nosso Bolso Engine</span>
       </div>
     </aside>
   );

@@ -1,6 +1,6 @@
 {
-  "name": "NossoBolso",
-  "short_name": "NossoBolso",
+  "name": "Nosso Bolso",
+  "short_name": "Nosso Bolso",
   "description": "Sistema inteligente e prático de gestão financeira pessoal.",
   "start_url": "index.html",
   "display": "standalone",

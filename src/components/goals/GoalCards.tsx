@@ -9,10 +9,22 @@ import { formatDate } from '../../utils/dateUtils';
 import { useAppStore } from '../../store/useAppStore';
 import { Plus, Target, Trash2 } from 'lucide-react';
 import { db } from '../../services/db';
+import { motion } from 'framer-motion';
 
 interface GoalCardsProps {
   goals: Goal[];
 }
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.05
+    }
+  }
+};
 
 export const GoalCards: React.FC<GoalCardsProps> = ({ goals }) => {
   const { setGoalModalOpen } = useAppStore();
@@ -57,7 +69,12 @@ export const GoalCards: React.FC<GoalCardsProps> = ({ goals }) => {
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+        >
           {goals.map((g) => {
             const pct = Math.min((g.currentAmount / g.targetAmount) * 100, 100);
             return (
@@ -110,7 +127,7 @@ export const GoalCards: React.FC<GoalCardsProps> = ({ goals }) => {
               </Card>
             );
           })}
-        </div>
+        </motion.div>
       )}
 
       {/* Contribute Modal */}

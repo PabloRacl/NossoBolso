@@ -42,7 +42,7 @@ export const Topbar: React.FC = () => {
     reports: { title: 'Relatórios & Análises', subtitle: 'Resumo detalhado e exportação de dados' },
   };
 
-  const current = pageTitles[activePage] || { title: 'NossoBolso', subtitle: 'Gestão Inteligente' };
+  const current = pageTitles[activePage] || { title: 'Nosso Bolso', subtitle: 'Gestão Inteligente' };
 
   return (
     <header className="flex flex-wrap items-center justify-between gap-4 p-6 bg-[#0D1424]/85 backdrop-blur-xl border-b border-[#2E3B52]/60 sticky top-0 z-30">

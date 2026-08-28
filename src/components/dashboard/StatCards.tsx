@@ -2,6 +2,7 @@ import React from 'react';
 import { Card } from '../ui/Card';
 import { formatBRL, formatPercent } from '../../utils/formatters';
 import { Wallet, TrendingUp, TrendingDown, PiggyBank, CreditCard, Info } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface StatCardsProps {
   totalBalance: number;
@@ -14,6 +15,17 @@ interface StatCardsProps {
   incomeCount: number;
   expenseCount: number;
 }
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.05
+    }
+  }
+};
 
 export const StatCards: React.FC<StatCardsProps> = ({
   totalBalance,
@@ -29,7 +41,12 @@ export const StatCards: React.FC<StatCardsProps> = ({
   const netWorth = totalBalance - totalDebt;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6"
+    >
       {/* 1. Saldo Patrimonial Acumulado Total */}
       <Card glow className="border-l-4 border-l-[#00FF88] hover:border-[#00FF88]/60 hover:shadow-[0_8px_25px_rgba(0,255,136,0.15)] hover:-translate-y-1 transition-all duration-300 group">
         <div className="flex items-center justify-between mb-2">
@@ -130,6 +147,6 @@ export const StatCards: React.FC<StatCardsProps> = ({
           {formatPercent(savingsPercent)} da receita do período salva
         </p>
       </Card>
-    </div>
+    </motion.div>
   );
 };

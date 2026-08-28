@@ -1,5 +1,5 @@
 /* =============================================
-   NOSSOBOLSO — APP ENGINE
+   NOSSO BOLSO — APP ENGINE
    v2.0
    ============================================= */
 
@@ -1554,8 +1554,8 @@
 </head>
 <body>
   <div class="header">
-    <h1>👛 Relatório NossoBolso</h1>
-    <p>NossoBolso — Gerado em ${formatDate(todayStr())}</p>
+    <h1>👛 Relatório Nosso Bolso</h1>
+    <p>Nosso Bolso — Gerado em ${formatDate(todayStr())}</p>
   </div>
 
   <div class="summary-grid">
@@ -1641,7 +1641,7 @@
   </div>
 
   <div class="footer">
-    <p>NossoBolso v2.0 — Relatório gerado automaticamente</p>
+    <p>Nosso Bolso v2.0 — Relatório gerado automaticamente</p>
   </div>
 </body>
 </html>`);

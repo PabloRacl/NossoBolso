@@ -53,7 +53,11 @@ export interface DebtContract {
   totalInstallments: number;
   installmentAmount: number;
   totalAmount: number;
-  interestRate?: number; // Taxa de juros mensal (ex: 1.5 = 1.5% ao mês)
+  interestRate?: number; // Taxa de juros
+  interestRateType?: 'monthly' | 'yearly';
+  amortizationSystem?: 'price' | 'sac';
+  insuranceAmount?: number; // Seguro / taxas embutidas por parcela
+  startInstallmentNum?: number; // Parcela inicial para contratos em andamento
   startDate: string; // YYYY-MM-DD
   category: string;
   walletId: string;

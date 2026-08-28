@@ -7,6 +7,18 @@ import { formatBRL, formatPercent } from '../../utils/formatters';
 import { formatDate } from '../../utils/dateUtils';
 import { useAppStore } from '../../store/useAppStore';
 import { Plus, Car, CreditCard, ShieldAlert, CheckCircle2, Calendar, Trash2, Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.05
+    }
+  }
+};
 
 export const DebtsView: React.FC = () => {
   const { setDebtContractModalOpen, setAmortizacaoModalOpen, setAmortizacaoContractId } = useAppStore();
@@ -23,9 +35,29 @@ export const DebtsView: React.FC = () => {
     const contractTxs = transactions.filter((t) => t.contractId === c.id);
     const paidTxs = contractTxs.filter((t) => new Date(t.date) <= new Date());
     const paidCount = paidTxs.length;
-    const paidAmount = paidTxs.reduce((acc, t) => acc + t.amount, 0);
-    const remainingAmount = c.totalAmount - paidAmount;
-    const progressPct = c.totalAmount > 0 ? (paidAmount / c.totalAmount) * 100 : 0;
+
+    let paidAmount = 0;
+    let remainingAmount = 0;
+    let progressPct = 0;
+
+    const isSAC = c.amortizationSystem === 'sac';
+
+    if (isSAC) {
+      // No SAC, a amortização mensal é fixa.
+      // O saldo devedor inicial é c.totalAmount. O total amortizado pago é paidCount * amortização.
+      const startInstallment = c.startInstallmentNum ?? 1;
+      const totalPlannedInstallments = c.totalInstallments - startInstallment + 1;
+      const monthlyAmortization = c.totalAmount / (totalPlannedInstallments || 1);
+      const totalAmortized = paidCount * monthlyAmortization;
+      remainingAmount = c.totalAmount - totalAmortized;
+      paidAmount = totalAmortized;
+      progressPct = c.totalAmount > 0 ? (totalAmortized / c.totalAmount) * 100 : 0;
+    } else {
+      // No PRICE, consideramos o total pago como a soma das parcelas vencidas
+      paidAmount = paidTxs.reduce((acc, t) => acc + t.amount, 0);
+      remainingAmount = c.totalAmount - paidAmount;
+      progressPct = c.totalAmount > 0 ? (paidAmount / c.totalAmount) * 100 : 0;
+    }
 
     return {
       contract: c,
@@ -67,7 +99,12 @@ export const DebtsView: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+      >
         <Card className="border-l-4 border-l-[#00FF88]">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold uppercase text-[#94A3B8]">Total em Financiamentos</span>
@@ -94,7 +131,7 @@ export const DebtsView: React.FC = () => {
           <div className="text-2xl font-black text-[#F59E0B]">{formatBRL(totalRemaining)}</div>
           <p className="text-xs text-[#64748B] mt-1">Valor pendente a ser quitado no futuro</p>
         </Card>
-      </div>
+      </motion.div>
 
       {/* Contracts List */}
       {contracts.length === 0 ? (
@@ -112,116 +149,134 @@ export const DebtsView: React.FC = () => {
           </Button>
         </Card>
       ) : (
-        <div className="flex flex-col gap-4">
-          {contractStats.map(({ contract, contractTxs, paidCount, paidAmount, remainingAmount, progressPct }) => (
-            <Card key={contract.id} className="flex flex-col gap-4 hover:border-[#F59E0B]/30 transition-all">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20 flex items-center justify-center text-2xl font-bold shadow-md">
-                    🚗
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-lg font-extrabold text-[#F8FAFC]">{contract.title}</h4>
-                      <span className="bg-[#1E293B] text-[#00FF88] text-xs font-bold px-2.5 py-0.5 rounded-full border border-[#00FF88]/30">
-                        {contract.totalInstallments}x de {formatBRL(contract.installmentAmount)}
-                      </span>
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="flex flex-col gap-4"
+        >
+          {contractStats.map(({ contract, contractTxs, paidCount, paidAmount, remainingAmount, progressPct }) => {
+            const isHouse = /casa|apartamento|apê|habitação|imóvel|lote|terreno/i.test(contract.title) || contract.category === 'Moradia';
+            const emoji = isHouse ? '🏠' : '🚗';
+
+            return (
+              <Card key={contract.id} className="flex flex-col gap-4 hover:border-[#F59E0B]/30 transition-all">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20 flex items-center justify-center text-2xl font-bold shadow-md">
+                      {emoji}
                     </div>
-                    <p className="text-xs text-[#94A3B8] font-medium mt-0.5">
-                      Início em {formatDate(contract.startDate)} • Categoria: {contract.category}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="flex flex-col items-end">
-                    <span className="text-xs text-[#94A3B8] font-semibold uppercase">Saldo Devedor</span>
-                    <span className="text-xl font-black text-[#F59E0B]">{formatBRL(remainingAmount)}</span>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setAmortizacaoContractId(contract.id);
-                      setAmortizacaoModalOpen(true);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 hover:bg-[#F59E0B]/20 rounded-xl transition-colors"
-                    title="Amortizar — Pagamento Adiantado"
-                  >
-                    <Zap className="w-3.5 h-3.5" />
-                    Amortizar
-                  </button>
-
-                  <button
-                    onClick={() => handleDeleteContract(contract.id)}
-                    className="p-2 text-[#64748B] hover:text-red-400 hover:bg-[#1E2330] rounded-xl transition-colors"
-                    title="Excluir Financiamento"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="flex flex-col gap-1.5 pt-2 border-t border-[#1E2330]">
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span className="text-[#94A3B8]">
-                    Progresso de Quitação: <span className="text-[#F8FAFC]">{paidCount} de {contract.totalInstallments} parcelas pagas</span> ({formatBRL(paidAmount)})
-                  </span>
-                  <span className="text-[#00FF88]">{formatPercent(progressPct)}</span>
-                </div>
-                <div className="w-full h-3 bg-[#0A0B0E] border border-[#1E2330] rounded-full overflow-hidden p-0.5">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#00FF88] to-[#06B6D4] rounded-full transition-all duration-500 shadow-[0_0_10px_#00FF88]"
-                    style={{ width: `${Math.min(progressPct, 100)}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Toggle Details */}
-              <div className="flex justify-end pt-1">
-                <button
-                  onClick={() => setExpandedContractId(expandedContractId === contract.id ? null : contract.id)}
-                  className="text-xs font-bold text-[#06B6D4] hover:underline flex items-center gap-1"
-                >
-                  <Calendar className="w-3.5 h-3.5" />
-                  {expandedContractId === contract.id ? 'Ocultar Lista de Parcelas' : 'Ver Cronograma Completo de Parcelas'}
-                </button>
-              </div>
-
-              {/* Expanded Installment List */}
-              {expandedContractId === contract.id && (
-                <div className="mt-2 p-3 bg-[#0A0B0E] border border-[#1E2330] rounded-xl flex flex-col gap-2 max-h-64 overflow-y-auto">
-                  <h5 className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-1">
-                    Cronograma de Vencimento das {contractTxs.length} Parcelas
-                  </h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                    {contractTxs.map((tx) => {
-                      const isPaid = new Date(tx.date) <= new Date();
-                      return (
-                        <div
-                          key={tx.id}
-                          className={`p-2 rounded-lg border text-xs flex items-center justify-between ${
-                            isPaid
-                              ? 'bg-[#10B981]/10 border-[#10B981]/30 text-[#F8FAFC]'
-                              : 'bg-[#12141A] border-[#1E2330] text-[#94A3B8]'
-                          }`}
-                        >
-                          <div className="flex flex-col">
-                            <span className="font-bold text-[#F8FAFC]">{tx.description}</span>
-                            <span className="text-[10px] text-[#94A3B8]">{formatDate(tx.date)}</span>
-                          </div>
-                          <span className={`font-bold ${isPaid ? 'text-[#10B981]' : 'text-[#F59E0B]'}`}>
-                            {isPaid ? '✓ Paga' : formatBRL(tx.amount)}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-lg font-extrabold text-[#F8FAFC]">{contract.title}</h4>
+                        {contract.amortizationSystem === 'sac' ? (
+                          <span className="bg-[#1E293B] text-[#00FF88] text-xs font-bold px-2.5 py-0.5 rounded-full border border-[#00FF88]/30">
+                            SAC • {contract.totalInstallments} parcelas
                           </span>
-                        </div>
-                      );
-                    })}
+                        ) : (
+                          <span className="bg-[#1E293B] text-[#00FF88] text-xs font-bold px-2.5 py-0.5 rounded-full border border-[#00FF88]/30">
+                            {contract.totalInstallments}x de {formatBRL(contract.installmentAmount)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#94A3B8] font-medium mt-0.5">
+                        Início em {formatDate(contract.startDate)} • Categoria: {contract.category}
+                        {contract.interestRate ? ` • Juros: ${contract.interestRate}% ${contract.interestRateType === 'yearly' ? 'a.a.' : 'a.m.'}` : ''}
+                        {contract.insuranceAmount ? ` • Seguro: ${formatBRL(contract.insuranceAmount)}/mês` : ''}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs text-[#94A3B8] font-semibold uppercase">Saldo Devedor</span>
+                      <span className="text-xl font-black text-[#F59E0B]">{formatBRL(remainingAmount)}</span>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setAmortizacaoContractId(contract.id);
+                        setAmortizacaoModalOpen(true);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 hover:bg-[#F59E0B]/20 rounded-xl transition-colors"
+                      title="Amortizar — Pagamento Adiantado"
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      Amortizar
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteContract(contract.id)}
+                      className="p-2 text-[#64748B] hover:text-red-400 hover:bg-[#1E2330] rounded-xl transition-colors"
+                      title="Excluir Financiamento"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
-              )}
-            </Card>
-          ))}
-        </div>
+
+                {/* Progress Bar */}
+                <div className="flex flex-col gap-1.5 pt-2 border-t border-[#1E2330]">
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span className="text-[#94A3B8]">
+                      Progresso de Quitação: <span className="text-[#F8FAFC]">{paidCount} de {contract.totalInstallments} parcelas pagas</span> ({formatBRL(paidAmount)})
+                    </span>
+                    <span className="text-[#00FF88]">{formatPercent(progressPct)}</span>
+                  </div>
+                  <div className="w-full h-3 bg-[#0A0B0E] border border-[#1E2330] rounded-full overflow-hidden p-0.5">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#00FF88] to-[#06B6D4] rounded-full transition-all duration-500 shadow-[0_0_10px_#00FF88]"
+                      style={{ width: `${Math.min(progressPct, 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Toggle Details */}
+                <div className="flex justify-end pt-1">
+                  <button
+                    onClick={() => setExpandedContractId(expandedContractId === contract.id ? null : contract.id)}
+                    className="text-xs font-bold text-[#06B6D4] hover:underline flex items-center gap-1"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    {expandedContractId === contract.id ? 'Ocultar Lista de Parcelas' : 'Ver Cronograma Completo de Parcelas'}
+                  </button>
+                </div>
+
+                {/* Expanded Installment List */}
+                {expandedContractId === contract.id && (
+                  <div className="mt-2 p-3 bg-[#0A0B0E] border border-[#1E2330] rounded-xl flex flex-col gap-2 max-h-64 overflow-y-auto">
+                    <h5 className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-1">
+                      Cronograma de Vencimento das {contractTxs.length} Parcelas
+                    </h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                      {contractTxs.map((tx) => {
+                        const isPaid = new Date(tx.date) <= new Date();
+                        return (
+                          <div
+                            key={tx.id}
+                            className={`p-2 rounded-lg border text-xs flex items-center justify-between ${
+                              isPaid
+                                ? 'bg-[#10B981]/10 border-[#10B981]/30 text-[#F8FAFC]'
+                                : 'bg-[#12141A] border-[#1E2330] text-[#94A3B8]'
+                            }`}
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-bold text-[#F8FAFC]">{tx.description}</span>
+                              <span className="text-[10px] text-[#94A3B8]">{formatDate(tx.date)}</span>
+                            </div>
+                            <span className={`font-bold ${isPaid ? 'text-[#10B981]' : 'text-[#F59E0B]'}`}>
+                              {isPaid ? '✓ Paga' : formatBRL(tx.amount)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </motion.div>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import React from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { motion } from 'framer-motion';
 
 interface CardProps {
   children: React.ReactNode;
@@ -8,9 +9,30 @@ interface CardProps {
   glow?: boolean;
 }
 
+// Variantes com efeito "onda do mar" (suavidade líquida, spring leve, blur dissipando)
+const cardVariants = {
+  hidden: {
+    opacity: 0,
+    scale: 0.98,
+    filter: 'blur(4px)'
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    filter: 'blur(0px)',
+    transition: {
+      type: 'spring',
+      stiffness: 70,
+      damping: 14,
+      mass: 0.8
+    }
+  }
+};
+
 export const Card: React.FC<CardProps> = ({ children, className, glow }) => {
   return (
-    <div
+    <motion.div
+      variants={cardVariants}
       className={twMerge(
         clsx(
           'bg-[#162032]/85 border border-[#2E3B52] rounded-2xl p-6 transition-all duration-300 backdrop-blur-xl shadow-xl hover:border-[#3B4C6A]',
@@ -20,6 +42,6 @@ export const Card: React.FC<CardProps> = ({ children, className, glow }) => {
       )}
     >
       {children}
-    </div>
+    </motion.div>
   );
 };

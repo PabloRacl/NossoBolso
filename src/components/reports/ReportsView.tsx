@@ -18,7 +18,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals })
 
   const handleExportJSON = () => {
     const data = {
-      appName: 'NossoBolso',
+      appName: 'Nosso Bolso',
       exportDate: new Date().toISOString(),
       transactions,
       goals,
