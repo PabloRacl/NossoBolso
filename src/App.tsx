@@ -1,0 +1,188 @@
+import React, { useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db, seedInitialData } from './services/db';
+import { useAppStore } from './store/useAppStore';
+import { AppLayout } from './components/layout/AppLayout';
+import { StatCards } from './components/dashboard/StatCards';
+import { IncomeVsExpenseChart } from './components/dashboard/IncomeVsExpenseChart';
+import { ExpensePieChart } from './components/dashboard/ExpensePieChart';
+import { RecentTransactions } from './components/dashboard/RecentTransactions';
+import { TransactionTable } from './components/transactions/TransactionTable';
+import { WalletCards } from './components/wallets/WalletCards';
+import { GoalCards } from './components/goals/GoalCards';
+import { ReportsView } from './components/reports/ReportsView';
+import { TransactionModal } from './components/transactions/TransactionModal';
+import { WalletModal } from './components/wallets/WalletModal';
+import { GoalModal } from './components/goals/GoalModal';
+import { OfxImportModal } from './components/transactions/OfxImportModal';
+import { CategoryModal } from './components/categories/CategoryModal';
+import { DebtsView } from './components/debts/DebtsView';
+import { DebtContractModal } from './components/debts/DebtContractModal';
+import { AmortizacaoModal } from './components/debts/AmortizacaoModal';
+
+export const App: React.FC = () => {
+  const { activePage, selectedMonth, setSelectedMonth } = useAppStore();
+
+  useEffect(() => {
+    seedInitialData();
+  }, []);
+
+  const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
+  const wallets = useLiveQuery(() => db.wallets.toArray(), []) || [];
+  const goals = useLiveQuery(() => db.goals.toArray(), []) || [];
+
+  // Auto-switch selectedMonth if current selected month has no transactions but other transactions exist
+  useEffect(() => {
+    if (transactions.length > 0 && selectedMonth !== 'all') {
+      const hasTxInSelected = transactions.some((t) => t.date.startsWith(selectedMonth));
+      if (!hasTxInSelected) {
+        const latestTx = [...transactions].sort((a, b) => b.date.localeCompare(a.date))[0];
+        if (latestTx && latestTx.date) {
+          setSelectedMonth(latestTx.date.substring(0, 7));
+        }
+      }
+    }
+  }, [transactions, selectedMonth, setSelectedMonth]);
+
+  // Total Balances & Debt Calculations
+  const totalBalance = wallets.reduce((acc, w) => acc + (w.balance > 0 ? w.balance : 0), 0);
+  
+  // Total Debt = Negative wallet balances (credit card balance used) + Expenses in Debt categories
+  const walletDebts = wallets.reduce((acc, w) => acc + (w.balance < 0 ? Math.abs(w.balance) : 0), 0);
+  const debtTxTotal = transactions
+    .filter((t) => t.type === 'expense' && (t.category.toLowerCase().includes('dívida') || t.category.toLowerCase().includes('fatura') || t.category.toLowerCase().includes('empréstimo')))
+    .reduce((acc, t) => acc + t.amount, 0);
+
+  const totalDebt = walletDebts + debtTxTotal;
+
+  // Historic Totals (All Time)
+  const totalIncome = transactions.filter((t) => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+  const totalExpense = transactions.filter((t) => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+
+  // Period Calculations (based on selectedMonth)
+  const periodTxs = selectedMonth === 'all'
+    ? transactions
+    : transactions.filter((t) => t.date.startsWith(selectedMonth));
+
+  const periodIncome = periodTxs
+    .filter((t) => t.type === 'income')
+    .reduce((acc, t) => acc + t.amount, 0);
+
+  const periodExpense = periodTxs
+    .filter((t) => t.type === 'expense')
+    .reduce((acc, t) => acc + t.amount, 0);
+
+  const incomeCount = periodTxs.filter((t) => t.type === 'income').length;
+  const expenseCount = periodTxs.filter((t) => t.type === 'expense').length;
+
+  // Period Label Formatting
+  const getPeriodLabel = () => {
+    if (selectedMonth === 'all') return 'Acumulado Geral (Todos os Períodos)';
+    const [y, m] = selectedMonth.split('-');
+    if (!y || !m) return selectedMonth;
+    const date = new Date(parseInt(y), parseInt(m) - 1, 1);
+    const monthName = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    return monthName.charAt(0).toUpperCase() + monthName.slice(1);
+  };
+
+  const periodLabel = getPeriodLabel();
+
+  // Category Breakdown for Pie Chart
+  const categoryTotals: Record<string, number> = {};
+  periodTxs
+    .filter((t) => t.type === 'expense')
+    .forEach((t) => {
+      categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount;
+    });
+
+  const pieChartData = Object.entries(categoryTotals).map(([name, value]) => ({
+    name,
+    value,
+  }));
+
+  // Historical Data for Bar Chart (Dynamic last 6 months or transaction months)
+  const availableMonthKeys = Array.from(new Set(transactions.map((t) => t.date.substring(0, 7)))).sort();
+  const last6Months = availableMonthKeys.length > 0 
+    ? availableMonthKeys.slice(-6)
+    : Array.from({ length: 6 }).map((_, i) => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - (5 - i));
+        return d.toISOString().substring(0, 7);
+      });
+
+  const sixMonthsData = last6Months.map((mKey) => {
+    const [y, m] = mKey.split('-');
+    const dateObj = new Date(parseInt(y), parseInt(m) - 1, 1);
+    const monthName = dateObj.toLocaleDateString('pt-BR', { month: 'short' });
+
+    const monthTxs = transactions.filter((t) => t.date.startsWith(mKey));
+    const inc = monthTxs.filter((t) => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+    const exp = monthTxs.filter((t) => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+
+    return {
+      month: monthName,
+      income: inc,
+      expense: exp,
+    };
+  });
+
+  const handleDeleteTransaction = async (id: string) => {
+    const tx = await db.transactions.get(id);
+    if (tx && tx.walletId) {
+      const wallet = await db.wallets.get(tx.walletId);
+      if (wallet) {
+        const revertDelta = tx.type === 'income' ? -tx.amount : tx.amount;
+        await db.wallets.update(tx.walletId, { balance: wallet.balance + revertDelta });
+      }
+    }
+    await db.transactions.delete(id);
+  };
+
+  return (
+    <AppLayout>
+      {activePage === 'dashboard' && (
+        <div className="flex flex-col gap-6">
+          <StatCards
+            totalBalance={totalBalance}
+            totalDebt={totalDebt}
+            periodIncome={periodIncome}
+            periodExpense={periodExpense}
+            totalIncome={totalIncome}
+            totalExpense={totalExpense}
+            periodLabel={periodLabel}
+            incomeCount={incomeCount}
+            expenseCount={expenseCount}
+          />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <IncomeVsExpenseChart data={sixMonthsData} />
+            <ExpensePieChart data={pieChartData} />
+          </div>
+
+          <RecentTransactions transactions={periodTxs.length > 0 ? periodTxs : transactions} onDelete={handleDeleteTransaction} />
+        </div>
+      )}
+
+      {activePage === 'transactions' && (
+        <TransactionTable transactions={transactions} onDelete={handleDeleteTransaction} />
+      )}
+
+      {activePage === 'wallets' && <WalletCards wallets={wallets} />}
+
+      {activePage === 'debts' && <DebtsView />}
+
+      {activePage === 'goals' && <GoalCards goals={goals} />}
+
+      {activePage === 'reports' && <ReportsView transactions={transactions} goals={goals} />}
+
+      {/* Global Modals */}
+      <TransactionModal />
+      <WalletModal />
+      <GoalModal />
+      <OfxImportModal />
+      <CategoryModal />
+      <DebtContractModal />
+      <AmortizacaoModal />
+    </AppLayout>
+  );
+};
