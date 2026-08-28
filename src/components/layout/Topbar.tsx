@@ -1,36 +1,56 @@
-import React, { useMemo, useState } from 'react';
-import { useAppStore } from '../../store/useAppStore';
+import React, { useMemo } from 'react';
+import { useAppStore, getCurrentMonthKey } from '../../store/useAppStore';
 import { Button } from '../ui/Button';
-import { Plus, Upload, Calendar, Tag, Cloud } from 'lucide-react';
+import { Plus, Upload, Calendar, Tag, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../services/db';
-import { isSupabaseConfigured } from '../../services/supabase';
-import { CloudSyncModal } from '../cloud/CloudSyncModal';
 
 export const Topbar: React.FC = () => {
   const { activePage, setTransactionModalOpen, setOfxModalOpen, selectedMonth, setSelectedMonth } = useAppStore();
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
-  const [isCloudModalOpen, setCloudModalOpen] = useState(false);
+
+  const currentMonthKey = getCurrentMonthKey();
 
   // Generate available months list from database transactions
   const availableMonths = useMemo(() => {
     const monthsSet = new Set<string>();
-    const nowKey = new Date().toISOString().substring(0, 7);
-    monthsSet.add(nowKey);
+    monthsSet.add(currentMonthKey);
     transactions.forEach((t) => {
       if (t.date && t.date.length >= 7) {
         monthsSet.add(t.date.substring(0, 7));
       }
     });
     return Array.from(monthsSet).sort().reverse();
-  }, [transactions]);
+  }, [transactions, currentMonthKey]);
+
+  const handlePrevMonth = () => {
+    if (selectedMonth === 'all') {
+      setSelectedMonth(currentMonthKey);
+      return;
+    }
+    const [y, m] = selectedMonth.split('-').map(Number);
+    const date = new Date(y, m - 2, 1);
+    const prevKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    setSelectedMonth(prevKey);
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonth === 'all') {
+      setSelectedMonth(currentMonthKey);
+      return;
+    }
+    const [y, m] = selectedMonth.split('-').map(Number);
+    const date = new Date(y, m, 1);
+    const nextKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    setSelectedMonth(nextKey);
+  };
 
   const formatMonthLabel = (key: string) => {
     if (key === 'all') return '🌐 Todos os Períodos (Acumulado Total)';
     const [y, m] = key.split('-');
     const date = new Date(parseInt(y), parseInt(m) - 1, 1);
     const monthName = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-    return `📅 ${monthName.charAt(0).toUpperCase() + monthName.slice(1)}`;
+    return monthName.charAt(0).toUpperCase() + monthName.slice(1);
   };
 
   const pageTitles: Record<string, { title: string; subtitle: string }> = {
@@ -52,35 +72,55 @@ export const Topbar: React.FC = () => {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        {/* Month / Period Filter Dropdown */}
-        <div className="relative flex items-center bg-[#162032] border border-[#2E3B52] rounded-xl px-3 py-1.5 focus-within:border-[#00FF88] transition-all">
-          <Calendar className="w-4 h-4 text-[#00FF88] mr-2 shrink-0" />
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="bg-transparent text-xs font-bold text-[#F8FAFC] focus:outline-none cursor-pointer pr-2"
+        {/* Widget da Agenda / Navegação Temporal Destacada */}
+        <div className="flex items-center gap-1.5 bg-gradient-to-r from-[#121929] to-[#18253B] border border-[#00FF88]/40 shadow-[0_0_15px_rgba(0,255,136,0.12)] rounded-2xl p-1 transition-all hover:border-[#00FF88]/70">
+          <button
+            onClick={handlePrevMonth}
+            className="p-2 text-[#94A3B8] hover:text-[#00FF88] hover:bg-[#00FF88]/10 rounded-xl transition-all"
+            title="Mês Anterior"
           >
-            <option value="all" className="bg-[#162032] text-[#F8FAFC]">
-              🌐 Todos os Períodos (Acumulado Total)
-            </option>
-            {availableMonths.map((m) => (
-              <option key={m} value={m} className="bg-[#162032] text-[#F8FAFC]">
-                {formatMonthLabel(m)}
-              </option>
-            ))}
-          </select>
-        </div>
+            <ChevronLeft className="w-4 h-4" />
+          </button>
 
-        <Button
-          variant="outline"
-          onClick={() => setCloudModalOpen(true)}
-          className={`border-[#2E3B52] ${
-            isSupabaseConfigured ? 'bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30' : 'bg-[#162032]'
-          }`}
-        >
-          <Cloud className={`w-4 h-4 ${isSupabaseConfigured ? 'text-[#10B981]' : 'text-[#3B82F6]'}`} />
-          <span>{isSupabaseConfigured ? 'Nuvem OK' : 'Banco Online'}</span>
-        </Button>
+          <div className="relative flex items-center px-2">
+            <div className="w-7 h-7 rounded-xl bg-[#00FF88]/10 border border-[#00FF88]/30 flex items-center justify-center mr-2 text-[#00FF88] shadow-inner">
+              <Calendar className="w-3.5 h-3.5" />
+            </div>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="bg-transparent text-xs font-black text-[#F8FAFC] focus:outline-none cursor-pointer pr-3 py-1"
+            >
+              <option value="all" className="bg-[#121929] text-[#F8FAFC]">
+                🌐 Todos os Períodos
+              </option>
+              {availableMonths.map((m) => (
+                <option key={m} value={m} className="bg-[#121929] text-[#F8FAFC]">
+                  {formatMonthLabel(m)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={handleNextMonth}
+            className="p-2 text-[#94A3B8] hover:text-[#00FF88] hover:bg-[#00FF88]/10 rounded-xl transition-all"
+            title="Próximo Mês"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+
+          {selectedMonth !== currentMonthKey && (
+            <button
+              onClick={() => setSelectedMonth(currentMonthKey)}
+              className="flex items-center gap-1 px-2 py-1 text-[10px] font-black text-[#00FF88] bg-[#00FF88]/15 border border-[#00FF88]/30 hover:bg-[#00FF88]/25 rounded-lg transition-all ml-1"
+              title="Voltar para o Mês Atual"
+            >
+              <Sparkles className="w-3 h-3" />
+              <span>Hoje</span>
+            </button>
+          )}
+        </div>
 
         <Button
           variant="outline"
@@ -108,8 +148,6 @@ export const Topbar: React.FC = () => {
           <span>Nova Transação</span>
         </Button>
       </div>
-
-      <CloudSyncModal isOpen={isCloudModalOpen} onClose={() => setCloudModalOpen(false)} />
     </header>
   );
 };

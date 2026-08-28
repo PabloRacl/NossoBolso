@@ -31,6 +31,8 @@ interface AppStore {
   // Editing targets
   editingTransactionId: string | null;
   setEditingTransactionId: (id: string | null) => void;
+  editingDebtContractId: string | null;
+  setEditingDebtContractId: (id: string | null) => void;
 }
 
 export const getCurrentMonthKey = () => {
@@ -65,4 +67,6 @@ export const useAppStore = create<AppStore>((set) => ({
 
   editingTransactionId: null,
   setEditingTransactionId: (id) => set({ editingTransactionId: id }),
+  editingDebtContractId: null,
+  setEditingDebtContractId: (id) => set({ editingDebtContractId: id }),
 }));

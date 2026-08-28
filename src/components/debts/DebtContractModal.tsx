@@ -11,7 +11,12 @@ import { Car, Landmark, CreditCard, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const DebtContractModal: React.FC = () => {
-  const { isDebtContractModalOpen, setDebtContractModalOpen } = useAppStore();
+  const { 
+    isDebtContractModalOpen, 
+    setDebtContractModalOpen,
+    editingDebtContractId,
+    setEditingDebtContractId
+  } = useAppStore();
   const categories = useLiveQuery(() => db.categories.toArray(), []) || [];
   const wallets = useLiveQuery(() => db.wallets.toArray(), []) || [];
 
@@ -31,6 +36,33 @@ export const DebtContractModal: React.FC = () => {
   const [isOngoing, setIsOngoing] = useState(false);
   const [startInstallmentNum, setStartInstallmentNum] = useState('1');
 
+  // Efeito para popular o formulário no modo de edição
+  React.useEffect(() => {
+    if (editingDebtContractId) {
+      db.debtContracts.get(editingDebtContractId).then((contract) => {
+        if (contract) {
+          setTitle(contract.title);
+          setAmortizationSystem(contract.amortizationSystem || 'price');
+          const startNum = contract.startInstallmentNum ?? 1;
+          setIsOngoing(startNum > 1);
+          setStartInstallmentNum(String(startNum));
+          setTotalInstallments(String(contract.totalInstallments - startNum + 1));
+          setInsuranceAmount(contract.insuranceAmount ? String(contract.insuranceAmount) : '');
+          setInterestRate(contract.interestRate ? String(contract.interestRate) : '');
+          setInterestRateType(contract.interestRateType || 'monthly');
+          setStartDate(contract.startDate);
+          setCategory(contract.category);
+          setWalletId(contract.walletId);
+          if (contract.amortizationSystem === 'price') {
+            setInstallmentAmount(String(contract.installmentAmount));
+          } else {
+            setFinancedAmount(String(contract.totalAmount));
+          }
+        }
+      });
+    }
+  }, [editingDebtContractId]);
+
   const handleClose = () => {
     setTitle('');
     setTotalInstallments('36');
@@ -45,6 +77,7 @@ export const DebtContractModal: React.FC = () => {
     setAmortizationSystem('price');
     setIsOngoing(false);
     setStartInstallmentNum('1');
+    setEditingDebtContractId(null);
     setDebtContractModalOpen(false);
   };
 
@@ -57,7 +90,7 @@ export const DebtContractModal: React.FC = () => {
 
     if (isNaN(instCount) || instCount <= 0 || isNaN(startNum) || startNum <= 0) return;
 
-    const contractId = 'debt_' + Math.random().toString(36).substring(2, 9);
+    const contractId = editingDebtContractId || ('debt_' + Math.random().toString(36).substring(2, 9));
     const selectedWalletId = walletId || (wallets[0]?.id ?? 'w1');
 
     let totalAmount = 0;
@@ -140,6 +173,15 @@ export const DebtContractModal: React.FC = () => {
       }
     }
 
+    let originalCreatedAt = new Date().toISOString();
+    if (editingDebtContractId) {
+      const existing = await db.debtContracts.get(editingDebtContractId);
+      if (existing) {
+        originalCreatedAt = existing.createdAt;
+      }
+      await db.transactions.where('contractId').equals(contractId).delete();
+    }
+
     const contractData = {
       id: contractId,
       title: title.trim(),
@@ -154,10 +196,10 @@ export const DebtContractModal: React.FC = () => {
       startDate,
       category: category || 'Financiamentos & Veículos',
       walletId: selectedWalletId,
-      createdAt: new Date().toISOString(),
+      createdAt: originalCreatedAt,
     };
 
-    await db.debtContracts.add(contractData);
+    await db.debtContracts.put(contractData);
     await db.transactions.bulkAdd(transactionsToInsert);
 
     handleClose();
@@ -167,7 +209,7 @@ export const DebtContractModal: React.FC = () => {
     <Modal
       isOpen={isDebtContractModalOpen}
       onClose={handleClose}
-      title="Novo Financiamento / Contrato de Dívida"
+      title={editingDebtContractId ? "Editar Financiamento / Contrato de Dívida" : "Novo Financiamento / Contrato de Dívida"}
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         
@@ -480,7 +522,7 @@ export const DebtContractModal: React.FC = () => {
             type="submit"
             className="font-bold text-sm bg-[#00FF88] hover:bg-[#00E577] text-[#090D16] shadow-[0_4px_14px_rgba(0,255,136,0.2)] hover:shadow-[0_6px_20px_rgba(0,255,136,0.3)] transition-all duration-300 rounded-xl px-5"
           >
-            <span>Gerar Contrato & Parcelas</span>
+            <span>{editingDebtContractId ? "Salvar Alterações" : "Gerar Contrato & Parcelas"}</span>
           </Button>
         </div>
       </form>

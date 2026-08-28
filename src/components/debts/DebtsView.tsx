@@ -6,7 +6,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { formatBRL, formatPercent } from '../../utils/formatters';
 import { formatDate } from '../../utils/dateUtils';
 import { useAppStore } from '../../store/useAppStore';
-import { Plus, Car, CreditCard, ShieldAlert, CheckCircle2, Calendar, Trash2, Zap } from 'lucide-react';
+import { Plus, Car, CreditCard, ShieldAlert, CheckCircle2, Calendar, Trash2, Zap, Pencil } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const containerVariants = {
@@ -21,7 +21,12 @@ const containerVariants = {
 };
 
 export const DebtsView: React.FC = () => {
-  const { setDebtContractModalOpen, setAmortizacaoModalOpen, setAmortizacaoContractId } = useAppStore();
+  const { 
+    setDebtContractModalOpen, 
+    setAmortizacaoModalOpen, 
+    setAmortizacaoContractId,
+    setEditingDebtContractId
+  } = useAppStore();
   const contracts = useLiveQuery(() => db.debtContracts.toArray(), []) || [];
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
 
@@ -105,12 +110,12 @@ export const DebtsView: React.FC = () => {
         animate="visible"
         className="grid grid-cols-1 md:grid-cols-3 gap-4"
       >
-        <Card className="border-l-4 border-l-[#00FF88]">
+        <Card className="border-l-4 border-l-[#38BDF8]">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold uppercase text-[#94A3B8]">Total em Financiamentos</span>
-            <Car className="w-5 h-5 text-[#00FF88]" />
+            <Car className="w-5 h-5 text-[#38BDF8]" />
           </div>
-          <div className="text-2xl font-black text-[#00FF88]">{formatBRL(totalFinanced)}</div>
+          <div className="text-2xl font-black text-[#38BDF8]">{formatBRL(totalFinanced)}</div>
           <p className="text-xs text-[#64748B] mt-1">{contracts.length} Contrato(s) Cadastrado(s)</p>
         </Card>
 
@@ -159,11 +164,49 @@ export const DebtsView: React.FC = () => {
             const isHouse = /casa|apartamento|apê|habitação|imóvel|lote|terreno/i.test(contract.title) || contract.category === 'Moradia';
             const emoji = isHouse ? '🏠' : '🚗';
 
+            // Cores dinâmicas de acordo com o progresso de quitação
+            let colors = {
+              text: 'text-[#F59E0B]',
+              bg: 'bg-[#F59E0B]/10',
+              border: 'border-[#F59E0B]/20',
+              hoverBorder: 'hover:border-[#F59E0B]/30',
+              btnText: 'text-[#F59E0B]',
+              btnBg: 'bg-[#F59E0B]/10',
+              btnBorder: 'border-[#F59E0B]/20',
+              btnHover: 'hover:bg-[#F59E0B]/20'
+            };
+
+            if (remainingAmount <= 0) {
+              // Quitado
+              colors = {
+                text: 'text-[#10B981]',
+                bg: 'bg-[#10B981]/10',
+                border: 'border-[#10B981]/20',
+                hoverBorder: 'hover:border-[#10B981]/30',
+                btnText: 'text-[#10B981]',
+                btnBg: 'bg-[#10B981]/10',
+                btnBorder: 'border-[#10B981]/20',
+                btnHover: 'hover:bg-[#10B981]/20'
+              };
+            } else if (paidCount > 0) {
+              // Em andamento
+              colors = {
+                text: 'text-[#38BDF8]',
+                bg: 'bg-[#38BDF8]/10',
+                border: 'border-[#38BDF8]/20',
+                hoverBorder: 'hover:border-[#38BDF8]/30',
+                btnText: 'text-[#38BDF8]',
+                btnBg: 'bg-[#38BDF8]/10',
+                btnBorder: 'border-[#38BDF8]/20',
+                btnHover: 'hover:bg-[#38BDF8]/20'
+              };
+            }
+
             return (
-              <Card key={contract.id} className="flex flex-col gap-4 hover:border-[#F59E0B]/30 transition-all">
+              <Card key={contract.id} className={`flex flex-col gap-4 ${colors.hoverBorder} transition-all`}>
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20 flex items-center justify-center text-2xl font-bold shadow-md">
+                    <div className={`w-12 h-12 rounded-2xl ${colors.bg} ${colors.text} border ${colors.border} flex items-center justify-center text-2xl font-bold shadow-md`}>
                       {emoji}
                     </div>
                     <div>
@@ -190,19 +233,37 @@ export const DebtsView: React.FC = () => {
                   <div className="flex items-center gap-4">
                     <div className="flex flex-col items-end">
                       <span className="text-xs text-[#94A3B8] font-semibold uppercase">Saldo Devedor</span>
-                      <span className="text-xl font-black text-[#F59E0B]">{formatBRL(remainingAmount)}</span>
+                      <span className={`text-xl font-black ${colors.text}`}>{formatBRL(remainingAmount)}</span>
                     </div>
+
+                    {remainingAmount > 0 ? (
+                      <button
+                        onClick={() => {
+                          setAmortizacaoContractId(contract.id);
+                          setAmortizacaoModalOpen(true);
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold ${colors.btnText} ${colors.btnBg} border ${colors.btnBorder} ${colors.btnHover} rounded-xl transition-colors`}
+                        title="Amortizar — Pagamento Adiantado"
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        Amortizar
+                      </button>
+                    ) : (
+                      <span className="flex items-center gap-1 px-3 py-1.5 text-xs font-black text-[#10B981] bg-[#10B981]/10 border border-[#10B981]/20 rounded-xl select-none">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Quitado
+                      </span>
+                    )}
 
                     <button
                       onClick={() => {
-                        setAmortizacaoContractId(contract.id);
-                        setAmortizacaoModalOpen(true);
+                        setEditingDebtContractId(contract.id);
+                        setDebtContractModalOpen(true);
                       }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 hover:bg-[#F59E0B]/20 rounded-xl transition-colors"
-                      title="Amortizar — Pagamento Adiantado"
+                      className="p-2 text-[#64748B] hover:text-[#00FF88] hover:bg-[#1E2330] rounded-xl transition-colors"
+                      title="Editar Financiamento"
                     >
-                      <Zap className="w-3.5 h-3.5" />
-                      Amortizar
+                      <Pencil className="w-5 h-5" />
                     </button>
 
                     <button
