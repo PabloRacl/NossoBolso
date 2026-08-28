@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import { Transaction, Category, Wallet, Goal, DebtContract } from '../types';
+import { Transaction, Category, Wallet, Goal, DebtContract, Budget, RecurringTransaction } from '../types';
 
 export class NossoBolsoDB extends Dexie {
   transactions!: Table<Transaction>;
@@ -7,15 +7,19 @@ export class NossoBolsoDB extends Dexie {
   wallets!: Table<Wallet>;
   goals!: Table<Goal>;
   debtContracts!: Table<DebtContract>;
+  budgets!: Table<Budget>;
+  recurringTransactions!: Table<RecurringTransaction>;
 
   constructor() {
     super('nosso-bolso-db');
-    this.version(2).stores({
+    this.version(3).stores({
       transactions: 'id, date, type, category, walletId, isRecurring, contractId',
       categories: 'id, name, type',
       wallets: 'id, name, type',
       goals: 'id, name, deadline',
       debtContracts: 'id, title, startDate, walletId',
+      budgets: 'id, category',
+      recurringTransactions: 'id, category, walletId, dayOfMonth',
     });
   }
 }
@@ -213,3 +217,47 @@ export async function performSeeding(database: NossoBolsoDB, storage: MiniStorag
     storage.setItem(SEED_VERSION_KEY, CURRENT_SEED_VERSION);
   }
 }
+
+export async function processRecurringTransactions() {
+  if (typeof window === 'undefined') return;
+  const now = new Date();
+  const currentMonthKey = now.toISOString().substring(0, 7);
+  const currentDay = now.getDate();
+
+  try {
+    const recurrings = await db.recurringTransactions.toArray();
+
+    for (const item of recurrings) {
+      if (item.lastGeneratedMonth !== currentMonthKey && currentDay >= item.dayOfMonth) {
+        const monthStr = String(now.getMonth() + 1).padStart(2, '0');
+        const dayStr = String(item.dayOfMonth).padStart(2, '0');
+        const txDate = `${now.getFullYear()}-${monthStr}-${dayStr}`;
+
+        const newTx: Transaction = {
+          id: `tx_rec_${item.id}_${currentMonthKey}`,
+          description: `${item.description} (Recorrente)`,
+          amount: item.amount,
+          date: txDate,
+          type: item.type,
+          category: item.category,
+          walletId: item.walletId,
+          isRecurring: true,
+          createdAt: new Date().toISOString(),
+        };
+
+        await db.transactions.add(newTx);
+
+        const wallet = await db.wallets.get(item.walletId);
+        if (wallet) {
+          const delta = item.type === 'income' ? item.amount : -item.amount;
+          await db.wallets.update(item.walletId, { balance: wallet.balance + delta });
+        }
+
+        await db.recurringTransactions.update(item.id, { lastGeneratedMonth: currentMonthKey });
+      }
+    }
+  } catch (err) {
+    console.error('Erro ao processar transações recorrentes:', err);
+  }
+}
+

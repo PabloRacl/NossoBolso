@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, seedInitialData } from './services/db';
+import { db, seedInitialData, processRecurringTransactions } from './services/db';
 import { useAppStore } from './store/useAppStore';
 import { AppLayout } from './components/layout/AppLayout';
 import { StatCards } from './components/dashboard/StatCards';
@@ -11,6 +11,7 @@ import { TransactionTable } from './components/transactions/TransactionTable';
 import { WalletCards } from './components/wallets/WalletCards';
 import { GoalCards } from './components/goals/GoalCards';
 import { ReportsView } from './components/reports/ReportsView';
+import { CalculatorView } from './components/calculator/CalculatorView';
 import { TransactionModal } from './components/transactions/TransactionModal';
 import { WalletModal } from './components/wallets/WalletModal';
 import { GoalModal } from './components/goals/GoalModal';
@@ -19,6 +20,8 @@ import { CategoryModal } from './components/categories/CategoryModal';
 import { DebtsView } from './components/debts/DebtsView';
 import { DebtContractModal } from './components/debts/DebtContractModal';
 import { AmortizacaoModal } from './components/debts/AmortizacaoModal';
+import { AlertsModal } from './components/alerts/AlertsModal';
+import { BudgetModal } from './components/budgets/BudgetModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const pageTransitionVariants = {
@@ -40,7 +43,9 @@ export const App: React.FC = () => {
   const { activePage, selectedMonth, setSelectedMonth } = useAppStore();
 
   useEffect(() => {
-    seedInitialData();
+    seedInitialData().then(() => {
+      processRecurringTransactions();
+    });
   }, []);
 
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
@@ -199,6 +204,8 @@ export const App: React.FC = () => {
           {activePage === 'goals' && <GoalCards goals={goals} />}
 
           {activePage === 'reports' && <ReportsView transactions={transactions} goals={goals} />}
+
+          {activePage === 'calculator' && <CalculatorView />}
         </motion.div>
       </AnimatePresence>
 
@@ -210,6 +217,8 @@ export const App: React.FC = () => {
       <CategoryModal />
       <DebtContractModal />
       <AmortizacaoModal />
+      <AlertsModal />
+      <BudgetModal />
     </AppLayout>
   );
 };

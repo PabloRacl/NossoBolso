@@ -1,15 +1,40 @@
 import React, { useMemo } from 'react';
 import { useAppStore, getCurrentMonthKey } from '../../store/useAppStore';
 import { Button } from '../ui/Button';
-import { Plus, Upload, Calendar, Tag, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { Plus, Upload, Calendar, Tag, ChevronLeft, ChevronRight, Sparkles, Eye, EyeOff, Bell, Target } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../services/db';
 
 export const Topbar: React.FC = () => {
-  const { activePage, setTransactionModalOpen, setOfxModalOpen, selectedMonth, setSelectedMonth } = useAppStore();
+  const {
+    activePage,
+    setTransactionModalOpen,
+    setOfxModalOpen,
+    selectedMonth,
+    setSelectedMonth,
+    isPrivacyMode,
+    togglePrivacyMode,
+    setAlertsModalOpen,
+    setBudgetModalOpen,
+  } = useAppStore();
+
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
 
   const currentMonthKey = getCurrentMonthKey();
+
+  // Quantidade de contas vencendo nos próximos 7 dias para o badge do Sino
+  const upcomingAlertCount = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+
+    return transactions.filter((tx) => {
+      if (tx.type !== 'expense') return false;
+      const txDate = new Date(tx.date + 'T00:00:00');
+      return txDate >= today && txDate <= nextWeek;
+    }).length;
+  }, [transactions]);
 
   // Generate available months list from database transactions
   const availableMonths = useMemo(() => {
@@ -60,6 +85,7 @@ export const Topbar: React.FC = () => {
     debts: { title: 'Financiamentos & Dívidas', subtitle: 'Gestão de contratos parcelados de longo prazo (Veículos, Empréstimos, Imóveis)' },
     goals: { title: 'Metas Financeiras', subtitle: 'Acompanhe seu progresso e conquistas' },
     reports: { title: 'Relatórios & Análises', subtitle: 'Resumo detalhado e exportação de dados' },
+    calculator: { title: 'Calculadora Financeira', subtitle: 'Ferramentas de matemática financeira, juros compostos, amortização e comparador SAC vs PRICE' },
   };
 
   const current = pageTitles[activePage] || { title: 'Nosso Bolso', subtitle: 'Gestão Inteligente' };
@@ -121,6 +147,44 @@ export const Topbar: React.FC = () => {
             </button>
           )}
         </div>
+
+        {/* Botão de Modo Privacidade (Olho) */}
+        <button
+          onClick={togglePrivacyMode}
+          className={`p-2.5 rounded-xl border transition-all ${
+            isPrivacyMode
+              ? 'bg-[#00FF88]/15 text-[#00FF88] border-[#00FF88]/40 shadow-md shadow-[#00FF88]/10'
+              : 'bg-[#162032] text-[#94A3B8] border-[#2E3B52] hover:text-[#F8FAFC]'
+          }`}
+          title={isPrivacyMode ? 'Desativar Modo Privacidade' : 'Ativar Modo Privacidade (Ocultar Valores)'}
+        >
+          {isPrivacyMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
+
+        {/* Botão de Alertas (Sino) com Badge */}
+        <button
+          onClick={() => setAlertsModalOpen(true)}
+          className="relative p-2.5 bg-[#162032] border border-[#2E3B52] rounded-xl text-[#94A3B8] hover:text-[#F8FAFC] transition-all"
+          title="Central de Alertas & Vencimentos"
+        >
+          <Bell className="w-4 h-4 text-[#F59E0B]" />
+          {upcomingAlertCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#EF4444] text-white text-[9px] font-black rounded-full flex items-center justify-center border border-[#0D1424] animate-pulse">
+              {upcomingAlertCount}
+            </span>
+          )}
+        </button>
+
+        {/* Botão de Orçamentos (Alvo) */}
+        <Button
+          variant="outline"
+          onClick={() => setBudgetModalOpen(true)}
+          className="bg-[#162032] border-[#2E3B52]"
+          title="Definir Orçamento por Categoria"
+        >
+          <Target className="w-4 h-4 text-[#00FF88]" />
+          <span>Orçamento</span>
+        </Button>
 
         <Button
           variant="outline"

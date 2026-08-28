@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Transaction } from '../../types';
 import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
+import { Button } from '../ui/Button';
 import { formatBRL } from '../../utils/formatters';
 import { formatDate } from '../../utils/dateUtils';
 import { useAppStore } from '../../store/useAppStore';
-import { Search, Trash2, Edit3, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Search, Trash2, Edit3, ArrowUpRight, ArrowDownRight, Download } from 'lucide-react';
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -13,7 +14,7 @@ interface TransactionTableProps {
 }
 
 export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, onDelete }) => {
-  const { searchQuery, setSearchQuery, setEditingTransactionId, setTransactionModalOpen } = useAppStore();
+  const { searchQuery, setSearchQuery, setEditingTransactionId, setTransactionModalOpen, isPrivacyMode } = useAppStore();
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
 
   const filtered = transactions.filter((tx) => {
@@ -32,6 +33,27 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
   const handleEdit = (id: string) => {
     setEditingTransactionId(id);
     setTransactionModalOpen(true);
+  };
+
+  const handleExportCSV = () => {
+    const headers = ['ID', 'Descricao', 'Tipo', 'Categoria', 'Data', 'Valor (R$)'];
+    const rows = filtered.map((tx) => [
+      tx.id,
+      `"${tx.description.replace(/"/g, '""')}"`,
+      tx.type === 'income' ? 'Receita' : 'Despesa',
+      `"${tx.category.replace(/"/g, '""')}"`,
+      tx.date,
+      tx.amount.toFixed(2),
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(';'), ...rows.map((e) => e.join(';'))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `transacoes_nossobolso_${new Date().toISOString().substring(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -71,13 +93,25 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
           </button>
         </div>
 
-        <div className="w-full sm:w-72">
-          <Input
-            placeholder="🔍 Buscar por descrição ou categoria..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            icon={<Search className="w-4 h-4" />}
-          />
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="w-full sm:w-64">
+            <Input
+              placeholder="🔍 Buscar transação..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              icon={<Search className="w-4 h-4" />}
+            />
+          </div>
+
+          <Button
+            variant="outline"
+            onClick={handleExportCSV}
+            className="bg-[#162032] border-[#2E3B52] shrink-0"
+            title="Exportar dados para Excel/CSV"
+          >
+            <Download className="w-4 h-4 text-[#00FF88]" />
+            <span>Exportar CSV</span>
+          </Button>
         </div>
       </div>
 
@@ -125,7 +159,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
                         tx.type === 'income' ? 'text-[#10B981]' : 'text-[#FF4D6D]'
                       }`}
                     >
-                      {tx.type === 'income' ? '+' : '-'} {formatBRL(tx.amount)}
+                      {tx.type === 'income' ? '+' : '-'} {formatBRL(tx.amount, isPrivacyMode)}
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <div className="flex items-center justify-center gap-2">

@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Transaction, Goal } from '../../types';
 import { formatBRL } from '../../utils/formatters';
 import { formatDate } from '../../utils/dateUtils';
+import { useAppStore } from '../../store/useAppStore';
 import { Download, Printer, FileSpreadsheet } from 'lucide-react';
 
 interface ReportsViewProps {
@@ -12,6 +13,7 @@ interface ReportsViewProps {
 }
 
 export const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals }) => {
+  const { isPrivacyMode } = useAppStore();
   const totalIncome = transactions.filter((t) => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
   const totalExpense = transactions.filter((t) => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
   const totalBalance = totalIncome - totalExpense;
@@ -32,6 +34,27 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals })
     URL.revokeObjectURL(url);
   };
 
+  const handleExportCSV = () => {
+    const headers = ['ID', 'Descricao', 'Tipo', 'Categoria', 'Data', 'Valor (R$)'];
+    const rows = transactions.map((tx) => [
+      tx.id,
+      `"${tx.description.replace(/"/g, '""')}"`,
+      tx.type === 'income' ? 'Receita' : 'Despesa',
+      `"${tx.category.replace(/"/g, '""')}"`,
+      tx.date,
+      tx.amount.toFixed(2),
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(';'), ...rows.map((e) => e.join(';'))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `relatorio_nossobolso_${new Date().toISOString().substring(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handlePrintPDF = () => {
     window.print();
   };
@@ -42,8 +65,12 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals })
       <div className="flex items-center justify-between">
         <h3 className="text-[#F8FAFC] font-extrabold text-lg">Relatório Financeiro Geral</h3>
         <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={handleExportCSV}>
+            <FileSpreadsheet className="w-4 h-4 text-[#00FF88]" />
+            <span>Exportar CSV</span>
+          </Button>
           <Button variant="outline" onClick={handleExportJSON}>
-            <Download className="w-4 h-4 text-[#00FF88]" />
+            <Download className="w-4 h-4 text-[#06B6D4]" />
             <span>Exportar JSON</span>
           </Button>
           <Button variant="primary" onClick={handlePrintPDF}>
@@ -57,16 +84,16 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals })
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-l-4 border-l-[#10B981]">
           <span className="text-xs font-semibold text-[#94A3B8] uppercase">Receitas Totais</span>
-          <div className="text-2xl font-extrabold text-[#10B981] mt-1">{formatBRL(totalIncome)}</div>
+          <div className="text-2xl font-extrabold text-[#10B981] mt-1">{formatBRL(totalIncome, isPrivacyMode)}</div>
         </Card>
         <Card className="border-l-4 border-l-[#EF4444]">
           <span className="text-xs font-semibold text-[#94A3B8] uppercase">Despesas Totais</span>
-          <div className="text-2xl font-extrabold text-[#EF4444] mt-1">{formatBRL(totalExpense)}</div>
+          <div className="text-2xl font-extrabold text-[#EF4444] mt-1">{formatBRL(totalExpense, isPrivacyMode)}</div>
         </Card>
         <Card className="border-l-4 border-l-[#00FF88]">
           <span className="text-xs font-semibold text-[#94A3B8] uppercase">Balanço Acumulado</span>
           <div className={`text-2xl font-extrabold mt-1 ${totalBalance >= 0 ? 'text-[#00FF88]' : 'text-red-400'}`}>
-            {formatBRL(totalBalance)}
+            {formatBRL(totalBalance, isPrivacyMode)}
           </div>
         </Card>
       </div>
@@ -114,7 +141,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals })
                         tx.type === 'income' ? 'text-[#10B981]' : 'text-[#EF4444]'
                       }`}
                     >
-                      {tx.type === 'income' ? '+' : '-'} {formatBRL(tx.amount)}
+                      {tx.type === 'income' ? '+' : '-'} {formatBRL(tx.amount, isPrivacyMode)}
                     </td>
                   </tr>
                 ))

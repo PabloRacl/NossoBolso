@@ -83,3 +83,21 @@ export interface OFXTransaction {
   description: string;
   suggestedCategory: string;
 }
+
+export interface Budget {
+  id: string;
+  category: string;
+  monthlyLimit: number;
+}
+
+export interface RecurringTransaction {
+  id: string;
+  description: string;
+  amount: number;
+  type: TransactionType;
+  category: string;
+  walletId: string;
+  dayOfMonth: number; // 1 a 31
+  lastGeneratedMonth?: string; // YYYY-MM
+}
+

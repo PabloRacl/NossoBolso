@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type PageType = 'dashboard' | 'transactions' | 'wallets' | 'debts' | 'goals' | 'reports';
+export type PageType = 'dashboard' | 'transactions' | 'wallets' | 'debts' | 'goals' | 'reports' | 'calculator';
 
 interface AppStore {
   activePage: PageType;
@@ -27,6 +27,16 @@ interface AppStore {
   setAmortizacaoModalOpen: (open: boolean) => void;
   amortizacaoContractId: string | null;
   setAmortizacaoContractId: (id: string | null) => void;
+  isAlertsModalOpen: boolean;
+  setAlertsModalOpen: (open: boolean) => void;
+  isBudgetModalOpen: boolean;
+  setBudgetModalOpen: (open: boolean) => void;
+  isRecurringModalOpen: boolean;
+  setRecurringModalOpen: (open: boolean) => void;
+
+  // Privacy Mode
+  isPrivacyMode: boolean;
+  togglePrivacyMode: () => void;
 
   // Editing targets
   editingTransactionId: string | null;
@@ -64,6 +74,15 @@ export const useAppStore = create<AppStore>((set) => ({
   setAmortizacaoModalOpen: (open) => set({ isAmortizacaoModalOpen: open }),
   amortizacaoContractId: null,
   setAmortizacaoContractId: (id) => set({ amortizacaoContractId: id }),
+  isAlertsModalOpen: false,
+  setAlertsModalOpen: (open) => set({ isAlertsModalOpen: open }),
+  isBudgetModalOpen: false,
+  setBudgetModalOpen: (open) => set({ isBudgetModalOpen: open }),
+  isRecurringModalOpen: false,
+  setRecurringModalOpen: (open) => set({ isRecurringModalOpen: open }),
+
+  isPrivacyMode: false,
+  togglePrivacyMode: () => set((state) => ({ isPrivacyMode: !state.isPrivacyMode })),
 
   editingTransactionId: null,
   setEditingTransactionId: (id) => set({ editingTransactionId: id }),

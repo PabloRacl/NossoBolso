@@ -4,6 +4,8 @@ import { formatBRL, formatPercent } from '../../utils/formatters';
 import { Wallet, TrendingUp, TrendingDown, PiggyBank, CreditCard, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+import { useAppStore } from '../../store/useAppStore';
+
 interface StatCardsProps {
   totalBalance: number;
   totalDebt: number;
@@ -36,6 +38,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
   totalExpense,
   periodLabel,
 }) => {
+  const { isPrivacyMode } = useAppStore();
   const periodSavings = periodIncome - periodExpense;
   const savingsPercent = periodIncome > 0 ? (periodSavings / periodIncome) * 100 : 0;
   const netWorth = totalBalance - totalDebt;
@@ -67,7 +70,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
           </div>
         </div>
         <div className="text-2xl font-black text-[#00FF88] tracking-tight drop-shadow-[0_2px_10px_rgba(0,255,136,0.2)]">
-          {formatBRL(netWorth)}
+          {formatBRL(netWorth, isPrivacyMode)}
         </div>
         <p className="text-[11px] text-[#94A3B8] mt-1.5 font-medium leading-tight">
           Acumulado em todas as contas (Bancos + Investimentos)
@@ -85,11 +88,11 @@ export const StatCards: React.FC<StatCardsProps> = ({
           </div>
         </div>
         <div className="text-2xl font-black text-[#10B981] tracking-tight drop-shadow-[0_2px_10px_rgba(16,185,129,0.2)]">
-          {formatBRL(periodIncome)}
+          {formatBRL(periodIncome, isPrivacyMode)}
         </div>
         <div className="mt-1.5 flex flex-col text-[11px] font-medium">
           <span className="text-[#F8FAFC] font-semibold">{periodLabel}</span>
-          <span className="text-[#94A3B8]">Total Histórico: {formatBRL(totalIncome)}</span>
+          <span className="text-[#94A3B8]">Total Histórico: {formatBRL(totalIncome, isPrivacyMode)}</span>
         </div>
       </Card>
 
@@ -104,11 +107,11 @@ export const StatCards: React.FC<StatCardsProps> = ({
           </div>
         </div>
         <div className="text-2xl font-black text-[#FF4D6D] tracking-tight drop-shadow-[0_2px_10px_rgba(255,77,109,0.2)]">
-          {formatBRL(periodExpense)}
+          {formatBRL(periodExpense, isPrivacyMode)}
         </div>
         <div className="mt-1.5 flex flex-col text-[11px] font-medium">
           <span className="text-[#F8FAFC] font-semibold">{periodLabel}</span>
-          <span className="text-[#94A3B8]">Total Histórico: {formatBRL(totalExpense)}</span>
+          <span className="text-[#94A3B8]">Total Histórico: {formatBRL(totalExpense, isPrivacyMode)}</span>
         </div>
       </Card>
 
@@ -123,7 +126,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
           </div>
         </div>
         <div className="text-2xl font-black text-[#F59E0B] tracking-tight drop-shadow-[0_2px_10px_rgba(245,158,11,0.2)]">
-          {formatBRL(totalDebt)}
+          {formatBRL(totalDebt, isPrivacyMode)}
         </div>
         <p className="text-[11px] text-[#94A3B8] mt-1.5 font-medium leading-tight">
           Saldo devedor em cartões e lançamentos em dívidas
@@ -141,7 +144,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
           </div>
         </div>
         <div className={`text-2xl font-black tracking-tight drop-shadow-md ${periodSavings >= 0 ? 'text-[#06B6D4]' : 'text-red-400'}`}>
-          {formatBRL(periodSavings)}
+          {formatBRL(periodSavings, isPrivacyMode)}
         </div>
         <p className="text-[11px] text-[#94A3B8] mt-1.5 font-medium">
           {formatPercent(savingsPercent)} da receita do período salva
