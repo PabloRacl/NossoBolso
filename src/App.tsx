@@ -54,6 +54,18 @@ export const App: React.FC = () => {
     });
   }, []);
 
+  // Ouvinte global do atalho Ctrl + K / Cmd + K para busca rápida
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen(!useAppStore.getState().isCommandPaletteOpen);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [setCommandPaletteOpen]);
+
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
   const wallets = useLiveQuery(() => db.wallets.toArray(), []) || [];
   const goals = useLiveQuery(() => db.goals.toArray(), []) || [];

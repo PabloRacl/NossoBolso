@@ -18,6 +18,7 @@ export const Topbar: React.FC = () => {
     setAlertsModalOpen,
     setBudgetModalOpen,
     toggleMobileMenu,
+    setCommandPaletteOpen,
   } = useAppStore();
 
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
@@ -179,8 +180,8 @@ export const Topbar: React.FC = () => {
 
         {/* Botão de Busca / Command Palette (Ctrl+K) */}
         <button
-          onClick={() => useAppStore.getState().setCommandPaletteOpen(true)}
-          className="flex items-center gap-2 px-3 py-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-xs font-semibold text-[#94A3B8] hover:text-[#F8FAFC] hover:border-[#00FF88]/40 transition-all group"
+          onClick={() => setCommandPaletteOpen(true)}
+          className="flex items-center gap-2 px-3 py-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-xs font-semibold text-[#94A3B8] hover:text-[#F8FAFC] hover:border-[#00FF88]/40 transition-all group cursor-pointer"
           title="Abrir Busca Rápida (Ctrl + K)"
         >
           <Search className="w-3.5 h-3.5 text-[#00FF88] group-hover:scale-110 transition-transform" />
