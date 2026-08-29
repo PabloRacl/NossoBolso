@@ -114,18 +114,23 @@ export interface PantryItem {
 }
 
 export type VehicleRecordType = 'refuel' | 'maintenance' | 'tax' | 'insurance';
+export type ComponentCategory = 'oil' | 'timing_belt' | 'tires' | 'brakes' | 'spark_plugs' | 'filters' | 'coolant' | 'battery' | 'general';
 
 export interface VehicleRecord {
   id: string;
-  vehicleName: string; // Ex: 'Honda Civic', 'Corolla'
+  vehicleName: string; // Ex: 'Chevrolet Onix 1.0 LT 2017/2018'
   type: VehicleRecordType;
+  componentCategory?: ComponentCategory;
   date: string; // YYYY-MM-DD
   odometerKm: number; // Quilometragem atual
   totalCost: number; // Valor em R$
   liters?: number; // Para abastecimentos
   pricePerLiter?: number; // Preço do litro
   fuelType?: 'gasoline' | 'ethanol' | 'diesel' | 'gnv';
-  description?: string; // Ex: 'Troca de Óleo 10.000 KM', 'IPVA 2026'
+  description?: string; // Ex: 'Troca de Óleo ACDelco 5W30', 'IPVA 2026'
+  partNumber?: string; // Código/Modelo da peça (ex: ACDelco 88905845 / NGK BR7ES-D)
+  nextDueKm?: number; // Próxima troca em KM (ex: 55400 KM)
+  nextDueDate?: string; // Próxima data de revisão (ex: 2027-08-15)
   walletId?: string; // Carteira usada para o pagamento
   createdAt: string;
 }
