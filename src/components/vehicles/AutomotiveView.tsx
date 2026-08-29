@@ -41,6 +41,7 @@ const COMPONENT_KM_LIMITS: Record<ComponentCategory, { name: string; icon: strin
 };
 
 import { VehicleModal } from './VehicleModal';
+import { EditComponentSpecModal } from './EditComponentSpecModal';
 import { Vehicle } from '../../types';
 
 export const AutomotiveView: React.FC = () => {
@@ -53,6 +54,10 @@ export const AutomotiveView: React.FC = () => {
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('veh_onix');
 
+  // Modal de Edição de Especificação de Componente
+  const [isEditSpecModalOpen, setIsEditSpecModalOpen] = useState(false);
+  const [selectedCategoryToEdit, setSelectedCategoryToEdit] = useState<ComponentCategory>('oil');
+
   // Calculadora Flex Etanol vs Gasolina
   const [gasolinePrice, setGasolinePrice] = useState('5.79');
   const [ethanolPrice, setEthanolPrice] = useState('3.89');
@@ -61,6 +66,7 @@ export const AutomotiveView: React.FC = () => {
   const records = useLiveQuery(() => db.vehicleRecords.toArray(), []) || [];
   const wallets = useLiveQuery(() => db.wallets.toArray(), []) || [];
   const vehiclesList = useLiveQuery(() => db.vehicles.toArray(), []) || [];
+  const customSpecs = useLiveQuery(() => db.componentSpecs.toArray(), []) || [];
 
   const currentVehicle = vehiclesList.find((v) => v.id === selectedVehicleId) || vehiclesList[0];
 
@@ -77,9 +83,10 @@ export const AutomotiveView: React.FC = () => {
 
   // Current Odometer Max KM
   const currentOdometer = useMemo(() => {
-    if (records.length === 0) return 45400; // Valor padrão para Onix LT 2017/2018
+    if (currentVehicle?.odometerKm) return currentVehicle.odometerKm;
+    if (records.length === 0) return 45400;
     return Math.max(...records.map((r) => r.odometerKm));
-  }, [records]);
+  }, [records, currentVehicle]);
 
   // Refuel records sorted ascending by date to compute KM/L between fills
   const refuelEfficiencyData = useMemo(() => {
@@ -142,16 +149,22 @@ export const AutomotiveView: React.FC = () => {
 
     return categoriesList.map((catKey) => {
       const config = COMPONENT_KM_LIMITS[catKey];
+      const spec = customSpecs.find((s) => s.vehicleId === (currentVehicle?.id || 'veh_onix') && s.category === catKey);
+
+      const name = spec?.name || config.name;
+      const kmInterval = spec?.kmInterval || config.kmInterval;
+      const recommendedPart = spec?.recommendedPart || config.recommendedPart;
+
       const catRecords = records
         .filter((r) => r.type === 'maintenance' && r.componentCategory === catKey)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       const lastRecord = catRecords[0];
-      const lastKm = lastRecord ? lastRecord.odometerKm : 35400; // Valor padrão histórico
+      const lastKm = spec?.lastKmOverride !== undefined ? spec.lastKmOverride : (lastRecord ? lastRecord.odometerKm : 35400);
       const kmRun = Math.max(currentOdometer - lastKm, 0);
-      const pctUsed = Math.min(Math.round((kmRun / config.kmInterval) * 100), 100);
+      const pctUsed = Math.min(Math.round((kmRun / kmInterval) * 100), 100);
 
-      const nextDueKm = lastRecord?.nextDueKm || lastKm + config.kmInterval;
+      const nextDueKm = lastRecord?.nextDueKm || lastKm + kmInterval;
       const kmRemaining = Math.max(nextDueKm - currentOdometer, 0);
 
       const isUrgent = kmRemaining <= 500;
@@ -159,6 +172,10 @@ export const AutomotiveView: React.FC = () => {
 
       return {
         catKey,
+        name,
+        kmInterval,
+        recommendedPart,
+        spec,
         config,
         lastRecord,
         lastKm,
@@ -170,7 +187,7 @@ export const AutomotiveView: React.FC = () => {
         isWarning,
       };
     });
-  }, [records, currentOdometer]);
+  }, [records, currentOdometer, customSpecs, currentVehicle]);
 
   // Calculadora Flex Etanol vs Gasolina Calculation
   const flexCalc = useMemo(() => {
@@ -205,6 +222,24 @@ export const AutomotiveView: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 w-full animate-fadeIn">
+      {/* Modal de Personalização de Especificações de Componente */}
+      <EditComponentSpecModal
+        isOpen={isEditSpecModalOpen}
+        onClose={() => setIsEditSpecModalOpen(false)}
+        vehicleId={currentVehicle?.id || 'veh_onix'}
+        vehicleName={currentVehicle?.name || 'Chevrolet Onix 1.0 LT (2017/2018)'}
+        category={selectedCategoryToEdit}
+        defaultName={COMPONENT_KM_LIMITS[selectedCategoryToEdit]?.name || ''}
+        defaultKmInterval={COMPONENT_KM_LIMITS[selectedCategoryToEdit]?.kmInterval || 10000}
+        defaultPart={COMPONENT_KM_LIMITS[selectedCategoryToEdit]?.recommendedPart || ''}
+        currentLastKm={
+          records
+            .filter((r) => r.type === 'maintenance' && r.componentCategory === selectedCategoryToEdit)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.odometerKm || 35400
+        }
+        existingSpec={customSpecs.find((s) => s.vehicleId === (currentVehicle?.id || 'veh_onix') && s.category === selectedCategoryToEdit)}
+      />
+
       {/* Modal de Cadastro/Edição da Ficha do Veículo */}
       <VehicleModal
         isOpen={isVehicleModalOpen}
@@ -452,8 +487,20 @@ export const AutomotiveView: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-xl">{item.config.icon}</span>
                   <div className="flex flex-col">
-                    <span className="text-xs font-black text-[#F8FAFC]">{item.config.name}</span>
-                    <span className="text-[10px] text-[#94A3B8]">Intervalo: {item.config.kmInterval.toLocaleString('pt-BR')} KM</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-black text-[#F8FAFC]">{item.name}</span>
+                      <button
+                        onClick={() => {
+                          setSelectedCategoryToEdit(item.catKey);
+                          setIsEditSpecModalOpen(true);
+                        }}
+                        className="text-[#00FF88] hover:text-[#06B6D4] p-0.5 transition-colors cursor-pointer"
+                        title="Editar nome, limite em KM ou código da peça recomendada"
+                      >
+                        <Wrench className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <span className="text-[10px] text-[#94A3B8]">Intervalo: {item.kmInterval.toLocaleString('pt-BR')} KM</span>
                   </div>
                 </div>
 
@@ -487,15 +534,26 @@ export const AutomotiveView: React.FC = () => {
               </div>
 
               <div className="text-[10px] text-[#94A3B8] font-medium bg-[#0A0B0E] p-2 rounded-lg border border-[#1E2330] flex flex-col gap-1.5">
-                <div>
-                  <strong className="text-[#F8FAFC]">Peça Recomendada:</strong> {item.config.recommendedPart}
+                <div className="flex items-start justify-between gap-1">
+                  <div>
+                    <strong className="text-[#F8FAFC]">Peça Recomendada:</strong> {item.recommendedPart}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedCategoryToEdit(item.catKey);
+                      setIsEditSpecModalOpen(true);
+                    }}
+                    className="text-[9px] font-bold text-[#00FF88] hover:underline shrink-0"
+                  >
+                    ✏️ Editar
+                  </button>
                 </div>
                 <div className="flex items-center justify-between pt-1 border-t border-[#1E293B]">
                   <span className="text-[9px] font-bold text-[#64748B]">Consultar Externa:</span>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => {
-                        const q = encodeURIComponent(`peca chevrolet onix 1.0 2017 2018 ${item.config.name} ${item.config.recommendedPart}`);
+                        const q = encodeURIComponent(`peca ${currentVehicle?.name || 'onix'} ${item.name} ${item.recommendedPart}`);
                         window.open(`https://www.google.com/search?q=${q}`, '_blank');
                       }}
                       className="text-[10px] font-bold text-[#06B6D4] hover:underline cursor-pointer"
@@ -505,7 +563,7 @@ export const AutomotiveView: React.FC = () => {
                     </button>
                     <button
                       onClick={() => {
-                        const q = encodeURIComponent(`peca chevrolet onix 1.0 2017 2018 ${item.config.name} ${item.config.recommendedPart}`);
+                        const q = encodeURIComponent(`peca ${currentVehicle?.name || 'onix'} ${item.name} ${item.recommendedPart}`);
                         window.open(`https://lista.mercadolivre.com.br/${q}`, '_blank');
                       }}
                       className="text-[10px] font-bold text-[#F59E0B] hover:underline cursor-pointer"

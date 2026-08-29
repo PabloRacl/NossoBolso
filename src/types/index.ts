@@ -129,6 +129,16 @@ export interface Vehicle {
   createdAt: string;
 }
 
+export interface ComponentSpec {
+  id: string; // Ex: 'comp_oil_veh_onix'
+  vehicleId: string;
+  category: ComponentCategory;
+  name: string;
+  kmInterval: number;
+  recommendedPart: string;
+  lastKmOverride?: number;
+}
+
 export type VehicleRecordType = 'refuel' | 'maintenance' | 'tax' | 'insurance';
 export type ComponentCategory = 'oil' | 'timing_belt' | 'tires' | 'brakes' | 'spark_plugs' | 'filters' | 'coolant' | 'battery' | 'general';
 

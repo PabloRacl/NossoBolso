@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import { Transaction, Category, Wallet, Goal, DebtContract, Budget, RecurringTransaction, PantryItem, VehicleRecord, Vehicle } from '../types';
+import { Transaction, Category, Wallet, Goal, DebtContract, Budget, RecurringTransaction, PantryItem, VehicleRecord, Vehicle, ComponentSpec } from '../types';
 
 export class NossoBolsoDB extends Dexie {
   transactions!: Table<Transaction>;
@@ -12,10 +12,11 @@ export class NossoBolsoDB extends Dexie {
   pantryItems!: Table<PantryItem>;
   vehicleRecords!: Table<VehicleRecord>;
   vehicles!: Table<Vehicle>;
+  componentSpecs!: Table<ComponentSpec>;
 
   constructor() {
     super('nosso-bolso-db');
-    this.version(6).stores({
+    this.version(7).stores({
       transactions: 'id, date, type, category, walletId, isRecurring, contractId',
       categories: 'id, name, type',
       wallets: 'id, name, type',
@@ -26,6 +27,7 @@ export class NossoBolsoDB extends Dexie {
       pantryItems: 'id, name, category',
       vehicleRecords: 'id, vehicleName, vehicleId, type, date',
       vehicles: 'id, name, isMain',
+      componentSpecs: 'id, vehicleId, category',
     });
   }
 }
