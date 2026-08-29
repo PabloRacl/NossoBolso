@@ -116,6 +116,7 @@ export interface PantryItem {
 export interface Vehicle {
   id: string;
   name: string; // Ex: 'Chevrolet Onix 1.0 LT (2017/2018)'
+  icon?: string; // Ex: '🚗', '🏍️', '🛻', '🚛', '🛵'
   plate?: string; // Ex: 'ABC-1234'
   yearModel?: string; // Ex: '2017/2018'
   odometerKm: number; // Odômetro atual em KM

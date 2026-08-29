@@ -16,6 +16,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
   editingVehicle,
 }) => {
   const [name, setName] = useState('');
+  const [icon, setIcon] = useState('🚗');
   const [plate, setPlate] = useState('');
   const [yearModel, setYearModel] = useState('');
   const [odometerKm, setOdometerKm] = useState('0');
@@ -27,6 +28,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
   useEffect(() => {
     if (editingVehicle && isOpen) {
       setName(editingVehicle.name);
+      setIcon(editingVehicle.icon || '🚗');
       setPlate(editingVehicle.plate || '');
       setYearModel(editingVehicle.yearModel || '');
       setOdometerKm(editingVehicle.odometerKm.toString());
@@ -36,6 +38,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
       setFuelType(editingVehicle.fuelType || 'flex');
     } else if (isOpen && !editingVehicle) {
       setName('');
+      setIcon('🚗');
       setPlate('');
       setYearModel('');
       setOdometerKm('0');
@@ -58,6 +61,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
       // Atualizar Veículo Existente
       await db.vehicles.update(editingVehicle.id, {
         name: name.trim(),
+        icon,
         plate: plate.trim() || undefined,
         yearModel: yearModel.trim() || undefined,
         odometerKm: km,
@@ -72,6 +76,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
       await db.vehicles.add({
         id: targetId,
         name: name.trim(),
+        icon,
         plate: plate.trim() || undefined,
         yearModel: yearModel.trim() || undefined,
         odometerKm: km,
@@ -94,6 +99,35 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
       title={editingVehicle ? `Editar Ficha do Veículo` : 'Cadastrar Novo Veículo na Garagem'}
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
+        {/* Seletor de Ícone do Veículo */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-bold text-[#94A3B8] uppercase">Ícone / Categoria do Veículo</label>
+          <div className="flex items-center gap-2">
+            {[
+              { id: '🚗', label: 'Carro' },
+              { id: '🛻', label: 'Picape/SUV' },
+              { id: '🏍️', label: 'Moto' },
+              { id: '🛵', label: 'Scooter' },
+              { id: '🚛', label: 'Van/Caminhão' },
+              { id: '🏎️', label: 'Esportivo' },
+            ].map((ic) => (
+              <button
+                key={ic.id}
+                type="button"
+                onClick={() => setIcon(ic.id)}
+                className={`flex-1 h-11 text-xl rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                  icon === ic.id
+                    ? 'bg-[#00FF88]/20 border-[#00FF88] shadow-[0_0_12px_rgba(0,255,136,0.3)] scale-105'
+                    : 'bg-[#0A0B0E] border-[#2E3B52] hover:border-[#94A3B8]'
+                }`}
+                title={ic.label}
+              >
+                {ic.id}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Nome do Veículo & Placa */}
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">

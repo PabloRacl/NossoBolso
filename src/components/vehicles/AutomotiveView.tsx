@@ -187,6 +187,16 @@ export const AutomotiveView: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const handleDeleteVehicle = async (id: string, name: string) => {
+    if (vehiclesList.length <= 1) {
+      alert('Você precisa ter pelo menos um veículo cadastrado na garagem.');
+      return;
+    }
+    if (confirm(`Tem certeza que deseja excluir o veículo "${name}" da sua garagem?`)) {
+      await db.vehicles.delete(id);
+    }
+  };
+
   const handleDeleteRecord = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir este registro automotivo?')) {
       await db.vehicleRecords.delete(id);
@@ -219,98 +229,141 @@ export const AutomotiveView: React.FC = () => {
         editingRecord={editingRecord}
       />
 
-      {/* HEADER FICHA TÉCNICA DO VEÍCULO DA GARAGEM */}
-      <div className="cyber-hud-card hud-corner p-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 border border-[#00FF88]/40 shadow-[0_0_30px_rgba(0,255,136,0.12)]">
-        <div className="flex items-center gap-4">
-          <div className="p-4 bg-gradient-to-br from-[#00FF88]/20 via-[#06B6D4]/20 to-[#3B82F6]/20 text-[#00FF88] rounded-2xl border border-[#00FF88]/50 shadow-[0_0_20px_rgba(0,255,136,0.25)]">
-            <Car className="w-9 h-9" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Seletor Multi-Veículos */}
-              <select
-                value={selectedVehicleId}
-                onChange={(e) => {
-                  if (e.target.value === 'new') {
-                    setEditingVehicle(null);
-                    setIsVehicleModalOpen(true);
-                  } else {
-                    setSelectedVehicleId(e.target.value);
-                  }
-                }}
-                className="bg-[#0A0B0E] border border-[#00FF88]/50 text-[#F8FAFC] text-base font-black px-3 py-1.5 rounded-xl focus:outline-none cursor-pointer hover:border-[#00FF88]"
-              >
-                {vehiclesList.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    🚗 {v.name} {v.plate ? `(${v.plate})` : ''}
-                  </option>
-                ))}
-                <option value="new">➕ Cadastrar Novo Veículo...</option>
-              </select>
-
-              <button
-                onClick={() => {
-                  setEditingVehicle(currentVehicle || null);
-                  setIsVehicleModalOpen(true);
-                }}
-                className="p-2 bg-[#00FF88]/10 text-[#00FF88] hover:bg-[#00FF88]/20 rounded-xl border border-[#00FF88]/30 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all"
-                title="Editar especificações e odômetro deste veículo"
-              >
-                <Wrench className="w-3.5 h-3.5" />
-                <span>Editar Veículo</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setEditingVehicle(null);
-                  setIsVehicleModalOpen(true);
-                }}
-                className="p-2 bg-[#06B6D4]/10 text-[#06B6D4] hover:bg-[#06B6D4]/20 rounded-xl border border-[#06B6D4]/30 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all"
-                title="Cadastrar mais um carro ou moto na garagem"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Novo Veículo</span>
-              </button>
+      {/* 🚘 PAINEL VISUAL DA GARAGEM & FROTA (CARDS INTERATIVOS DE VEÍCULOS) */}
+      <div className="cyber-hud-card hud-corner p-5 flex flex-col gap-4 border border-[#00FF88]/40 shadow-[0_0_30px_rgba(0,255,136,0.12)]">
+        <div className="flex items-center justify-between border-b border-[#2E3B52]/80 pb-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-[#00FF88]/15 text-[#00FF88] rounded-xl border border-[#00FF88]/30">
+              <Car className="w-5 h-5 text-[#00FF88]" />
             </div>
-
-            <p className="text-xs text-[#94A3B8] font-semibold flex flex-wrap items-center gap-2 mt-1">
-              <span>{currentVehicle?.engineSpecs || '1.0 SPE/4 Eco (80 cv) • Câmbio 6M'}</span>
-              <span>•</span>
-              <span className="text-[#00FF88] font-extrabold">Óleo: {currentVehicle?.recommendedOil || '5W30 Dexos1 Gen2 (3.5L)'}</span>
-              <span>•</span>
-              <span>Pneus: {currentVehicle?.tireSpecs || '185/65 R15 (35 PSI)'}</span>
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
-          <div
-            onClick={() => {
-              setEditingVehicle(currentVehicle);
-              setIsVehicleModalOpen(true);
-            }}
-            className="px-4 py-2 bg-[#090D18] border border-[#00FF88]/40 hover:border-[#00FF88] rounded-xl flex flex-col items-end cursor-pointer group transition-all"
-            title="Clique para editar a quilometragem atual do odômetro"
-          >
-            <span className="text-[10px] font-extrabold uppercase text-[#94A3B8] group-hover:text-[#00FF88]">
-              Odômetro Atual ✏️
-            </span>
-            <span className="text-lg font-black text-[#00FF88]">
-              {(currentVehicle?.odometerKm || currentOdometer).toLocaleString('pt-BR')} KM
-            </span>
+            <div>
+              <h3 className="text-sm font-black text-[#F8FAFC] tracking-tight flex items-center gap-2">
+                GARAGEM & FROTA DE VEÍCULOS
+                <span className="text-[10px] bg-[#00FF88]/15 text-[#00FF88] border border-[#00FF88]/30 px-2 py-0.5 rounded-full font-extrabold">
+                  {vehiclesList.length} Veículo{vehiclesList.length > 1 ? 's' : ''}
+                </span>
+              </h3>
+              <p className="text-[11px] text-[#94A3B8] font-semibold">Selecione o veículo ativo para visualizar telemetria, custos e saúde dos componentes</p>
+            </div>
           </div>
 
           <Button
             variant="primary"
+            size="sm"
             onClick={() => {
               setEditingRecord(null);
               setIsModalOpen(true);
             }}
-            className="px-4 py-3"
           >
             <Plus className="w-4 h-4" />
             <span>Novo Serviço / Abastecimento</span>
           </Button>
+        </div>
+
+        {/* Grade de Cards de Veículos */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {vehiclesList.map((veh) => {
+            const isSelected = veh.id === selectedVehicleId;
+
+            return (
+              <div
+                key={veh.id}
+                onClick={() => setSelectedVehicleId(veh.id)}
+                className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-3 relative overflow-hidden ${
+                  isSelected
+                    ? 'bg-gradient-to-br from-[#0D1627] via-[#090D18] to-[#060A14] border-[#00FF88] shadow-[0_0_25px_rgba(0,255,136,0.2)] scale-[1.01]'
+                    : 'bg-[#090D18]/80 border-[#1E293B] hover:border-[#06B6D4]/50 hover:bg-[#0D1322]'
+                }`}
+              >
+                {/* Visual Status Indicator */}
+                <div className="flex items-center justify-between z-10">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{veh.icon || '🚗'}</span>
+                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${
+                      isSelected
+                        ? 'bg-[#00FF88]/20 text-[#00FF88] border-[#00FF88]/50 shadow-[0_0_8px_rgba(0,255,136,0.3)]'
+                        : 'bg-[#1E293B] text-[#94A3B8] border-[#334155]'
+                    }`}>
+                      {isSelected ? '🟢 EM USO (ATIVO)' : 'GARAGEM'}
+                    </span>
+                  </div>
+
+                  {/* Actions (Editar / Excluir) */}
+                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => {
+                        setEditingVehicle(veh);
+                        setIsVehicleModalOpen(true);
+                      }}
+                      className="p-1.5 bg-[#00FF88]/10 text-[#00FF88] hover:bg-[#00FF88]/20 rounded-lg border border-[#00FF88]/30 transition-colors"
+                      title="Editar ficha e odômetro deste veículo"
+                    >
+                      <Wrench className="w-3.5 h-3.5" />
+                    </button>
+
+                    {vehiclesList.length > 1 && (
+                      <button
+                        onClick={() => handleDeleteVehicle(veh.id, veh.name)}
+                        className="p-1.5 bg-[#FF4D6D]/10 text-[#FF4D6D] hover:bg-[#FF4D6D]/20 rounded-lg border border-[#FF4D6D]/30 transition-colors"
+                        title="Remover veículo da garagem"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Info do Veículo */}
+                <div className="flex flex-col gap-1 z-10 my-1">
+                  <h4 className="text-base font-black text-[#F8FAFC] tracking-tight truncate">
+                    {veh.name}
+                  </h4>
+                  {veh.plate && (
+                    <span className="text-[11px] font-extrabold text-[#06B6D4] bg-[#06B6D4]/10 border border-[#06B6D4]/30 px-2 py-0.5 rounded-md w-fit">
+                      Placa: {veh.plate} {veh.yearModel ? `• ${veh.yearModel}` : ''}
+                    </span>
+                  )}
+                  <p className="text-[11px] text-[#94A3B8] font-medium truncate mt-1">
+                    {veh.engineSpecs || '1.0 Flex • Câmbio Manual'}
+                  </p>
+                </div>
+
+                {/* Rodapé do Card: Odômetro & Óleo Especificado */}
+                <div className="pt-2 border-t border-[#1E293B] flex items-center justify-between text-xs z-10">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-bold uppercase text-[#94A3B8]">Odômetro Atual</span>
+                    <span className="font-black text-[#00FF88] text-sm">
+                      {(veh.odometerKm || 0).toLocaleString('pt-BR')} KM
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col items-end max-w-[130px]">
+                    <span className="text-[9px] font-bold uppercase text-[#94A3B8]">Óleo Recomendado</span>
+                    <span className="font-extrabold text-[#F59E0B] text-[11px] truncate">
+                      {veh.recommendedOil || '5W30 Sintético'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Card para Cadastrar Novo Veículo */}
+          <div
+            onClick={() => {
+              setEditingVehicle(null);
+              setIsVehicleModalOpen(true);
+            }}
+            className="p-4 rounded-2xl border-2 border-dashed border-[#06B6D4]/40 hover:border-[#06B6D4] bg-[#090D18]/50 hover:bg-[#06B6D4]/10 flex flex-col items-center justify-center gap-2 min-h-[140px] cursor-pointer transition-all text-center group"
+          >
+            <div className="p-3 bg-[#06B6D4]/15 text-[#06B6D4] rounded-full group-hover:scale-110 transition-transform">
+              <Plus className="w-6 h-6" />
+            </div>
+            <span className="text-xs font-black text-[#F8FAFC] group-hover:text-[#06B6D4] transition-colors">
+              Cadastrar Novo Veículo
+            </span>
+            <span className="text-[10px] text-[#94A3B8]">Adicione mais um carro, moto ou utilitário à sua garagem</span>
+          </div>
         </div>
       </div>
 
