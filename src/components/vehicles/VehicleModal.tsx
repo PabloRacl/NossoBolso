@@ -6,7 +6,7 @@ import { db } from '../../services/db';
 
 interface VehicleModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose: (createdId?: string) => void;
   editingVehicle?: Vehicle | null;
 }
 
@@ -15,13 +15,13 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
   onClose,
   editingVehicle,
 }) => {
-  const [name, setName] = useState('Chevrolet Onix 1.0 LT (2017/2018)');
-  const [plate, setPlate] = useState('ONX-2018');
-  const [yearModel, setYearModel] = useState('2017/2018');
-  const [odometerKm, setOdometerKm] = useState('45400');
-  const [engineSpecs, setEngineSpecs] = useState('1.0 SPE/4 Eco (80 cv) • Câmbio 6M');
-  const [recommendedOil, setRecommendedOil] = useState('5W30 Dexos1 Gen2 (3.5L)');
-  const [tireSpecs, setTireSpecs] = useState('185/65 R15 (35 PSI)');
+  const [name, setName] = useState('');
+  const [plate, setPlate] = useState('');
+  const [yearModel, setYearModel] = useState('');
+  const [odometerKm, setOdometerKm] = useState('0');
+  const [engineSpecs, setEngineSpecs] = useState('');
+  const [recommendedOil, setRecommendedOil] = useState('');
+  const [tireSpecs, setTireSpecs] = useState('');
   const [fuelType, setFuelType] = useState<'flex' | 'gasoline' | 'ethanol' | 'diesel' | 'electric'>('flex');
 
   useEffect(() => {
@@ -52,6 +52,8 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
 
     if (!name.trim()) return;
 
+    let targetId = editingVehicle?.id;
+
     if (editingVehicle) {
       // Atualizar Veículo Existente
       await db.vehicles.update(editingVehicle.id, {
@@ -66,8 +68,9 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
       });
     } else {
       // Cadastrar Novo Veículo na Garagem
+      targetId = `veh_${Date.now()}`;
       await db.vehicles.add({
-        id: `veh_${Date.now()}`,
+        id: targetId,
         name: name.trim(),
         plate: plate.trim() || undefined,
         yearModel: yearModel.trim() || undefined,
@@ -81,7 +84,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
       });
     }
 
-    onClose();
+    onClose(targetId);
   };
 
   return (
@@ -186,7 +189,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
         </div>
 
         <div className="flex justify-end gap-3 pt-3 border-t border-[#1E2330]">
-          <Button variant="outline" onClick={onClose} type="button">
+          <Button variant="outline" onClick={() => onClose()} type="button">
             Cancelar
           </Button>
           <Button variant="primary" type="submit">

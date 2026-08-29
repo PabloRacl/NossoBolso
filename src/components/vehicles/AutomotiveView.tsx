@@ -64,6 +64,12 @@ export const AutomotiveView: React.FC = () => {
 
   const currentVehicle = vehiclesList.find((v) => v.id === selectedVehicleId) || vehiclesList[0];
 
+  React.useEffect(() => {
+    if (vehiclesList.length > 0 && !vehiclesList.some((v) => v.id === selectedVehicleId)) {
+      setSelectedVehicleId(vehiclesList[0].id);
+    }
+  }, [vehiclesList, selectedVehicleId]);
+
   // Sort records by date descending
   const sortedRecords = useMemo(() => {
     return [...records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -192,9 +198,12 @@ export const AutomotiveView: React.FC = () => {
       {/* Modal de Cadastro/Edição da Ficha do Veículo */}
       <VehicleModal
         isOpen={isVehicleModalOpen}
-        onClose={() => {
+        onClose={(createdId) => {
           setIsVehicleModalOpen(false);
           setEditingVehicle(null);
+          if (createdId && typeof createdId === 'string') {
+            setSelectedVehicleId(createdId);
+          }
         }}
         editingVehicle={editingVehicle}
       />
@@ -229,7 +238,7 @@ export const AutomotiveView: React.FC = () => {
                     setSelectedVehicleId(e.target.value);
                   }
                 }}
-                className="bg-[#0A0B0E] border border-[#00FF88]/40 text-[#F8FAFC] text-base font-black px-3 py-1.5 rounded-xl focus:outline-none cursor-pointer"
+                className="bg-[#0A0B0E] border border-[#00FF88]/50 text-[#F8FAFC] text-base font-black px-3 py-1.5 rounded-xl focus:outline-none cursor-pointer hover:border-[#00FF88]"
               >
                 {vehiclesList.map((v) => (
                   <option key={v.id} value={v.id}>
@@ -241,14 +250,26 @@ export const AutomotiveView: React.FC = () => {
 
               <button
                 onClick={() => {
-                  setEditingVehicle(currentVehicle);
+                  setEditingVehicle(currentVehicle || null);
                   setIsVehicleModalOpen(true);
                 }}
                 className="p-2 bg-[#00FF88]/10 text-[#00FF88] hover:bg-[#00FF88]/20 rounded-xl border border-[#00FF88]/30 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all"
-                title="Editar informações, especificações e odômetro deste veículo"
+                title="Editar especificações e odômetro deste veículo"
               >
                 <Wrench className="w-3.5 h-3.5" />
                 <span>Editar Veículo</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setEditingVehicle(null);
+                  setIsVehicleModalOpen(true);
+                }}
+                className="p-2 bg-[#06B6D4]/10 text-[#06B6D4] hover:bg-[#06B6D4]/20 rounded-xl border border-[#06B6D4]/30 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all"
+                title="Cadastrar mais um carro ou moto na garagem"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Novo Veículo</span>
               </button>
             </div>
 
