@@ -9,6 +9,8 @@ interface VehicleRecordModalProps {
   onClose: () => void;
   wallets: Wallet[];
   editingRecord?: VehicleRecord | null;
+  currentVehicleId?: string;
+  currentVehicleName?: string;
 }
 
 // Preset de Peças e Especificações de Fábrica do Chevrolet Onix 1.0 LT (2017/2018)
@@ -83,8 +85,10 @@ export const VehicleRecordModal: React.FC<VehicleRecordModalProps> = ({
   onClose,
   wallets,
   editingRecord,
+  currentVehicleId,
+  currentVehicleName,
 }) => {
-  const [vehicleName, setVehicleName] = useState('Chevrolet Onix 1.0 LT (2017/2018)');
+  const [vehicleName, setVehicleName] = useState(currentVehicleName || 'Chevrolet Onix 1.0 LT (2017/2018)');
   const [type, setType] = useState<VehicleRecordType>('maintenance');
   const [componentCategory, setComponentCategory] = useState<ComponentCategory>('oil');
   const [date, setDate] = useState(new Date().toISOString().substring(0, 10));
@@ -143,7 +147,7 @@ export const VehicleRecordModal: React.FC<VehicleRecordModalProps> = ({
       setNextDueDate(editingRecord.nextDueDate || '');
       if (editingRecord.walletId) setSelectedWalletId(editingRecord.walletId);
     } else if (isOpen && !editingRecord) {
-      setVehicleName('Chevrolet Onix 1.0 LT (2017/2018)');
+      if (currentVehicleName) setVehicleName(currentVehicleName);
       setType('maintenance');
       setComponentCategory('oil');
       setDate(new Date().toISOString().substring(0, 10));
@@ -151,7 +155,7 @@ export const VehicleRecordModal: React.FC<VehicleRecordModalProps> = ({
       handleComponentCategoryChange('oil');
       if (wallets[0]?.id) setSelectedWalletId(wallets[0].id);
     }
-  }, [editingRecord, isOpen, wallets]);
+  }, [editingRecord, isOpen, wallets, currentVehicleName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,6 +170,7 @@ export const VehicleRecordModal: React.FC<VehicleRecordModalProps> = ({
     if (editingRecord) {
       // Editar Registro Existente
       await db.vehicleRecords.update(editingRecord.id, {
+        vehicleId: currentVehicleId || editingRecord.vehicleId,
         vehicleName,
         type,
         componentCategory: type === 'maintenance' ? componentCategory : undefined,
@@ -185,6 +190,7 @@ export const VehicleRecordModal: React.FC<VehicleRecordModalProps> = ({
       // Gravar Novo Registro Automotivo
       await db.vehicleRecords.add({
         id: `vr_${Date.now()}`,
+        vehicleId: currentVehicleId,
         vehicleName,
         type,
         componentCategory: type === 'maintenance' ? componentCategory : undefined,

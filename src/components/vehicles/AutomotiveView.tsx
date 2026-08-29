@@ -76,21 +76,27 @@ export const AutomotiveView: React.FC = () => {
     }
   }, [vehiclesList, selectedVehicleId]);
 
+  // Filter records by currently selected active vehicle
+  const vehicleRecords = useMemo(() => {
+    if (!currentVehicle) return [];
+    return records.filter((r) => r.vehicleId === currentVehicle.id || r.vehicleName === currentVehicle.name);
+  }, [records, currentVehicle]);
+
   // Sort records by date descending
   const sortedRecords = useMemo(() => {
-    return [...records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [records]);
+    return [...vehicleRecords].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [vehicleRecords]);
 
   // Current Odometer Max KM
   const currentOdometer = useMemo(() => {
     if (currentVehicle?.odometerKm) return currentVehicle.odometerKm;
-    if (records.length === 0) return 45400;
-    return Math.max(...records.map((r) => r.odometerKm));
-  }, [records, currentVehicle]);
+    if (vehicleRecords.length === 0) return 0;
+    return Math.max(...vehicleRecords.map((r) => r.odometerKm));
+  }, [vehicleRecords, currentVehicle]);
 
   // Refuel records sorted ascending by date to compute KM/L between fills
   const refuelEfficiencyData = useMemo(() => {
-    const refuels = records
+    const refuels = vehicleRecords
       .filter((r) => r.type === 'refuel')
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -118,7 +124,7 @@ export const AutomotiveView: React.FC = () => {
     }
 
     const overallKml = totalLitersConsumed > 0 ? totalKmTraveled / totalLitersConsumed : 0;
-    const avgCostPerKm = totalKmTraveled > 0 ? records.reduce((acc, r) => acc + r.totalCost, 0) / totalKmTraveled : 0;
+    const avgCostPerKm = totalKmTraveled > 0 ? vehicleRecords.reduce((acc, r) => acc + r.totalCost, 0) / totalKmTraveled : 0;
 
     return {
       computedRefuels: computedRefuels.reverse(),
@@ -126,13 +132,13 @@ export const AutomotiveView: React.FC = () => {
       totalKmTraveled,
       avgCostPerKm,
     };
-  }, [records]);
+  }, [vehicleRecords]);
 
   // Overall Financial Summaries
   const metrics = useMemo(() => {
-    const totalFuel = records.filter((r) => r.type === 'refuel').reduce((acc, r) => acc + r.totalCost, 0);
-    const totalMaintenance = records.filter((r) => r.type === 'maintenance').reduce((acc, r) => acc + r.totalCost, 0);
-    const totalTaxes = records.filter((r) => r.type === 'tax' || r.type === 'insurance').reduce((acc, r) => acc + r.totalCost, 0);
+    const totalFuel = vehicleRecords.filter((r) => r.type === 'refuel').reduce((acc, r) => acc + r.totalCost, 0);
+    const totalMaintenance = vehicleRecords.filter((r) => r.type === 'maintenance').reduce((acc, r) => acc + r.totalCost, 0);
+    const totalTaxes = vehicleRecords.filter((r) => r.type === 'tax' || r.type === 'insurance').reduce((acc, r) => acc + r.totalCost, 0);
     const grandTotal = totalFuel + totalMaintenance + totalTaxes;
 
     return {
@@ -141,7 +147,7 @@ export const AutomotiveView: React.FC = () => {
       totalTaxes,
       grandTotal,
     };
-  }, [records]);
+  }, [vehicleRecords]);
 
   // Component Health Monitor per Category
   const componentHealthList = useMemo(() => {
@@ -149,26 +155,26 @@ export const AutomotiveView: React.FC = () => {
 
     return categoriesList.map((catKey) => {
       const config = COMPONENT_KM_LIMITS[catKey];
-      const spec = customSpecs.find((s) => s.vehicleId === (currentVehicle?.id || 'veh_onix') && s.category === catKey);
+      const spec = customSpecs.find((s) => s.vehicleId === currentVehicle?.id && s.category === catKey);
 
       const name = spec?.name || config.name;
       const kmInterval = spec?.kmInterval || config.kmInterval;
       const recommendedPart = spec?.recommendedPart || config.recommendedPart;
 
-      const catRecords = records
+      const catRecords = vehicleRecords
         .filter((r) => r.type === 'maintenance' && r.componentCategory === catKey)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       const lastRecord = catRecords[0];
-      const lastKm = spec?.lastKmOverride !== undefined ? spec.lastKmOverride : (lastRecord ? lastRecord.odometerKm : 35400);
-      const kmRun = Math.max(currentOdometer - lastKm, 0);
+      const lastKm = spec?.lastKmOverride !== undefined ? spec.lastKmOverride : (lastRecord ? lastRecord.odometerKm : (currentOdometer > 0 ? currentOdometer : 0));
+      const kmRun = currentOdometer > 0 ? Math.max(currentOdometer - lastKm, 0) : 0;
       const pctUsed = Math.min(Math.round((kmRun / kmInterval) * 100), 100);
 
       const nextDueKm = lastRecord?.nextDueKm || lastKm + kmInterval;
       const kmRemaining = Math.max(nextDueKm - currentOdometer, 0);
 
-      const isUrgent = kmRemaining <= 500;
-      const isWarning = !isUrgent && pctUsed >= 80;
+      const isUrgent = currentOdometer > 0 && kmRemaining <= 500;
+      const isWarning = currentOdometer > 0 && !isUrgent && pctUsed >= 80;
 
       return {
         catKey,
@@ -187,7 +193,7 @@ export const AutomotiveView: React.FC = () => {
         isWarning,
       };
     });
-  }, [records, currentOdometer, customSpecs, currentVehicle]);
+  }, [vehicleRecords, currentOdometer, customSpecs, currentVehicle]);
 
   // Calculadora Flex Etanol vs Gasolina Calculation
   const flexCalc = useMemo(() => {
@@ -205,14 +211,28 @@ export const AutomotiveView: React.FC = () => {
   };
 
   const handleDeleteVehicle = async (id: string, name: string) => {
-    if (confirm(`Tem certeza que deseja excluir o veículo "${name}" da sua garagem?`)) {
+    if (confirm(`Tem certeza que deseja excluir o veículo "${name}" e todo o seu histórico da garagem?`)) {
       await db.vehicles.delete(id);
+      // Apagar registros do veículo
+      const recs = await db.vehicleRecords.filter((r) => r.vehicleId === id || r.vehicleName === name).toArray();
+      for (const r of recs) {
+        await db.vehicleRecords.delete(r.id);
+      }
+      // Apagar especificações do veículo
+      const specs = await db.componentSpecs.filter((s) => s.vehicleId === id).toArray();
+      for (const s of specs) {
+        await db.componentSpecs.delete(s.id);
+      }
+      const remaining = vehiclesList.filter((v) => v.id !== id);
+      setSelectedVehicleId(remaining.length > 0 ? remaining[0].id : '');
     }
   };
 
   const handleClearAllVehicles = async () => {
-    if (confirm('Tem certeza que deseja apagar TODOS os veículos da sua garagem?')) {
+    if (confirm('Tem certeza que deseja apagar TODOS os veículos e históricos da sua garagem?')) {
       await db.vehicles.clear();
+      await db.vehicleRecords.clear();
+      await db.componentSpecs.clear();
       setSelectedVehicleId('');
     }
   };
@@ -265,6 +285,8 @@ export const AutomotiveView: React.FC = () => {
         }}
         wallets={wallets}
         editingRecord={editingRecord}
+        currentVehicleId={currentVehicle?.id}
+        currentVehicleName={currentVehicle?.name}
       />
 
       {/* 🚘 PAINEL VISUAL DA GARAGEM & FROTA (CARDS INTERATIVOS DE VEÍCULOS) */}
@@ -278,7 +300,7 @@ export const AutomotiveView: React.FC = () => {
               <h3 className="text-sm font-black text-[#F8FAFC] tracking-tight flex items-center gap-2">
                 GARAGEM & FROTA DE VEÍCULOS
                 <span className="text-[10px] bg-[#00FF88]/15 text-[#00FF88] border border-[#00FF88]/30 px-2 py-0.5 rounded-full font-extrabold">
-                  {vehiclesList.length} Veículo{vehiclesList.length > 1 ? 's' : ''}
+                  {vehiclesList.length} Veículo{vehiclesList.length !== 1 ? 's' : ''}
                 </span>
               </h3>
               <p className="text-[11px] text-[#94A3B8] font-semibold">Selecione o veículo ativo para visualizar telemetria, custos e saúde dos componentes</p>
@@ -426,7 +448,7 @@ export const AutomotiveView: React.FC = () => {
           </div>
           <div className="my-2 flex items-baseline gap-2">
             <span className="text-3xl font-black text-[#00FF88]">
-              {refuelEfficiencyData.overallKml > 0 ? refuelEfficiencyData.overallKml.toFixed(1) : '12,8'}
+              {refuelEfficiencyData.overallKml > 0 ? refuelEfficiencyData.overallKml.toFixed(1) : '0,0'}
             </span>
             <span className="text-xs font-bold text-[#F8FAFC]">KM / Litro</span>
           </div>
@@ -464,7 +486,7 @@ export const AutomotiveView: React.FC = () => {
             <Activity className="w-5 h-5 text-[#A855F7]" />
           </div>
           <span className="text-3xl font-black text-[#A855F7] my-2">
-            {refuelEfficiencyData.avgCostPerKm > 0 ? `R$ ${refuelEfficiencyData.avgCostPerKm.toFixed(2)}` : 'R$ 0,48'}
+            {refuelEfficiencyData.avgCostPerKm > 0 ? `R$ ${refuelEfficiencyData.avgCostPerKm.toFixed(2)}` : 'R$ 0,00'}
           </span>
           <span className="text-[11px] text-[#94A3B8]">Custo total médio por KM rodado</span>
         </div>
@@ -478,7 +500,9 @@ export const AutomotiveView: React.FC = () => {
               <Activity className="w-5 h-5 text-[#00FF88] animate-pulse" />
             </div>
             <div>
-              <h3 className="text-sm font-black text-[#F8FAFC] tracking-tight">SAÚDE E VIDA ÚTIL DOS COMPONENTES (ONIX 1.0 LT)</h3>
+              <h3 className="text-sm font-black text-[#F8FAFC] tracking-tight">
+                SAÚDE E VIDA ÚTIL DOS COMPONENTES ({currentVehicle ? currentVehicle.name.toUpperCase() : 'NENHUM VEÍCULO SELECIONADO'})
+              </h3>
               <p className="text-[11px] text-[#94A3B8] font-semibold">Monitoramento de quilometragem restante para a próxima revisão</p>
             </div>
           </div>
