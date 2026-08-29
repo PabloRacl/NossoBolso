@@ -8,7 +8,8 @@ import {
   Zap,
   Delete,
   Sparkles,
-  CheckCircle2
+  CheckCircle2,
+  Flame
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -19,8 +20,9 @@ import {
   Tooltip,
   CartesianGrid
 } from 'recharts';
+import { WealthProjectionChart } from './WealthProjectionChart';
 
-type TabType = 'standard' | 'compound' | 'comparison' | 'discount';
+type TabType = 'compound' | 'fire' | 'comparison' | 'discount' | 'standard';
 
 export const CalculatorView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('compound');
@@ -228,6 +230,18 @@ export const CalculatorView: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('fire')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+            activeTab === 'fire'
+              ? 'bg-[#A855F7]/15 text-[#A855F7] border border-[#A855F7]/30 shadow-md shadow-[#A855F7]/10'
+              : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#162032]'
+          }`}
+        >
+          <Flame className="w-4 h-4 text-[#FF4D6D]" />
+          <span>Projeção F.I.R.E</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('comparison')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
             activeTab === 'comparison'
@@ -402,6 +416,9 @@ export const CalculatorView: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* TAB F.I.R.E: PROJEÇÃO PATRIMONIAL */}
+        {activeTab === 'fire' && <WealthProjectionChart />}
 
         {/* TAB 2: COMPARADOR SAC vs PRICE */}
         {activeTab === 'comparison' && (

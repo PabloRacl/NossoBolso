@@ -3,6 +3,7 @@ import { Card } from '../ui/Card';
 import { ResponsiveContainer, PieChart, Pie, Cell, Sector } from 'recharts';
 import { formatBRL, formatPercent } from '../../utils/formatters';
 import { PieChart as PieIcon } from 'lucide-react';
+import { useAppStore } from '../../store/useAppStore';
 
 interface ExpensePieChartProps {
   data: { name: string; value: number }[];
@@ -51,6 +52,7 @@ const renderActiveShape = (props: PieSectorProps) => {
 };
 
 export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({ data }) => {
+  const { isPrivacyMode } = useAppStore();
   const [activeIndex, setActiveIndex] = useState<number | undefined>(undefined);
 
   const totalExpense = data.reduce((acc, d) => acc + d.value, 0);
@@ -120,7 +122,7 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({ data }) => {
                   className="text-lg font-black tracking-tight mt-0.5 drop-shadow-lg"
                   style={{ color: activeColor }}
                 >
-                  {formatBRL(activeItem.value)}
+                  {formatBRL(activeItem.value, isPrivacyMode)}
                 </span>
                 <span className="text-[11px] text-[#F8FAFC] font-extrabold bg-[#1E293B] border border-[#334155] px-2.5 py-0.5 rounded-full mt-1.5 shadow-md">
                   {formatPercent(activePercent)}
@@ -132,7 +134,7 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({ data }) => {
                   Total Despesas
                 </span>
                 <span className="text-lg font-black text-[#F8FAFC] tracking-tight mt-0.5">
-                  {formatBRL(totalExpense)}
+                  {formatBRL(totalExpense, isPrivacyMode)}
                 </span>
                 <span className="text-[11px] text-[#00FF88] font-bold mt-1 bg-[#00FF88]/10 px-2 py-0.5 rounded-full">
                   {data.length} Categoria{data.length > 1 ? 's' : ''}
@@ -168,7 +170,7 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({ data }) => {
                   <span className="text-[#94A3B8] font-semibold bg-[#12141A] px-2 py-0.5 rounded-md border border-[#1E2330]">
                     {formatPercent(pct)}
                   </span>
-                  <span className="text-[#F8FAFC] font-extrabold">{formatBRL(item.value)}</span>
+                  <span className="text-[#F8FAFC] font-extrabold">{formatBRL(item.value, isPrivacyMode)}</span>
                 </div>
               </div>
             );

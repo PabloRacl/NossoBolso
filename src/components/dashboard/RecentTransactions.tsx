@@ -13,7 +13,7 @@ interface RecentTransactionsProps {
 }
 
 export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, onDelete }) => {
-  const { setActivePage, setEditingTransactionId, setTransactionModalOpen } = useAppStore();
+  const { setActivePage, setEditingTransactionId, setTransactionModalOpen, isPrivacyMode } = useAppStore();
 
   const handleEdit = (id: string) => {
     setEditingTransactionId(id);
@@ -73,7 +73,7 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transact
                     tx.type === 'income' ? 'text-[#10B981]' : 'text-[#FF4D6D]'
                   }`}
                 >
-                  {tx.type === 'income' ? '+' : '-'} {formatBRL(tx.amount)}
+                  {tx.type === 'income' ? '+' : '-'} {formatBRL(tx.amount, isPrivacyMode)}
                 </span>
                 
                 <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">

@@ -7,6 +7,7 @@ interface CardProps {
   children: React.ReactNode;
   className?: string;
   glow?: boolean;
+  glowColor?: string; // ex: '#00FF88', '#10B981', '#FF4D6D', '#F59E0B', '#06B6D4'
 }
 
 // Variantes com efeito "onda do mar" (suavidade líquida, spring leve, blur dissipando)
@@ -29,18 +30,25 @@ const cardVariants = {
   }
 };
 
-export const Card: React.FC<CardProps> = ({ children, className, glow }) => {
+export const Card: React.FC<CardProps> = ({ children, className, glow, glowColor = '#00FF88' }) => {
   return (
     <motion.div
       variants={cardVariants}
       className={twMerge(
         clsx(
-          'bg-[#162032]/85 border border-[#2E3B52] rounded-2xl p-6 transition-all duration-300 backdrop-blur-xl shadow-xl hover:border-[#3B4C6A]',
-          glow && 'relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-r before:from-[#00FF88]/10 before:to-transparent before:pointer-events-none',
+          'bg-[#162032]/85 border border-[#2E3B52] rounded-2xl p-6 transition-all duration-300 backdrop-blur-xl shadow-xl hover:border-[#3B4C6A] relative overflow-hidden',
           className
         )
       )}
     >
+      {glow && (
+        <div
+          className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+          style={{
+            background: `linear-gradient(90deg, ${glowColor}1A 0%, rgba(0,0,0,0) 70%)`
+          }}
+        />
+      )}
       {children}
     </motion.div>
   );

@@ -7,6 +7,8 @@ import { StatCards } from './components/dashboard/StatCards';
 import { IncomeVsExpenseChart } from './components/dashboard/IncomeVsExpenseChart';
 import { ExpensePieChart } from './components/dashboard/ExpensePieChart';
 import { RecentTransactions } from './components/dashboard/RecentTransactions';
+import { BudgetProgressWidget } from './components/dashboard/BudgetProgressWidget';
+import { AiInsightsWidget } from './components/dashboard/AiInsightsWidget';
 import { TransactionTable } from './components/transactions/TransactionTable';
 import { WalletCards } from './components/wallets/WalletCards';
 import { GoalCards } from './components/goals/GoalCards';
@@ -22,6 +24,9 @@ import { DebtContractModal } from './components/debts/DebtContractModal';
 import { AmortizacaoModal } from './components/debts/AmortizacaoModal';
 import { AlertsModal } from './components/alerts/AlertsModal';
 import { BudgetModal } from './components/budgets/BudgetModal';
+import { ContrachequeModal } from './components/transactions/ContrachequeModal';
+import { CommandPalette } from './components/layout/CommandPalette';
+import { PantryView } from './components/pantry/PantryView';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const pageTransitionVariants = {
@@ -40,7 +45,7 @@ const pageTransitionVariants = {
 };
 
 export const App: React.FC = () => {
-  const { activePage, selectedMonth, setSelectedMonth } = useAppStore();
+  const { activePage, selectedMonth, setSelectedMonth, isCommandPaletteOpen, setCommandPaletteOpen } = useAppStore();
 
   useEffect(() => {
     seedInitialData().then(() => {
@@ -185,6 +190,11 @@ export const App: React.FC = () => {
               />
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <AiInsightsWidget selectedMonth={selectedMonth} />
+                <BudgetProgressWidget selectedMonth={selectedMonth} />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <IncomeVsExpenseChart data={sixMonthsData} />
                 <ExpensePieChart data={pieChartData} />
               </div>
@@ -203,6 +213,8 @@ export const App: React.FC = () => {
 
           {activePage === 'goals' && <GoalCards goals={goals} />}
 
+          {activePage === 'pantry' && <PantryView />}
+
           {activePage === 'reports' && <ReportsView transactions={transactions} goals={goals} />}
 
           {activePage === 'calculator' && <CalculatorView />}
@@ -219,6 +231,8 @@ export const App: React.FC = () => {
       <AmortizacaoModal />
       <AlertsModal />
       <BudgetModal />
+      <ContrachequeModal />
+      <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
     </AppLayout>
   );
 };

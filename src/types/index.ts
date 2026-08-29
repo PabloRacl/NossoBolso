@@ -101,3 +101,15 @@ export interface RecurringTransaction {
   lastGeneratedMonth?: string; // YYYY-MM
 }
 
+export interface PantryItem {
+  id: string;
+  name: string;
+  category: string; // Ex: 'Alimentos', 'Laticínios', 'Higiene', 'Limpeza', 'Bebidas'
+  unit: string; // 'un', 'kg', 'L', 'cx', 'pct'
+  idealQuantity: number; // Quantidade alvo (ex: 12)
+  currentQuantity: number; // Quantidade em estoque (ex: 2)
+  lastPrice: number; // Último preço unitário pago (ex: 5.50)
+  createdAt: string;
+  updatedAt?: string;
+}
+

@@ -7,7 +7,7 @@ import { OFXTransaction } from '../../types';
 import { db } from '../../services/db';
 import { formatBRL } from '../../utils/formatters';
 import { formatDate } from '../../utils/dateUtils';
-import { Upload, FileText, CheckCircle } from 'lucide-react';
+import { Upload, FileText, CheckCircle, HelpCircle } from 'lucide-react';
 
 export const OfxImportModal: React.FC = () => {
   const { isOfxModalOpen, setOfxModalOpen } = useAppStore();
@@ -67,13 +67,27 @@ export const OfxImportModal: React.FC = () => {
       title="Importar Extrato Bancário (OFX)"
     >
       <div className="flex flex-col gap-4">
+        {/* Guia Educativo OFX */}
+        <div className="p-3.5 bg-[#0D1424] border border-[#2E3B52] rounded-2xl flex flex-col gap-2">
+          <div className="flex items-center gap-2 text-[#06B6D4]">
+            <HelpCircle className="w-4 h-4" />
+            <h4 className="text-xs font-bold text-[#F8FAFC]">Como funciona a Importação de Extrato OFX?</h4>
+          </div>
+          <ol className="text-[11px] text-[#94A3B8] space-y-1 pl-5 list-decimal font-medium leading-relaxed">
+            <li><strong>Baixe o extrato:</strong> Acesse seu aplicativo bancário (Nubank, Itaú, Bradesco, Inter, Santander, C6, etc.) e baixe o extrato no formato <strong>OFX</strong>.</li>
+            <li><strong>Leitura Automática:</strong> O <strong>NossoBolso</strong> processa o arquivo localmente em seu navegador, identificando datas, valores e histórico original.</li>
+            <li><strong>Mapeamento de Categoria:</strong> O sistema infere e sugere automaticamente a categoria ideal (ex: Uber → Transporte, iFood → Alimentação).</li>
+            <li><strong>Conferência e Confirmação:</strong> Você revisa a prévia com todas as transações e confirma com 1 clique.</li>
+          </ol>
+        </div>
+
         {/* Upload Zone */}
-        <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-[#1E2330] hover:border-[#00FF88] rounded-2xl cursor-pointer bg-[#0A0B0E]/50 transition-colors group">
-          <Upload className="w-8 h-8 text-[#64748B] group-hover:text-[#00FF88] mb-2 transition-colors" />
+        <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-[#1E2330] hover:border-[#06B6D4] rounded-2xl cursor-pointer bg-[#0A0B0E]/50 transition-colors group">
+          <Upload className="w-8 h-8 text-[#64748B] group-hover:text-[#06B6D4] mb-2 transition-colors" />
           <span className="text-sm font-semibold text-[#F8FAFC]">
             {fileName ? fileName : 'Clique para selecionar arquivo .ofx'}
           </span>
-          <span className="text-xs text-[#64748B] mt-1">Extrato do Nubank, Itaú, Bradesco, Inter...</span>
+          <span className="text-xs text-[#64748B] mt-1">Extrato do Nubank, Itaú, Bradesco, Inter, Santander...</span>
           <input type="file" accept=".ofx,.xml" onChange={handleFileUpload} className="hidden" />
         </label>
 

@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import { Transaction, Category, Wallet, Goal, DebtContract, Budget, RecurringTransaction } from '../types';
+import { Transaction, Category, Wallet, Goal, DebtContract, Budget, RecurringTransaction, PantryItem } from '../types';
 
 export class NossoBolsoDB extends Dexie {
   transactions!: Table<Transaction>;
@@ -9,10 +9,11 @@ export class NossoBolsoDB extends Dexie {
   debtContracts!: Table<DebtContract>;
   budgets!: Table<Budget>;
   recurringTransactions!: Table<RecurringTransaction>;
+  pantryItems!: Table<PantryItem>;
 
   constructor() {
     super('nosso-bolso-db');
-    this.version(3).stores({
+    this.version(4).stores({
       transactions: 'id, date, type, category, walletId, isRecurring, contractId',
       categories: 'id, name, type',
       wallets: 'id, name, type',
@@ -20,11 +21,17 @@ export class NossoBolsoDB extends Dexie {
       debtContracts: 'id, title, startDate, walletId',
       budgets: 'id, category',
       recurringTransactions: 'id, category, walletId, dayOfMonth',
+      pantryItems: 'id, name, category',
     });
   }
 }
 
 export const db = new NossoBolsoDB();
+
+// Garantir fechamento automático do DB para upgrade sem conflitos entre abas
+db.on('versionchange', () => {
+  db.close();
+});
 
 // Default Initial Data Seeding
 const SEED_VERSION_KEY = 'nosso-bolso-seed-version';
@@ -211,6 +218,25 @@ export async function performSeeding(database: NossoBolsoDB, storage: MiniStorag
       });
     }
     await database.transactions.bulkAdd(carTxs);
+  }
+
+  // 4. Seed de Itens de Estoque Doméstico
+  const defaultPantry = [
+    { id: 'pi_1', name: 'Leite Integral 1L', category: 'Laticínios', unit: 'L', idealQuantity: 12, currentQuantity: 2, lastPrice: 5.50, createdAt: new Date().toISOString() },
+    { id: 'pi_2', name: 'Arroz Tipo 1 (5kg)', category: 'Alimentos', unit: 'pct', idealQuantity: 2, currentQuantity: 1, lastPrice: 28.90, createdAt: new Date().toISOString() },
+    { id: 'pi_3', name: 'Feijão Carioca 1kg', category: 'Alimentos', unit: 'pct', idealQuantity: 4, currentQuantity: 1, lastPrice: 8.20, createdAt: new Date().toISOString() },
+    { id: 'pi_4', name: 'Café Tradicional 500g', category: 'Alimentos', unit: 'pct', idealQuantity: 3, currentQuantity: 1, lastPrice: 16.50, createdAt: new Date().toISOString() },
+    { id: 'pi_5', name: 'Sabão em Pó 1kg', category: 'Limpeza', unit: 'cx', idealQuantity: 3, currentQuantity: 0, lastPrice: 14.90, createdAt: new Date().toISOString() },
+    { id: 'pi_6', name: 'Detergente Líquido 500ml', category: 'Limpeza', unit: 'un', idealQuantity: 6, currentQuantity: 2, lastPrice: 2.80, createdAt: new Date().toISOString() },
+    { id: 'pi_7', name: 'Papel Higiênico 12un', category: 'Higiene', unit: 'pct', idealQuantity: 2, currentQuantity: 1, lastPrice: 19.90, createdAt: new Date().toISOString() },
+    { id: 'pi_8', name: 'Óleo de Soja 900ml', category: 'Alimentos', unit: 'un', idealQuantity: 4, currentQuantity: 1, lastPrice: 6.90, createdAt: new Date().toISOString() },
+  ];
+
+  for (const item of defaultPantry) {
+    const exists = await database.pantryItems.get(item.id);
+    if (!exists) {
+      await database.pantryItems.add(item);
+    }
   }
 
   if (storage) {

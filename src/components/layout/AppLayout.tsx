@@ -8,11 +8,11 @@ interface AppLayoutProps {
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   return (
-    <div className="flex min-h-screen bg-app-pattern text-[#F8FAFC]">
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Topbar />
-        <main className="flex-1 p-6 overflow-y-auto">
+    <div className="flex flex-col min-h-screen bg-app-pattern text-[#F8FAFC]">
+      <Topbar />
+      <div className="flex flex-1 min-h-0">
+        <Sidebar />
+        <main className="flex-1 p-6 overflow-y-auto min-w-0">
           {children}
         </main>
       </div>

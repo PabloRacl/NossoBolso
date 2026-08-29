@@ -53,6 +53,29 @@
   box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.25);
 }
 
+/* Golden Leaf Shimmer & Glow Animations */
+@keyframes goldShimmer {
+  0% {
+    filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.4)) brightness(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.9)) brightness(1.3);
+  }
+  100% {
+    filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.4)) brightness(1);
+  }
+}
+
+.gold-shimmer {
+  animation: goldShimmer 3s infinite ease-in-out;
+}
+
+.gold-text-gradient {
+  background: linear-gradient(135deg, #FFE57F 0%, #FFB300 50%, #FF8F00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 @media print {
   aside, header, button {
     display: none !important;

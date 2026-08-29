@@ -51,7 +51,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
       className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6"
     >
       {/* 1. Saldo Patrimonial Acumulado Total */}
-      <Card glow className="border-l-4 border-l-[#00FF88] hover:border-[#00FF88]/60 hover:shadow-[0_8px_25px_rgba(0,255,136,0.15)] hover:-translate-y-1 transition-all duration-300 group">
+      <Card glow glowColor="#00FF88" className="border-l-4 border-l-[#00FF88] hover:border-[#00FF88]/60 hover:shadow-[0_8px_25px_rgba(0,255,136,0.15)] hover:-translate-y-1 transition-all duration-300 group">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-extrabold uppercase text-[#94A3B8] tracking-wider group-hover:text-[#F8FAFC] transition-colors">
@@ -78,7 +78,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
       </Card>
 
       {/* 2. Receitas do Período */}
-      <Card className="border-l-4 border-l-[#10B981] hover:border-[#10B981]/60 hover:shadow-[0_8px_25px_rgba(16,185,129,0.15)] hover:-translate-y-1 transition-all duration-300 group">
+      <Card glow glowColor="#10B981" className="border-l-4 border-l-[#10B981] hover:border-[#10B981]/60 hover:shadow-[0_8px_25px_rgba(16,185,129,0.15)] hover:-translate-y-1 transition-all duration-300 group">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-extrabold uppercase text-[#94A3B8] tracking-wider group-hover:text-[#F8FAFC] transition-colors">
             Receitas
@@ -97,7 +97,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
       </Card>
 
       {/* 3. Despesas do Período */}
-      <Card className="border-l-4 border-l-[#FF4D6D] hover:border-[#FF4D6D]/60 hover:shadow-[0_8px_25px_rgba(255,77,109,0.15)] hover:-translate-y-1 transition-all duration-300 group">
+      <Card glow glowColor="#FF4D6D" className="border-l-4 border-l-[#FF4D6D] hover:border-[#FF4D6D]/60 hover:shadow-[0_8px_25px_rgba(255,77,109,0.15)] hover:-translate-y-1 transition-all duration-300 group">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-extrabold uppercase text-[#94A3B8] tracking-wider group-hover:text-[#F8FAFC] transition-colors">
             Despesas
@@ -116,7 +116,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
       </Card>
 
       {/* 4. Dívidas & Cartões */}
-      <Card className="border-l-4 border-l-[#F59E0B] hover:border-[#F59E0B]/60 hover:shadow-[0_8px_25px_rgba(245,158,11,0.15)] hover:-translate-y-1 transition-all duration-300 group">
+      <Card glow glowColor="#F59E0B" className="border-l-4 border-l-[#F59E0B] hover:border-[#F59E0B]/60 hover:shadow-[0_8px_25px_rgba(245,158,11,0.15)] hover:-translate-y-1 transition-all duration-300 group">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-extrabold uppercase text-[#94A3B8] tracking-wider group-hover:text-[#F8FAFC] transition-colors">
             Dívidas & Cartões
@@ -134,7 +134,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
       </Card>
 
       {/* 5. Resultado do Período */}
-      <Card className="border-l-4 border-l-[#06B6D4] hover:border-[#06B6D4]/60 hover:shadow-[0_8px_25px_rgba(6,182,212,0.15)] hover:-translate-y-1 transition-all duration-300 group">
+      <Card glow glowColor="#06B6D4" className="border-l-4 border-l-[#06B6D4] hover:border-[#06B6D4]/60 hover:shadow-[0_8px_25px_rgba(6,182,212,0.15)] hover:-translate-y-1 transition-all duration-300 group">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-extrabold uppercase text-[#94A3B8] tracking-wider group-hover:text-[#F8FAFC] transition-colors">
             Balanço Período

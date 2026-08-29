@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type PageType = 'dashboard' | 'transactions' | 'wallets' | 'debts' | 'goals' | 'reports' | 'calculator';
+export type PageType = 'dashboard' | 'transactions' | 'wallets' | 'debts' | 'goals' | 'pantry' | 'reports' | 'calculator';
 
 interface AppStore {
   activePage: PageType;
@@ -33,10 +33,18 @@ interface AppStore {
   setBudgetModalOpen: (open: boolean) => void;
   isRecurringModalOpen: boolean;
   setRecurringModalOpen: (open: boolean) => void;
+  isContrachequeModalOpen: boolean;
+  setContrachequeModalOpen: (open: boolean) => void;
+  isCommandPaletteOpen: boolean;
+  setCommandPaletteOpen: (open: boolean) => void;
 
-  // Privacy Mode
+  // Privacy & Layout
   isPrivacyMode: boolean;
   togglePrivacyMode: () => void;
+  isSidebarCollapsed: boolean;
+  toggleSidebarCollapsed: () => void;
+  isMobileMenuOpen: boolean;
+  toggleMobileMenu: () => void;
 
   // Editing targets
   editingTransactionId: string | null;
@@ -80,9 +88,17 @@ export const useAppStore = create<AppStore>((set) => ({
   setBudgetModalOpen: (open) => set({ isBudgetModalOpen: open }),
   isRecurringModalOpen: false,
   setRecurringModalOpen: (open) => set({ isRecurringModalOpen: open }),
+  isContrachequeModalOpen: false,
+  setContrachequeModalOpen: (open) => set({ isContrachequeModalOpen: open }),
+  isCommandPaletteOpen: false,
+  setCommandPaletteOpen: (open) => set({ isCommandPaletteOpen: open }),
 
   isPrivacyMode: false,
   togglePrivacyMode: () => set((state) => ({ isPrivacyMode: !state.isPrivacyMode })),
+  isSidebarCollapsed: false,
+  toggleSidebarCollapsed: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
+  isMobileMenuOpen: false,
+  toggleMobileMenu: () => set((state) => ({ isMobileMenuOpen: !state.isMobileMenuOpen })),
 
   editingTransactionId: null,
   setEditingTransactionId: (id) => set({ editingTransactionId: id }),

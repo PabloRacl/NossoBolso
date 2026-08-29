@@ -1,10 +1,10 @@
 import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { LayoutDashboard, ArrowLeftRight, Wallet, CreditCard, Target, FileSpreadsheet, Calculator, Sparkles } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, CreditCard, Target, ShoppingCart, FileSpreadsheet, Calculator, Sparkles, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const Sidebar: React.FC = () => {
-  const { activePage, setActivePage } = useAppStore();
+  const { activePage, setActivePage, isSidebarCollapsed, toggleSidebarCollapsed, isMobileMenuOpen, toggleMobileMenu } = useAppStore();
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -12,53 +12,95 @@ export const Sidebar: React.FC = () => {
     { id: 'wallets', label: 'Carteiras', icon: Wallet },
     { id: 'debts', label: 'Financiamentos', icon: CreditCard },
     { id: 'goals', label: 'Metas', icon: Target },
+    { id: 'pantry', label: 'Mercado & Estoque', icon: ShoppingCart },
     { id: 'reports', label: 'Relatórios', icon: FileSpreadsheet },
     { id: 'calculator', label: 'Calculadora', icon: Calculator },
   ] as const;
 
+  const handleNavClick = (page: typeof navItems[number]['id']) => {
+    setActivePage(page);
+    if (isMobileMenuOpen) {
+      toggleMobileMenu();
+    }
+  };
+
   return (
-    <aside className="w-64 bg-[#0D1424]/90 backdrop-blur-xl border-r border-[#2E3B52]/60 flex flex-col justify-between p-4 min-h-screen shrink-0">
-      <div>
-        {/* Brand Header */}
-        <div className="flex items-center gap-3 px-3 py-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#00FF88] to-[#06B6D4] flex items-center justify-center text-xl shadow-lg shadow-[#00FF88]/20">
-            👛
-          </div>
-          <div>
-            <h1 className="font-extrabold text-lg tracking-tight text-[#F8FAFC]">Nosso Bolso</h1>
-            <span className="text-xs font-semibold text-[#00FF88] tracking-widest uppercase">Finance OS</span>
-          </div>
+    <>
+      {/* Overlay Backdrop for Mobile */}
+      {isMobileMenuOpen && (
+        <div
+          onClick={toggleMobileMenu}
+          className="md:hidden fixed inset-0 bg-[#0A0B0E]/80 backdrop-blur-sm z-40 transition-opacity"
+        />
+      )}
+
+      <aside
+        className={clsx(
+          'bg-[#0D1424]/95 backdrop-blur-xl border-r border-[#2E3B52]/60 flex flex-col justify-between p-4 shrink-0 transition-all duration-300 z-50',
+          // Desktop behavior
+          'hidden md:flex',
+          isSidebarCollapsed ? 'md:w-20 md:items-center' : 'md:w-64',
+          // Mobile overlay behavior
+          isMobileMenuOpen && '!flex fixed inset-y-0 left-0 w-64 shadow-2xl top-[65px]'
+        )}
+      >
+        <div className="w-full flex flex-col gap-2">
+          {/* Botão Bonito e Intuitivo de Recolher / Expandir (Desktop) */}
+          <button
+            onClick={toggleSidebarCollapsed}
+            className={clsx(
+              'hidden md:flex items-center gap-2.5 p-2.5 rounded-xl text-xs font-bold text-[#94A3B8] hover:text-[#00FF88] hover:bg-[#162032] border border-[#2E3B52]/80 transition-all mb-3',
+              isSidebarCollapsed ? 'justify-center w-full' : 'justify-between w-full px-3.5'
+            )}
+            title={isSidebarCollapsed ? 'Expandir Menu' : 'Recolher Menu'}
+          >
+            {!isSidebarCollapsed ? (
+              <div className="flex items-center gap-2.5">
+                <PanelLeftClose className="w-4 h-4 text-[#00FF88]" />
+                <span className="text-xs font-extrabold text-[#F8FAFC]">Recolher Menu</span>
+              </div>
+            ) : (
+              <PanelLeftOpen className="w-5 h-5 text-[#00FF88]" />
+            )}
+          </button>
+
+          {/* Navigation Links */}
+          <nav className="flex flex-col gap-1.5 w-full">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activePage === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item.id)}
+                  title={isSidebarCollapsed ? item.label : undefined}
+                  className={clsx(
+                    'flex items-center gap-3.5 py-3 rounded-xl font-bold text-sm transition-all duration-200',
+                    isSidebarCollapsed ? 'md:justify-center md:px-0 w-full px-4' : 'px-4 w-full',
+                    isActive
+                      ? 'bg-[#00FF88]/15 text-[#00FF88] border border-[#00FF88]/30 shadow-md shadow-[#00FF88]/10'
+                      : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#162032]'
+                  )}
+                >
+                  <Icon className={clsx('w-5 h-5 shrink-0', isActive ? 'text-[#00FF88]' : 'text-[#64748B]')} />
+                  {(!isSidebarCollapsed || isMobileMenuOpen) && <span className="truncate">{item.label}</span>}
+                </button>
+              );
+            })}
+          </nav>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="flex flex-col gap-1.5">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activePage === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActivePage(item.id)}
-                className={clsx(
-                  'flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200',
-                  isActive
-                    ? 'bg-[#00FF88]/15 text-[#00FF88] border border-[#00FF88]/30 shadow-md shadow-[#00FF88]/10 font-bold'
-                    : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#162032]'
-                )}
-              >
-                <Icon className={clsx('w-5 h-5', isActive ? 'text-[#00FF88]' : 'text-[#64748B]')} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* Footer Info */}
-      <div className="p-3 bg-[#162032]/80 border border-[#2E3B52] rounded-xl flex items-center gap-2">
-        <Sparkles className="w-4 h-4 text-[#00FF88]" />
-        <span className="text-xs font-medium text-[#94A3B8]">v2.0 — Nosso Bolso Engine</span>
-      </div>
-    </aside>
+        {/* Footer Info */}
+        <div className={clsx(
+          'p-3 bg-[#162032]/80 border border-[#2E3B52] rounded-xl flex items-center justify-between text-xs text-[#94A3B8] w-full',
+          isSidebarCollapsed && !isMobileMenuOpen && 'justify-center p-2.5'
+        )}>
+          <div className="flex items-center gap-2 justify-center">
+            <Sparkles className="w-4 h-4 text-[#00FF88] shrink-0" />
+            {(!isSidebarCollapsed || isMobileMenuOpen) && <span className="font-semibold text-[#F8FAFC]">Finance OS v2.0</span>}
+          </div>
+        </div>
+      </aside>
+    </>
   );
 };

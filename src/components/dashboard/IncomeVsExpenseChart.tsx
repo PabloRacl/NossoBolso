@@ -1,7 +1,8 @@
 import React from 'react';
 import { Card } from '../ui/Card';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { formatBRL } from '../../utils/formatters';
+import { useAppStore } from '../../store/useAppStore';
 
 interface IncomeVsExpenseChartProps {
   data: { month: string; income: number; expense: number }[];
@@ -16,9 +17,10 @@ interface CustomBarTooltipProps {
   active?: boolean;
   payload?: TooltipItem[];
   label?: string;
+  isPrivacyMode?: boolean;
 }
 
-const CustomBarTooltip: React.FC<CustomBarTooltipProps> = ({ active, payload, label }) => {
+const CustomBarTooltip: React.FC<CustomBarTooltipProps> = ({ active, payload, label, isPrivacyMode }) => {
   if (active && payload && payload.length) {
     const income = payload.find((p) => p.dataKey === 'income')?.value || 0;
     const expense = payload.find((p) => p.dataKey === 'expense')?.value || 0;
@@ -34,19 +36,19 @@ const CustomBarTooltip: React.FC<CustomBarTooltipProps> = ({ active, payload, la
             <span className="w-2.5 h-2.5 rounded-full bg-[#00FF88] shadow-[0_0_8px_#00FF88]" />
             Receitas:
           </span>
-          <span className="font-extrabold text-[#F8FAFC]">{formatBRL(income)}</span>
+          <span className="font-extrabold text-[#F8FAFC]">{formatBRL(income, isPrivacyMode)}</span>
         </div>
         <div className="flex items-center justify-between gap-4 text-xs font-semibold">
           <span className="flex items-center gap-1.5 text-[#FF4D6D]">
             <span className="w-2.5 h-2.5 rounded-full bg-[#FF4D6D] shadow-[0_0_8px_#FF4D6D]" />
             Despesas:
           </span>
-          <span className="font-extrabold text-[#F8FAFC]">{formatBRL(expense)}</span>
+          <span className="font-extrabold text-[#F8FAFC]">{formatBRL(expense, isPrivacyMode)}</span>
         </div>
         <div className="pt-1.5 border-t border-[#1E293B] flex items-center justify-between text-xs font-bold">
           <span className="text-[#94A3B8]">Resultado:</span>
           <span className={balance >= 0 ? 'text-[#00FF88]' : 'text-[#FF4D6D]'}>
-            {formatBRL(balance)}
+            {formatBRL(balance, isPrivacyMode)}
           </span>
         </div>
       </div>
@@ -56,6 +58,8 @@ const CustomBarTooltip: React.FC<CustomBarTooltipProps> = ({ active, payload, la
 };
 
 export const IncomeVsExpenseChart: React.FC<IncomeVsExpenseChartProps> = ({ data }) => {
+  const { isPrivacyMode } = useAppStore();
+
   return (
     <Card className="flex flex-col min-h-[380px] hover:border-[#00FF88]/20 transition-all duration-300">
       <div className="flex items-center justify-between mb-4">
@@ -91,10 +95,16 @@ export const IncomeVsExpenseChart: React.FC<IncomeVsExpenseChartProps> = ({ data
 
             <CartesianGrid strokeDasharray="3 3" stroke="#1E2330" vertical={false} opacity={0.6} />
             <XAxis dataKey="month" stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `R$${v}`} />
+            <YAxis
+              stroke="#94A3B8"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v) => (isPrivacyMode ? '•••••' : `R$${v}`)}
+            />
             
             <Tooltip
-              content={<CustomBarTooltip />}
+              content={<CustomBarTooltip isPrivacyMode={isPrivacyMode} />}
               cursor={{ fill: 'rgba(255, 255, 255, 0.04)', rx: 8 }}
             />
 
