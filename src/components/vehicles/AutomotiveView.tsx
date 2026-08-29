@@ -353,8 +353,35 @@ export const AutomotiveView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="text-[10px] text-[#94A3B8] font-medium bg-[#0A0B0E] p-2 rounded-lg border border-[#1E293B]">
-                <strong className="text-[#F8FAFC]">Peça Recomendada:</strong> {item.config.recommendedPart}
+              <div className="text-[10px] text-[#94A3B8] font-medium bg-[#0A0B0E] p-2 rounded-lg border border-[#1E2330] flex flex-col gap-1.5">
+                <div>
+                  <strong className="text-[#F8FAFC]">Peça Recomendada:</strong> {item.config.recommendedPart}
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t border-[#1E293B]">
+                  <span className="text-[9px] font-bold text-[#64748B]">Consultar Externa:</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const q = encodeURIComponent(`peca chevrolet onix 1.0 2017 2018 ${item.config.name} ${item.config.recommendedPart}`);
+                        window.open(`https://www.google.com/search?q=${q}`, '_blank');
+                      }}
+                      className="text-[10px] font-bold text-[#06B6D4] hover:underline cursor-pointer"
+                      title="Pesquisar especificações e fornecedores no Google"
+                    >
+                      🔍 Google
+                    </button>
+                    <button
+                      onClick={() => {
+                        const q = encodeURIComponent(`peca chevrolet onix 1.0 2017 2018 ${item.config.name} ${item.config.recommendedPart}`);
+                        window.open(`https://lista.mercadolivre.com.br/${q}`, '_blank');
+                      }}
+                      className="text-[10px] font-bold text-[#F59E0B] hover:underline cursor-pointer"
+                      title="Pesquisar preços e ofertas no Mercado Livre"
+                    >
+                      🛒 Mercado Livre
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           ))}

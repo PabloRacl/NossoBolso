@@ -294,7 +294,33 @@ export const VehicleRecordModal: React.FC<VehicleRecordModalProps> = ({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold text-[#94A3B8]">Código / Modelo Recomendado</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-[#94A3B8]">Código / Modelo Recomendado</label>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const q = encodeURIComponent(`peca ${vehicleName} ${partNumber || description}`);
+                        window.open(`https://www.google.com/search?q=${q}`, '_blank');
+                      }}
+                      className="text-[10px] font-bold text-[#06B6D4] hover:underline flex items-center gap-1 cursor-pointer"
+                      title="Pesquisar especificações no Google"
+                    >
+                      🔍 Google
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const q = encodeURIComponent(`peca ${vehicleName} ${partNumber || description}`);
+                        window.open(`https://lista.mercadolivre.com.br/${q}`, '_blank');
+                      }}
+                      className="text-[10px] font-bold text-[#F59E0B] hover:underline flex items-center gap-1 cursor-pointer"
+                      title="Pesquisar preços no Mercado Livre"
+                    >
+                      🛒 Mercado Livre
+                    </button>
+                  </div>
+                </div>
                 <input
                   type="text"
                   value={partNumber}
