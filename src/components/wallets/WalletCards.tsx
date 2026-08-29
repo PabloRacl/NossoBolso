@@ -4,7 +4,7 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { formatBRL } from '../../utils/formatters';
 import { useAppStore } from '../../store/useAppStore';
-import { Plus, Trash2, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Edit2, Sparkles } from 'lucide-react';
 import { db } from '../../services/db';
 import { motion } from 'framer-motion';
 
@@ -24,18 +24,31 @@ const containerVariants = {
 };
 
 export const WalletCards: React.FC<WalletCardsProps> = ({ wallets }) => {
-  const { setWalletModalOpen, isPrivacyMode } = useAppStore();
+  const { setWalletModalOpen, setEditingWalletId, isPrivacyMode } = useAppStore();
+
+  const handleEdit = (id: string) => {
+    setEditingWalletId(id);
+    setWalletModalOpen(true);
+  };
 
   const handleDelete = async (id: string) => {
     if (wallets.length <= 1) return;
-    await db.wallets.delete(id);
+    if (confirm('Deseja realmente excluir esta carteira?')) {
+      await db.wallets.delete(id);
+    }
   };
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h3 className="text-[#F8FAFC] font-extrabold text-lg">Minhas Contas e Cartões</h3>
-        <Button variant="primary" onClick={() => setWalletModalOpen(true)}>
+        <Button
+          variant="primary"
+          onClick={() => {
+            setEditingWalletId(null);
+            setWalletModalOpen(true);
+          }}
+        >
           <Plus className="w-4 h-4" />
           <span>Nova Carteira</span>
         </Button>
@@ -68,15 +81,24 @@ export const WalletCards: React.FC<WalletCardsProps> = ({ wallets }) => {
                 </div>
               </div>
 
-              {wallets.length > 1 && (
+              <div className="flex items-center gap-1">
                 <button
-                  onClick={() => handleDelete(w.id)}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 text-[#94A3B8] hover:text-[#FF4D6D] hover:bg-[#162032] rounded-lg transition-all"
-                  title="Excluir carteira"
+                  onClick={() => handleEdit(w.id)}
+                  className="p-1.5 text-[#94A3B8] hover:text-[#00FF88] hover:bg-[#162032] rounded-lg transition-all"
+                  title="Editar carteira"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Edit2 className="w-4 h-4" />
                 </button>
-              )}
+                {wallets.length > 1 && (
+                  <button
+                    onClick={() => handleDelete(w.id)}
+                    className="p-1.5 text-[#94A3B8] hover:text-[#FF4D6D] hover:bg-[#162032] rounded-lg transition-all"
+                    title="Excluir carteira"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-col gap-1">

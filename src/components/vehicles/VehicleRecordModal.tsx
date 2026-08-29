@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { VehicleRecord, VehicleRecordType, Wallet } from '../../types';
@@ -8,12 +8,14 @@ interface VehicleRecordModalProps {
   isOpen: boolean;
   onClose: () => void;
   wallets: Wallet[];
+  editingRecord?: VehicleRecord | null;
 }
 
 export const VehicleRecordModal: React.FC<VehicleRecordModalProps> = ({
   isOpen,
   onClose,
   wallets,
+  editingRecord,
 }) => {
   const [vehicleName, setVehicleName] = useState('Honda Civic 2.0');
   const [type, setType] = useState<VehicleRecordType>('refuel');
@@ -26,6 +28,32 @@ export const VehicleRecordModal: React.FC<VehicleRecordModalProps> = ({
   const [description, setDescription] = useState('Abastecimento Posto BR');
   const [selectedWalletId, setSelectedWalletId] = useState<string>(wallets[0]?.id || 'w1');
 
+  useEffect(() => {
+    if (editingRecord && isOpen) {
+      setVehicleName(editingRecord.vehicleName);
+      setType(editingRecord.type);
+      setDate(editingRecord.date);
+      setOdometerKm(editingRecord.odometerKm.toString());
+      setTotalCost(editingRecord.totalCost.toString());
+      setLiters(editingRecord.liters ? editingRecord.liters.toString() : '');
+      setPricePerLiter(editingRecord.pricePerLiter ? editingRecord.pricePerLiter.toString() : '');
+      setFuelType(editingRecord.fuelType || 'gasoline');
+      setDescription(editingRecord.description || '');
+      if (editingRecord.walletId) setSelectedWalletId(editingRecord.walletId);
+    } else if (isOpen && !editingRecord) {
+      setVehicleName('Honda Civic 2.0');
+      setType('refuel');
+      setDate(new Date().toISOString().substring(0, 10));
+      setOdometerKm('45800');
+      setTotalCost('230.00');
+      setLiters('40.0');
+      setPricePerLiter('5.75');
+      setFuelType('gasoline');
+      setDescription('Abastecimento Posto BR');
+      if (wallets[0]?.id) setSelectedWalletId(wallets[0].id);
+    }
+  }, [editingRecord, isOpen, wallets]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cost = parseFloat(totalCost) || 0;
@@ -35,47 +63,66 @@ export const VehicleRecordModal: React.FC<VehicleRecordModalProps> = ({
 
     if (cost <= 0 || km <= 0) return;
 
-    // 1. Gravar registro automotivo
-    await db.vehicleRecords.add({
-      id: `vr_${Date.now()}`,
-      vehicleName,
-      type,
-      date,
-      odometerKm: km,
-      totalCost: cost,
-      liters: type === 'refuel' ? ltrs : undefined,
-      pricePerLiter: type === 'refuel' ? priceLtr : undefined,
-      fuelType: type === 'refuel' ? fuelType : undefined,
-      description: description.trim() || (type === 'refuel' ? 'Abastecimento' : 'Manutenção'),
-      walletId: selectedWalletId,
-      createdAt: new Date().toISOString(),
-    });
+    if (editingRecord) {
+      // Editar Registro Existente
+      await db.vehicleRecords.update(editingRecord.id, {
+        vehicleName,
+        type,
+        date,
+        odometerKm: km,
+        totalCost: cost,
+        liters: type === 'refuel' ? ltrs : undefined,
+        pricePerLiter: type === 'refuel' ? priceLtr : undefined,
+        fuelType: type === 'refuel' ? fuelType : undefined,
+        description: description.trim() || (type === 'refuel' ? 'Abastecimento' : 'Manutenção'),
+        walletId: selectedWalletId,
+      });
+    } else {
+      // Gravar Novo Registro
+      await db.vehicleRecords.add({
+        id: `vr_${Date.now()}`,
+        vehicleName,
+        type,
+        date,
+        odometerKm: km,
+        totalCost: cost,
+        liters: type === 'refuel' ? ltrs : undefined,
+        pricePerLiter: type === 'refuel' ? priceLtr : undefined,
+        fuelType: type === 'refuel' ? fuelType : undefined,
+        description: description.trim() || (type === 'refuel' ? 'Abastecimento' : 'Manutenção'),
+        walletId: selectedWalletId,
+        createdAt: new Date().toISOString(),
+      });
 
-    // 2. Lançar automaticamente a despesa no NossoBolso
-    const categoryName = type === 'refuel' ? 'Transporte' : type === 'maintenance' ? 'Manutenção Veículo' : 'Impostos & Taxas';
+      // Lançar despesa no NossoBolso
+      const categoryName = type === 'refuel' ? 'Transporte' : type === 'maintenance' ? 'Manutenção Veículo' : 'Impostos & Taxas';
+      await db.transactions.add({
+        id: `auto_${Date.now()}`,
+        description: `[Veículo] ${vehicleName} - ${description.trim() || type}`,
+        amount: cost,
+        date,
+        type: 'expense',
+        category: categoryName,
+        walletId: selectedWalletId,
+        createdAt: new Date().toISOString(),
+      });
 
-    await db.transactions.add({
-      id: `auto_${Date.now()}`,
-      description: `[Veículo] ${vehicleName} - ${description.trim() || type}`,
-      amount: cost,
-      date,
-      type: 'expense',
-      category: categoryName,
-      walletId: selectedWalletId,
-      createdAt: new Date().toISOString(),
-    });
-
-    // 3. Debitar do saldo da carteira
-    const wallet = await db.wallets.get(selectedWalletId);
-    if (wallet) {
-      await db.wallets.update(selectedWalletId, { balance: wallet.balance - cost });
+      // Debitar do saldo da carteira
+      const wallet = await db.wallets.get(selectedWalletId);
+      if (wallet) {
+        await db.wallets.update(selectedWalletId, { balance: wallet.balance - cost });
+      }
     }
 
     onClose();
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Novo Registro de Veículo">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={editingRecord ? `Editar Registro (${editingRecord.vehicleName})` : 'Novo Registro de Veículo'}
+    >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
         {/* Veículo & Tipo de Lançamento */}
         <div className="grid grid-cols-2 gap-3">
@@ -228,7 +275,7 @@ export const VehicleRecordModal: React.FC<VehicleRecordModalProps> = ({
             Cancelar
           </Button>
           <Button variant="primary" type="submit">
-            Salvar & Lançar no NossoBolso
+            {editingRecord ? 'Salvar Alterações' : 'Salvar & Lançar no NossoBolso'}
           </Button>
         </div>
       </form>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
@@ -7,7 +7,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { db } from '../../services/db';
 
 export const WalletModal: React.FC = () => {
-  const { isWalletModalOpen, setWalletModalOpen } = useAppStore();
+  const { isWalletModalOpen, setWalletModalOpen, editingWalletId, setEditingWalletId } = useAppStore();
 
   const [name, setName] = useState('');
   const [type, setType] = useState<'checking' | 'savings' | 'credit' | 'investment'>('checking');
@@ -15,32 +15,67 @@ export const WalletModal: React.FC = () => {
   const [icon, setIcon] = useState('🏦');
   const [creditLimit, setCreditLimit] = useState('');
 
+  useEffect(() => {
+    if (editingWalletId && isWalletModalOpen) {
+      db.wallets.get(editingWalletId).then((wallet) => {
+        if (wallet) {
+          setName(wallet.name);
+          setType(wallet.type);
+          setBalance(wallet.balance.toString());
+          setIcon(wallet.icon);
+          setCreditLimit(wallet.creditLimit ? wallet.creditLimit.toString() : '');
+        }
+      });
+    } else if (isWalletModalOpen && !editingWalletId) {
+      setName('');
+      setType('checking');
+      setBalance('');
+      setIcon('🏦');
+      setCreditLimit('');
+    }
+  }, [editingWalletId, isWalletModalOpen]);
+
+  const handleClose = () => {
+    setEditingWalletId(null);
+    setWalletModalOpen(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const initialBalance = parseFloat(balance) || 0;
     const limit = type === 'credit' ? parseFloat(creditLimit) || 0 : undefined;
 
-    await db.wallets.add({
-      id: Math.random().toString(36).substring(2, 9),
-      name,
-      type,
-      balance: initialBalance,
-      color: type === 'checking' ? '#00FF88' : type === 'credit' ? '#EF4444' : '#06B6D4',
-      icon: icon || '🏦',
-      creditLimit: limit,
-    });
+    if (editingWalletId) {
+      // Atualizar Carteira Existente
+      await db.wallets.update(editingWalletId, {
+        name,
+        type,
+        balance: initialBalance,
+        color: type === 'checking' ? '#00FF88' : type === 'credit' ? '#EF4444' : '#06B6D4',
+        icon: icon || '🏦',
+        creditLimit: limit,
+      });
+    } else {
+      // Criar Nova Carteira
+      await db.wallets.add({
+        id: Math.random().toString(36).substring(2, 9),
+        name,
+        type,
+        balance: initialBalance,
+        color: type === 'checking' ? '#00FF88' : type === 'credit' ? '#EF4444' : '#06B6D4',
+        icon: icon || '🏦',
+        creditLimit: limit,
+      });
+    }
 
-    setName('');
-    setBalance('');
-    setCreditLimit('');
-    setWalletModalOpen(false);
+    handleClose();
   };
 
   return (
     <Modal
       isOpen={isWalletModalOpen}
-      onClose={() => setWalletModalOpen(false)}
-      title="Nova Carteira / Conta Bancária"
+      onClose={handleClose}
+      title={editingWalletId ? 'Editar Carteira / Conta' : 'Nova Carteira / Conta Bancária'}
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
@@ -73,7 +108,7 @@ export const WalletModal: React.FC = () => {
         </div>
 
         <Input
-          label="Saldo Inicial (R$)"
+          label="Saldo (R$)"
           type="number"
           step="0.01"
           placeholder="0,00"
@@ -93,11 +128,11 @@ export const WalletModal: React.FC = () => {
         )}
 
         <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-[#1E2330]">
-          <Button type="button" variant="ghost" onClick={() => setWalletModalOpen(false)}>
+          <Button type="button" variant="ghost" onClick={handleClose}>
             Cancelar
           </Button>
           <Button type="submit" variant="primary">
-            Criar Carteira
+            {editingWalletId ? 'Salvar Alterações' : 'Criar Carteira'}
           </Button>
         </div>
       </form>

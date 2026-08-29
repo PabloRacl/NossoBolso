@@ -5,8 +5,8 @@ import { Button } from '../ui/Button';
 import { useAppStore } from '../../store/useAppStore';
 import { db } from '../../services/db';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { TransactionType } from '../../types';
-import { Plus, Trash2, Tag, Smile } from 'lucide-react';
+import { TransactionType, Category } from '../../types';
+import { Plus, Trash2, Tag, Smile, Edit2, Check } from 'lucide-react';
 
 const EMOJI_PRESETS = [
   // Finanças & Trabalho
@@ -27,32 +27,55 @@ export const CategoryModal: React.FC = () => {
   const [emoji, setEmoji] = useState('🏷️');
   const [type, setType] = useState<TransactionType>('expense');
   const [activeTab, setActiveTab] = useState<TransactionType>('expense');
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
 
   const handleClose = () => {
     setName('');
     setEmoji('🏷️');
     setType('expense');
+    setEditingCatId(null);
     setCategoryModalOpen(false);
   };
 
-  const handleCreateCategory = async (e: React.FormEvent) => {
+  const handleSelectEdit = (cat: Category) => {
+    setEditingCatId(cat.id);
+    setName(cat.name);
+    setEmoji(cat.emoji || '🏷️');
+    setType(cat.type);
+  };
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const newCategory = {
-      id: 'cat_' + Math.random().toString(36).substring(2, 9),
-      name: name.trim(),
-      emoji: emoji || '🏷️',
-      type,
-    };
+    if (editingCatId) {
+      await db.categories.update(editingCatId, {
+        name: name.trim(),
+        emoji: emoji || '🏷️',
+        type,
+      });
+      setEditingCatId(null);
+    } else {
+      await db.categories.add({
+        id: 'cat_' + Math.random().toString(36).substring(2, 9),
+        name: name.trim(),
+        emoji: emoji || '🏷️',
+        type,
+      });
+    }
 
-    await db.categories.add(newCategory);
     setName('');
     setEmoji('🏷️');
   };
 
   const handleDeleteCategory = async (id: string) => {
-    await db.categories.delete(id);
+    if (confirm('Deseja realmente excluir esta categoria?')) {
+      await db.categories.delete(id);
+      if (editingCatId === id) {
+        setEditingCatId(null);
+        setName('');
+      }
+    }
   };
 
   const filteredCategories = categories.filter((c) => c.type === activeTab);
@@ -64,12 +87,27 @@ export const CategoryModal: React.FC = () => {
       title="Gerenciar Categorias"
     >
       <div className="flex flex-col gap-6">
-        {/* Nova Categoria Form */}
-        <form onSubmit={handleCreateCategory} className="p-4 bg-[#0A0B0E] border border-[#1E2330] rounded-xl flex flex-col gap-4">
-          <h4 className="text-sm font-bold text-[#F8FAFC] flex items-center gap-2">
-            <Plus className="w-4 h-4 text-[#00FF88]" />
-            Criar Nova Categoria
-          </h4>
+        {/* Nova / Editar Categoria Form */}
+        <form onSubmit={handleSaveCategory} className="p-4 bg-[#0A0B0E] border border-[#1E2330] rounded-xl flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-bold text-[#F8FAFC] flex items-center gap-2">
+              {editingCatId ? <Edit2 className="w-4 h-4 text-[#00FF88]" /> : <Plus className="w-4 h-4 text-[#00FF88]" />}
+              {editingCatId ? 'Editar Categoria' : 'Criar Nova Categoria'}
+            </h4>
+            {editingCatId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingCatId(null);
+                  setName('');
+                  setEmoji('🏷️');
+                }}
+                className="text-xs text-[#94A3B8] hover:text-[#FF4D6D] underline"
+              >
+                Cancelar Edição
+              </button>
+            )}
+          </div>
 
           {/* Toggle Type */}
           <div className="grid grid-cols-2 gap-2 bg-[#12141A] p-1 rounded-xl border border-[#1E2330]">
@@ -140,8 +178,8 @@ export const CategoryModal: React.FC = () => {
           </div>
 
           <Button type="submit" variant="primary" className="w-full mt-1">
-            <Plus className="w-4 h-4" />
-            <span>Salvar Categoria</span>
+            {editingCatId ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            <span>{editingCatId ? 'Atualizar Categoria' : 'Salvar Categoria'}</span>
           </Button>
         </form>
 
@@ -185,21 +223,33 @@ export const CategoryModal: React.FC = () => {
               filteredCategories.map((cat) => (
                 <div
                   key={cat.id}
-                  className="flex items-center justify-between p-2.5 bg-[#0A0B0E] border border-[#1E2330] rounded-xl hover:border-[#64748B] transition-colors"
+                  className={`flex items-center justify-between p-2.5 bg-[#0A0B0E] border rounded-xl transition-colors ${
+                    editingCatId === cat.id ? 'border-[#00FF88] bg-[#00FF88]/10' : 'border-[#1E2330] hover:border-[#64748B]'
+                  }`}
                 >
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => handleSelectEdit(cat)}>
                     <span className="text-xl">{cat.emoji}</span>
                     <span className="text-xs font-semibold text-[#F8FAFC]">{cat.name}</span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteCategory(cat.id)}
-                    className="p-1 text-[#64748B] hover:text-red-400 hover:bg-[#1E2330] rounded-lg transition-colors"
-                    title="Excluir Categoria"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectEdit(cat)}
+                      className="p-1 text-[#94A3B8] hover:text-[#00FF88] hover:bg-[#1E2330] rounded-lg transition-colors"
+                      title="Editar Categoria"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCategory(cat.id)}
+                      className="p-1 text-[#64748B] hover:text-red-400 hover:bg-[#1E2330] rounded-lg transition-colors"
+                      title="Excluir Categoria"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))
             )}

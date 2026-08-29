@@ -88,6 +88,13 @@ export const AutomotiveView: React.FC = () => {
     };
   }, [records]);
 
+  const [editingRecord, setEditingRecord] = useState<VehicleRecord | null>(null);
+
+  const handleEditRecord = (record: VehicleRecord) => {
+    setEditingRecord(record);
+    setIsModalOpen(true);
+  };
+
   const handleDeleteRecord = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir este registro automotivo?')) {
       await db.vehicleRecords.delete(id);
@@ -99,8 +106,12 @@ export const AutomotiveView: React.FC = () => {
       {/* Modal de Cadastro Automotivo */}
       <VehicleRecordModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingRecord(null);
+        }}
         wallets={wallets}
+        editingRecord={editingRecord}
       />
 
       {/* Header do Módulo */}
@@ -117,7 +128,13 @@ export const AutomotiveView: React.FC = () => {
           </div>
         </div>
 
-        <Button variant="primary" onClick={() => setIsModalOpen(true)}>
+        <Button
+          variant="primary"
+          onClick={() => {
+            setEditingRecord(null);
+            setIsModalOpen(true);
+          }}
+        >
           <Plus className="w-4 h-4" />
           <span>Novo Registro Veicular</span>
         </Button>
@@ -224,13 +241,22 @@ export const AutomotiveView: React.FC = () => {
                     {formatBRL(item.totalCost, isPrivacyMode)}
                   </td>
                   <td className="p-3 text-center">
-                    <button
-                      onClick={() => handleDeleteRecord(item.id)}
-                      className="p-1 text-[#94A3B8] hover:text-[#FF4D6D] transition-colors"
-                      title="Excluir registro"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center justify-center gap-1">
+                      <button
+                        onClick={() => handleEditRecord(item)}
+                        className="p-1 text-[#94A3B8] hover:text-[#00FF88] transition-colors"
+                        title="Editar registro"
+                      >
+                        <Wrench className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteRecord(item.id)}
+                        className="p-1 text-[#94A3B8] hover:text-[#FF4D6D] transition-colors"
+                        title="Excluir registro"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -270,12 +296,22 @@ export const AutomotiveView: React.FC = () => {
 
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-black text-[#FF4D6D]">{formatBRL(rec.totalCost, isPrivacyMode)}</span>
-                  <button
-                    onClick={() => handleDeleteRecord(rec.id)}
-                    className="text-[#94A3B8] hover:text-[#FF4D6D] transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleEditRecord(rec)}
+                      className="text-[#94A3B8] hover:text-[#00FF88] transition-colors p-1"
+                      title="Editar registro"
+                    >
+                      <Wrench className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteRecord(rec.id)}
+                      className="text-[#94A3B8] hover:text-[#FF4D6D] transition-colors p-1"
+                      title="Excluir registro"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

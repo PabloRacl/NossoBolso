@@ -7,7 +7,7 @@ import { Modal } from '../ui/Modal';
 import { formatBRL, formatPercent } from '../../utils/formatters';
 import { formatDate } from '../../utils/dateUtils';
 import { useAppStore } from '../../store/useAppStore';
-import { Plus, Target, Trash2 } from 'lucide-react';
+import { Plus, Target, Trash2, Edit2 } from 'lucide-react';
 import { db } from '../../services/db';
 import { motion } from 'framer-motion';
 
@@ -27,10 +27,15 @@ const containerVariants = {
 };
 
 export const GoalCards: React.FC<GoalCardsProps> = ({ goals }) => {
-  const { setGoalModalOpen } = useAppStore();
+  const { setGoalModalOpen, setEditingGoalId } = useAppStore();
 
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [contribAmount, setContribAmount] = useState('');
+
+  const handleEditGoal = (id: string) => {
+    setEditingGoalId(id);
+    setGoalModalOpen(true);
+  };
 
   const handleAddContribution = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,14 +52,22 @@ export const GoalCards: React.FC<GoalCardsProps> = ({ goals }) => {
   };
 
   const handleDelete = async (id: string) => {
-    await db.goals.delete(id);
+    if (confirm('Deseja realmente excluir esta meta?')) {
+      await db.goals.delete(id);
+    }
   };
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h3 className="text-[#F8FAFC] font-extrabold text-lg">Metas & Objetivos</h3>
-        <Button variant="primary" onClick={() => setGoalModalOpen(true)}>
+        <Button
+          variant="primary"
+          onClick={() => {
+            setEditingGoalId(null);
+            setGoalModalOpen(true);
+          }}
+        >
           <Plus className="w-4 h-4" />
           <span>Nova Meta</span>
         </Button>
@@ -88,13 +101,22 @@ export const GoalCards: React.FC<GoalCardsProps> = ({ goals }) => {
                       <h4 className="font-bold text-base text-[#F8FAFC]">{g.name}</h4>
                     </div>
 
-                    <button
-                      onClick={() => handleDelete(g.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-[#64748B] hover:text-red-400 transition-all"
-                      title="Excluir meta"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleEditGoal(g.id)}
+                        className="p-1 text-[#94A3B8] hover:text-[#00FF88] transition-all"
+                        title="Editar meta"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(g.id)}
+                        className="p-1 text-[#64748B] hover:text-red-400 transition-all"
+                        title="Excluir meta"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex justify-between items-baseline mb-2">

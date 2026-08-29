@@ -51,6 +51,10 @@ interface AppStore {
   setEditingTransactionId: (id: string | null) => void;
   editingDebtContractId: string | null;
   setEditingDebtContractId: (id: string | null) => void;
+  editingWalletId: string | null;
+  setEditingWalletId: (id: string | null) => void;
+  editingGoalId: string | null;
+  setEditingGoalId: (id: string | null) => void;
 }
 
 export const getCurrentMonthKey = () => {
@@ -104,4 +108,8 @@ export const useAppStore = create<AppStore>((set) => ({
   setEditingTransactionId: (id) => set({ editingTransactionId: id }),
   editingDebtContractId: null,
   setEditingDebtContractId: (id) => set({ editingDebtContractId: id }),
+  editingWalletId: null,
+  setEditingWalletId: (id) => set({ editingWalletId: id }),
+  editingGoalId: null,
+  setEditingGoalId: (id) => set({ editingGoalId: id }),
 }));
