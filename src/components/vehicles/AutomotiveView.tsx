@@ -40,10 +40,18 @@ const COMPONENT_KM_LIMITS: Record<ComponentCategory, { name: string; icon: strin
   general: { name: 'Diagnóstico OBD2 & Suspensão', icon: '🔧', kmInterval: 10000, recommendedPart: 'Checkup Injeção Eletrônica e Amortecedores' },
 };
 
+import { VehicleModal } from './VehicleModal';
+import { Vehicle } from '../../types';
+
 export const AutomotiveView: React.FC = () => {
   const { isPrivacyMode } = useAppStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<VehicleRecord | null>(null);
+
+  // Módulo de Gerenciamento da Garagem & Múltiplos Veículos
+  const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('veh_onix');
 
   // Calculadora Flex Etanol vs Gasolina
   const [gasolinePrice, setGasolinePrice] = useState('5.79');
@@ -52,6 +60,9 @@ export const AutomotiveView: React.FC = () => {
   // Dexie live queries
   const records = useLiveQuery(() => db.vehicleRecords.toArray(), []) || [];
   const wallets = useLiveQuery(() => db.wallets.toArray(), []) || [];
+  const vehiclesList = useLiveQuery(() => db.vehicles.toArray(), []) || [];
+
+  const currentVehicle = vehiclesList.find((v) => v.id === selectedVehicleId) || vehiclesList[0];
 
   // Sort records by date descending
   const sortedRecords = useMemo(() => {
@@ -178,7 +189,17 @@ export const AutomotiveView: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 w-full animate-fadeIn">
-      {/* Modal de Cadastro Automotivo */}
+      {/* Modal de Cadastro/Edição da Ficha do Veículo */}
+      <VehicleModal
+        isOpen={isVehicleModalOpen}
+        onClose={() => {
+          setIsVehicleModalOpen(false);
+          setEditingVehicle(null);
+        }}
+        editingVehicle={editingVehicle}
+      />
+
+      {/* Modal de Cadastro de Serviços e Abastecimentos */}
       <VehicleRecordModal
         isOpen={isModalOpen}
         onClose={() => {
@@ -189,35 +210,73 @@ export const AutomotiveView: React.FC = () => {
         editingRecord={editingRecord}
       />
 
-      {/* HEADER FICHA TÉCNICA FICHA ONIX 1.0 LT 2017/2018 */}
+      {/* HEADER FICHA TÉCNICA DO VEÍCULO DA GARAGEM */}
       <div className="cyber-hud-card hud-corner p-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 border border-[#00FF88]/40 shadow-[0_0_30px_rgba(0,255,136,0.12)]">
         <div className="flex items-center gap-4">
           <div className="p-4 bg-gradient-to-br from-[#00FF88]/20 via-[#06B6D4]/20 to-[#3B82F6]/20 text-[#00FF88] rounded-2xl border border-[#00FF88]/50 shadow-[0_0_20px_rgba(0,255,136,0.25)]">
             <Car className="w-9 h-9" />
           </div>
           <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-black text-[#F8FAFC]">Chevrolet Onix 1.0 LT (2017/2018)</h2>
-              <span className="px-2.5 py-0.5 rounded-full bg-[#00FF88]/15 border border-[#00FF88]/40 text-[10px] font-black text-[#00FF88] uppercase tracking-wider">
-                GARAGEM OFICIAL
-              </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Seletor Multi-Veículos */}
+              <select
+                value={selectedVehicleId}
+                onChange={(e) => {
+                  if (e.target.value === 'new') {
+                    setEditingVehicle(null);
+                    setIsVehicleModalOpen(true);
+                  } else {
+                    setSelectedVehicleId(e.target.value);
+                  }
+                }}
+                className="bg-[#0A0B0E] border border-[#00FF88]/40 text-[#F8FAFC] text-base font-black px-3 py-1.5 rounded-xl focus:outline-none cursor-pointer"
+              >
+                {vehiclesList.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    🚗 {v.name} {v.plate ? `(${v.plate})` : ''}
+                  </option>
+                ))}
+                <option value="new">➕ Cadastrar Novo Veículo...</option>
+              </select>
+
+              <button
+                onClick={() => {
+                  setEditingVehicle(currentVehicle);
+                  setIsVehicleModalOpen(true);
+                }}
+                className="p-2 bg-[#00FF88]/10 text-[#00FF88] hover:bg-[#00FF88]/20 rounded-xl border border-[#00FF88]/30 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all"
+                title="Editar informações, especificações e odômetro deste veículo"
+              >
+                <Wrench className="w-3.5 h-3.5" />
+                <span>Editar Veículo</span>
+              </button>
             </div>
-            <p className="text-xs text-[#94A3B8] font-semibold flex flex-wrap items-center gap-2">
-              <span>Motor 1.0 SPE/4 Eco (80 cv)</span>
+
+            <p className="text-xs text-[#94A3B8] font-semibold flex flex-wrap items-center gap-2 mt-1">
+              <span>{currentVehicle?.engineSpecs || '1.0 SPE/4 Eco (80 cv) • Câmbio 6M'}</span>
               <span>•</span>
-              <span>Câmbio 6M</span>
+              <span className="text-[#00FF88] font-extrabold">Óleo: {currentVehicle?.recommendedOil || '5W30 Dexos1 Gen2 (3.5L)'}</span>
               <span>•</span>
-              <span className="text-[#00FF88] font-extrabold">Óleo: 5W30 Dexos1 Gen2 (3,5L)</span>
-              <span>•</span>
-              <span>Pneus 185/65 R15 (35 PSI)</span>
+              <span>Pneus: {currentVehicle?.tireSpecs || '185/65 R15 (35 PSI)'}</span>
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
-          <div className="px-4 py-2 bg-[#090D18] border border-[#2E3B52] rounded-xl flex flex-col items-end">
-            <span className="text-[10px] font-extrabold uppercase text-[#94A3B8]">Odômetro Atual</span>
-            <span className="text-lg font-black text-[#00FF88]">{currentOdometer.toLocaleString('pt-BR')} KM</span>
+          <div
+            onClick={() => {
+              setEditingVehicle(currentVehicle);
+              setIsVehicleModalOpen(true);
+            }}
+            className="px-4 py-2 bg-[#090D18] border border-[#00FF88]/40 hover:border-[#00FF88] rounded-xl flex flex-col items-end cursor-pointer group transition-all"
+            title="Clique para editar a quilometragem atual do odômetro"
+          >
+            <span className="text-[10px] font-extrabold uppercase text-[#94A3B8] group-hover:text-[#00FF88]">
+              Odômetro Atual ✏️
+            </span>
+            <span className="text-lg font-black text-[#00FF88]">
+              {(currentVehicle?.odometerKm || currentOdometer).toLocaleString('pt-BR')} KM
+            </span>
           </div>
 
           <Button

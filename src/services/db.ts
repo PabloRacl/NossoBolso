@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import { Transaction, Category, Wallet, Goal, DebtContract, Budget, RecurringTransaction, PantryItem, VehicleRecord } from '../types';
+import { Transaction, Category, Wallet, Goal, DebtContract, Budget, RecurringTransaction, PantryItem, VehicleRecord, Vehicle } from '../types';
 
 export class NossoBolsoDB extends Dexie {
   transactions!: Table<Transaction>;
@@ -11,10 +11,11 @@ export class NossoBolsoDB extends Dexie {
   recurringTransactions!: Table<RecurringTransaction>;
   pantryItems!: Table<PantryItem>;
   vehicleRecords!: Table<VehicleRecord>;
+  vehicles!: Table<Vehicle>;
 
   constructor() {
     super('nosso-bolso-db');
-    this.version(5).stores({
+    this.version(6).stores({
       transactions: 'id, date, type, category, walletId, isRecurring, contractId',
       categories: 'id, name, type',
       wallets: 'id, name, type',
@@ -23,7 +24,8 @@ export class NossoBolsoDB extends Dexie {
       budgets: 'id, category',
       recurringTransactions: 'id, category, walletId, dayOfMonth',
       pantryItems: 'id, name, category',
-      vehicleRecords: 'id, vehicleName, type, date',
+      vehicleRecords: 'id, vehicleName, vehicleId, type, date',
+      vehicles: 'id, name, isMain',
     });
   }
 }
@@ -289,6 +291,27 @@ export async function performSeeding(database: NossoBolsoDB, storage: MiniStorag
     if (!exists) {
       await database.vehicleRecords.add(v);
     }
+  }
+
+  // 6. Seed de Veículos da Garagem
+  const defaultGarageVehicle = {
+    id: 'veh_onix',
+    name: 'Chevrolet Onix 1.0 LT (2017/2018)',
+    plate: 'ONX-2018',
+    yearModel: '2017/2018',
+    odometerKm: 45400,
+    engineSpecs: '1.0 SPE/4 Eco (80 cv) • Câmbio 6M',
+    recommendedOil: '5W30 Dexos1 Gen2 (3.5L)',
+    tireSpecs: '185/65 R15 (35 PSI)',
+    fuelType: 'flex' as const,
+    color: 'Preto Ouro Negro',
+    isMain: true,
+    createdAt: new Date().toISOString(),
+  };
+
+  const vExists = await database.vehicles.get(defaultGarageVehicle.id);
+  if (!vExists) {
+    await database.vehicles.add(defaultGarageVehicle);
   }
 
   if (storage) {

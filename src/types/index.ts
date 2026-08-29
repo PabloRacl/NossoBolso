@@ -113,12 +113,28 @@ export interface PantryItem {
   updatedAt?: string;
 }
 
+export interface Vehicle {
+  id: string;
+  name: string; // Ex: 'Chevrolet Onix 1.0 LT (2017/2018)'
+  plate?: string; // Ex: 'ABC-1234'
+  yearModel?: string; // Ex: '2017/2018'
+  odometerKm: number; // Odômetro atual em KM
+  engineSpecs?: string; // Ex: '1.0 SPE/4 Eco (80 cv) • Câmbio 6M'
+  recommendedOil?: string; // Ex: '5W30 Dexos1 Gen2 (3.5L)'
+  tireSpecs?: string; // Ex: '185/65 R15 (35 PSI)'
+  fuelType?: 'flex' | 'gasoline' | 'ethanol' | 'diesel' | 'electric';
+  color?: string;
+  isMain?: boolean;
+  createdAt: string;
+}
+
 export type VehicleRecordType = 'refuel' | 'maintenance' | 'tax' | 'insurance';
 export type ComponentCategory = 'oil' | 'timing_belt' | 'tires' | 'brakes' | 'spark_plugs' | 'filters' | 'coolant' | 'battery' | 'general';
 
 export interface VehicleRecord {
   id: string;
-  vehicleName: string; // Ex: 'Chevrolet Onix 1.0 LT 2017/2018'
+  vehicleId?: string; // ID do veículo vinculado
+  vehicleName: string; // Ex: 'Chevrolet Onix 1.0 LT (2017/2018)'
   type: VehicleRecordType;
   componentCategory?: ComponentCategory;
   date: string; // YYYY-MM-DD
