@@ -27,6 +27,7 @@ import { BudgetModal } from './components/budgets/BudgetModal';
 import { ContrachequeModal } from './components/transactions/ContrachequeModal';
 import { CommandPalette } from './components/layout/CommandPalette';
 import { PantryView } from './components/pantry/PantryView';
+import { AutomotiveView } from './components/vehicles/AutomotiveView';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const pageTransitionVariants = {
@@ -214,6 +215,8 @@ export const App: React.FC = () => {
           {activePage === 'goals' && <GoalCards goals={goals} />}
 
           {activePage === 'pantry' && <PantryView />}
+
+          {activePage === 'vehicles' && <AutomotiveView />}
 
           {activePage === 'reports' && <ReportsView transactions={transactions} goals={goals} />}
 

@@ -87,6 +87,7 @@ export const Topbar: React.FC = () => {
     debts: { title: 'Financiamentos & Dívidas', subtitle: 'Gestão de contratos parcelados de longo prazo (Veículos, Empréstimos, Imóveis)' },
     goals: { title: 'Metas Financeiras', subtitle: 'Acompanhe seu progresso e conquistas' },
     pantry: { title: 'Mercado & Estoque Doméstico', subtitle: 'Gestão de despensa, checklist pré-feira e carrinho ao vivo com comparativo de preços' },
+    vehicles: { title: 'Veículos, Garagem & Combustível', subtitle: 'Controle de abastecimentos, consumo (KM/L), manutenções, IPVA e seguro' },
     reports: { title: 'Relatórios & Análises', subtitle: 'Resumo detalhado e exportação de dados' },
     calculator: { title: 'Calculadora Financeira', subtitle: 'Ferramentas de matemática financeira, juros compostos, amortização e comparador SAC vs PRICE' },
   };

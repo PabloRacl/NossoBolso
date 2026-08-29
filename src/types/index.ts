@@ -113,3 +113,20 @@ export interface PantryItem {
   updatedAt?: string;
 }
 
+export type VehicleRecordType = 'refuel' | 'maintenance' | 'tax' | 'insurance';
+
+export interface VehicleRecord {
+  id: string;
+  vehicleName: string; // Ex: 'Honda Civic', 'Corolla'
+  type: VehicleRecordType;
+  date: string; // YYYY-MM-DD
+  odometerKm: number; // Quilometragem atual
+  totalCost: number; // Valor em R$
+  liters?: number; // Para abastecimentos
+  pricePerLiter?: number; // Preço do litro
+  fuelType?: 'gasoline' | 'ethanol' | 'diesel' | 'gnv';
+  description?: string; // Ex: 'Troca de Óleo 10.000 KM', 'IPVA 2026'
+  walletId?: string; // Carteira usada para o pagamento
+  createdAt: string;
+}
+

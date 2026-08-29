@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type PageType = 'dashboard' | 'transactions' | 'wallets' | 'debts' | 'goals' | 'pantry' | 'reports' | 'calculator';
+export type PageType = 'dashboard' | 'transactions' | 'wallets' | 'debts' | 'goals' | 'pantry' | 'vehicles' | 'reports' | 'calculator';
 
 interface AppStore {
   activePage: PageType;

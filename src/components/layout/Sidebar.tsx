@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { LayoutDashboard, ArrowLeftRight, Wallet, CreditCard, Target, ShoppingCart, FileSpreadsheet, Calculator, Sparkles, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, CreditCard, Target, ShoppingCart, Car, FileSpreadsheet, Calculator, Sparkles, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const Sidebar: React.FC = () => {
@@ -13,6 +13,7 @@ export const Sidebar: React.FC = () => {
     { id: 'debts', label: 'Financiamentos', icon: CreditCard },
     { id: 'goals', label: 'Metas', icon: Target },
     { id: 'pantry', label: 'Mercado & Estoque', icon: ShoppingCart },
+    { id: 'vehicles', label: 'Veículos & Garagem', icon: Car },
     { id: 'reports', label: 'Relatórios', icon: FileSpreadsheet },
     { id: 'calculator', label: 'Calculadora', icon: Calculator },
   ] as const;

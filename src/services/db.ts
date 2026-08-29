@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import { Transaction, Category, Wallet, Goal, DebtContract, Budget, RecurringTransaction, PantryItem } from '../types';
+import { Transaction, Category, Wallet, Goal, DebtContract, Budget, RecurringTransaction, PantryItem, VehicleRecord } from '../types';
 
 export class NossoBolsoDB extends Dexie {
   transactions!: Table<Transaction>;
@@ -10,10 +10,11 @@ export class NossoBolsoDB extends Dexie {
   budgets!: Table<Budget>;
   recurringTransactions!: Table<RecurringTransaction>;
   pantryItems!: Table<PantryItem>;
+  vehicleRecords!: Table<VehicleRecord>;
 
   constructor() {
     super('nosso-bolso-db');
-    this.version(4).stores({
+    this.version(5).stores({
       transactions: 'id, date, type, category, walletId, isRecurring, contractId',
       categories: 'id, name, type',
       wallets: 'id, name, type',
@@ -22,6 +23,7 @@ export class NossoBolsoDB extends Dexie {
       budgets: 'id, category',
       recurringTransactions: 'id, category, walletId, dayOfMonth',
       pantryItems: 'id, name, category',
+      vehicleRecords: 'id, vehicleName, type, date',
     });
   }
 }
@@ -236,6 +238,56 @@ export async function performSeeding(database: NossoBolsoDB, storage: MiniStorag
     const exists = await database.pantryItems.get(item.id);
     if (!exists) {
       await database.pantryItems.add(item);
+    }
+  }
+
+  // 5. Seed de Registros Automotivos
+  const defaultVehicles: VehicleRecord[] = [
+    {
+      id: 'vr_1',
+      vehicleName: 'Honda Civic 2.0',
+      type: 'refuel',
+      date: '2026-08-10',
+      odometerKm: 45200,
+      totalCost: 220.00,
+      liters: 40.0,
+      pricePerLiter: 5.50,
+      fuelType: 'gasoline',
+      description: 'Abastecimento Posto BR',
+      walletId: 'w1',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'vr_2',
+      vehicleName: 'Honda Civic 2.0',
+      type: 'refuel',
+      date: '2026-08-22',
+      odometerKm: 45720,
+      totalCost: 231.00,
+      liters: 42.0,
+      pricePerLiter: 5.50,
+      fuelType: 'gasoline',
+      description: 'Abastecimento Posto Shell',
+      walletId: 'w1',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'vr_3',
+      vehicleName: 'Honda Civic 2.0',
+      type: 'maintenance',
+      date: '2026-08-15',
+      odometerKm: 45400,
+      totalCost: 350.00,
+      description: 'Troca de Óleo 10w30 + Filtro de Óleo e Ar',
+      walletId: 'w1',
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  for (const v of defaultVehicles) {
+    const exists = await database.vehicleRecords.get(v.id);
+    if (!exists) {
+      await database.vehicleRecords.add(v);
     }
   }
 
