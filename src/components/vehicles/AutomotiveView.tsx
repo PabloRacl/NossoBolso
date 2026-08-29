@@ -205,12 +205,15 @@ export const AutomotiveView: React.FC = () => {
   };
 
   const handleDeleteVehicle = async (id: string, name: string) => {
-    if (vehiclesList.length <= 1) {
-      alert('Você precisa ter pelo menos um veículo cadastrado na garagem.');
-      return;
-    }
     if (confirm(`Tem certeza que deseja excluir o veículo "${name}" da sua garagem?`)) {
       await db.vehicles.delete(id);
+    }
+  };
+
+  const handleClearAllVehicles = async () => {
+    if (confirm('Tem certeza que deseja apagar TODOS os veículos da sua garagem?')) {
+      await db.vehicles.clear();
+      setSelectedVehicleId('');
     }
   };
 
@@ -282,17 +285,30 @@ export const AutomotiveView: React.FC = () => {
             </div>
           </div>
 
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => {
-              setEditingRecord(null);
-              setIsModalOpen(true);
-            }}
-          >
-            <Plus className="w-4 h-4" />
-            <span>Novo Serviço / Abastecimento</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            {vehiclesList.length > 0 && (
+              <button
+                onClick={handleClearAllVehicles}
+                className="px-3 py-2 bg-[#FF4D6D]/10 text-[#FF4D6D] hover:bg-[#FF4D6D]/20 border border-[#FF4D6D]/30 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                title="Apagar todos os veículos cadastrados na garagem"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Apagar Todos</span>
+              </button>
+            )}
+
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                setEditingRecord(null);
+                setIsModalOpen(true);
+              }}
+            >
+              <Plus className="w-4 h-4" />
+              <span>Novo Serviço / Abastecimento</span>
+            </Button>
+          </div>
         </div>
 
         {/* Grade de Cards de Veículos */}
@@ -336,15 +352,13 @@ export const AutomotiveView: React.FC = () => {
                       <Wrench className="w-3.5 h-3.5" />
                     </button>
 
-                    {vehiclesList.length > 1 && (
-                      <button
-                        onClick={() => handleDeleteVehicle(veh.id, veh.name)}
-                        className="p-1.5 bg-[#FF4D6D]/10 text-[#FF4D6D] hover:bg-[#FF4D6D]/20 rounded-lg border border-[#FF4D6D]/30 transition-colors"
-                        title="Remover veículo da garagem"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <button
+                      onClick={() => handleDeleteVehicle(veh.id, veh.name)}
+                      className="p-1.5 bg-[#FF4D6D]/10 text-[#FF4D6D] hover:bg-[#FF4D6D]/20 rounded-lg border border-[#FF4D6D]/30 transition-colors"
+                      title="Excluir este veículo da garagem"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
 
