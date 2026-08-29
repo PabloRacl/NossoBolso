@@ -1,8 +1,8 @@
 import React from 'react';
-import { Card } from '../ui/Card';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { formatBRL } from '../../utils/formatters';
 import { useAppStore } from '../../store/useAppStore';
+import { BarChart3, Activity } from 'lucide-react';
 
 interface IncomeVsExpenseChartProps {
   data: { month: string; income: number; expense: number }[];
@@ -27,26 +27,30 @@ const CustomBarTooltip: React.FC<CustomBarTooltipProps> = ({ active, payload, la
     const balance = income - expense;
 
     return (
-      <div className="bg-[#0F172A]/95 border border-[#1E293B] shadow-2xl backdrop-blur-xl rounded-2xl p-4 flex flex-col gap-2 min-w-[200px] z-50">
-        <span className="text-xs font-extrabold text-[#94A3B8] uppercase tracking-wider border-b border-[#1E293B] pb-1.5">
-          📅 Mês de {label}
+      <div className="bg-[#090D18]/95 border border-[#00FF88]/40 shadow-[0_0_25px_rgba(0,255,136,0.2)] backdrop-blur-xl rounded-2xl p-4 flex flex-col gap-2 min-w-[210px] z-50">
+        <span className="text-[10px] font-black text-[#00FF88] uppercase tracking-widest border-b border-[#2E3B52] pb-1.5 flex items-center justify-between">
+          <span>📅 MÊS DE {label?.toUpperCase()}</span>
+          <Activity className="w-3.5 h-3.5 text-[#00FF88] animate-pulse" />
         </span>
-        <div className="flex items-center justify-between gap-4 text-xs font-semibold">
+
+        <div className="flex items-center justify-between gap-4 text-xs font-bold">
           <span className="flex items-center gap-1.5 text-[#00FF88]">
             <span className="w-2.5 h-2.5 rounded-full bg-[#00FF88] shadow-[0_0_8px_#00FF88]" />
-            Receitas:
+            Entradas:
           </span>
-          <span className="font-extrabold text-[#F8FAFC]">{formatBRL(income, isPrivacyMode)}</span>
+          <span className="font-black text-[#F8FAFC]">{formatBRL(income, isPrivacyMode)}</span>
         </div>
-        <div className="flex items-center justify-between gap-4 text-xs font-semibold">
+
+        <div className="flex items-center justify-between gap-4 text-xs font-bold">
           <span className="flex items-center gap-1.5 text-[#FF4D6D]">
             <span className="w-2.5 h-2.5 rounded-full bg-[#FF4D6D] shadow-[0_0_8px_#FF4D6D]" />
-            Despesas:
+            Saídas:
           </span>
-          <span className="font-extrabold text-[#F8FAFC]">{formatBRL(expense, isPrivacyMode)}</span>
+          <span className="font-black text-[#F8FAFC]">{formatBRL(expense, isPrivacyMode)}</span>
         </div>
-        <div className="pt-1.5 border-t border-[#1E293B] flex items-center justify-between text-xs font-bold">
-          <span className="text-[#94A3B8]">Resultado:</span>
+
+        <div className="pt-2 border-t border-[#1E293B] flex items-center justify-between text-xs font-black">
+          <span className="text-[#94A3B8] uppercase text-[10px]">Resultado Líquido:</span>
           <span className={balance >= 0 ? 'text-[#00FF88]' : 'text-[#FF4D6D]'}>
             {formatBRL(balance, isPrivacyMode)}
           </span>
@@ -61,20 +65,26 @@ export const IncomeVsExpenseChart: React.FC<IncomeVsExpenseChartProps> = ({ data
   const { isPrivacyMode } = useAppStore();
 
   return (
-    <Card className="flex flex-col min-h-[380px] hover:border-[#00FF88]/20 transition-all duration-300">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-base font-bold text-[#F8FAFC] tracking-tight">Receitas vs Despesas</h3>
-          <p className="text-xs text-[#94A3B8] font-medium">Histórico dos últimos 6 meses</p>
-        </div>
-        <div className="flex items-center gap-4 text-xs font-semibold">
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-md bg-[#00FF88]" />
-            <span className="text-[#F8FAFC]">Receitas</span>
+    <div className="cyber-hud-card hud-corner p-5 flex flex-col min-h-[380px] border border-[#00FF88]/30 shadow-[0_0_20px_rgba(0,255,136,0.08)]">
+      <div className="flex items-center justify-between mb-4 border-b border-[#2E3B52]/80 pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2.5 bg-[#00FF88]/15 text-[#00FF88] rounded-xl border border-[#00FF88]/30">
+            <BarChart3 className="w-5 h-5 text-[#00FF88]" />
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-md bg-[#FF4D6D]" />
-            <span className="text-[#F8FAFC]">Despesas</span>
+          <div>
+            <h3 className="text-sm font-black text-[#F8FAFC] tracking-tight">HISTOGRAMA DE FLUXO & VELOCIDADE</h3>
+            <p className="text-[11px] text-[#94A3B8] font-semibold">Comparativo quadrimestral de receitas e despesas</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 text-xs font-extrabold">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#00FF88]/10 border border-[#00FF88]/30 text-[#00FF88]">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#00FF88] shadow-[0_0_6px_#00FF88]" />
+            <span>Entradas</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#FF4D6D]/10 border border-[#FF4D6D]/30 text-[#FF4D6D]">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#FF4D6D] shadow-[0_0_6px_#FF4D6D]" />
+            <span>Saídas</span>
           </div>
         </div>
       </div>
@@ -83,36 +93,36 @@ export const IncomeVsExpenseChart: React.FC<IncomeVsExpenseChartProps> = ({ data
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
             <defs>
-              <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="cyberIncomeGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#00FF88" stopOpacity={1} />
-                <stop offset="100%" stopColor="#059669" stopOpacity={0.85} />
+                <stop offset="100%" stopColor="#06B6D4" stopOpacity={0.7} />
               </linearGradient>
-              <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="cyberExpenseGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#FF4D6D" stopOpacity={1} />
-                <stop offset="100%" stopColor="#B91C1C" stopOpacity={0.85} />
+                <stop offset="100%" stopColor="#991B1B" stopOpacity={0.7} />
               </linearGradient>
             </defs>
 
-            <CartesianGrid strokeDasharray="3 3" stroke="#1E2330" vertical={false} opacity={0.6} />
-            <XAxis dataKey="month" stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} opacity={0.6} />
+            <XAxis dataKey="month" stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
             <YAxis
               stroke="#94A3B8"
-              fontSize={12}
+              fontSize={11}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v) => (isPrivacyMode ? '•••••' : `R$${v}`)}
             />
-            
+
             <Tooltip
               content={<CustomBarTooltip isPrivacyMode={isPrivacyMode} />}
-              cursor={{ fill: 'rgba(255, 255, 255, 0.04)', rx: 8 }}
+              cursor={{ fill: 'rgba(0, 255, 136, 0.05)', rx: 8 }}
             />
 
-            <Bar dataKey="income" name="Receitas" fill="url(#incomeGradient)" radius={[8, 8, 0, 0]} maxBarSize={45} />
-            <Bar dataKey="expense" name="Despesas" fill="url(#expenseGradient)" radius={[8, 8, 0, 0]} maxBarSize={45} />
+            <Bar dataKey="income" name="Entradas" fill="url(#cyberIncomeGrad)" radius={[8, 8, 0, 0]} maxBarSize={40} />
+            <Bar dataKey="expense" name="Saídas" fill="url(#cyberExpenseGrad)" radius={[8, 8, 0, 0]} maxBarSize={40} />
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </Card>
+    </div>
   );
 };

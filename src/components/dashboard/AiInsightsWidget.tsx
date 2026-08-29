@@ -1,11 +1,10 @@
 import React, { useMemo } from 'react';
-import { Card } from '../ui/Card';
-import { Button } from '../ui/Button';
 import { useAppStore } from '../../store/useAppStore';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../services/db';
 import { formatBRL, formatPercent } from '../../utils/formatters';
-import { Sparkles, TrendingUp, AlertTriangle, ShieldCheck, ArrowRight, Zap, Lightbulb } from 'lucide-react';
+import { Sparkles, ShieldCheck, AlertTriangle, ArrowRight, Zap, Lightbulb, Bot, Terminal } from 'lucide-react';
+import { Button } from '../ui/Button';
 
 interface AiInsightsWidgetProps {
   selectedMonth: string;
@@ -52,11 +51,11 @@ export const AiInsightsWidget: React.FC<AiInsightsWidgetProps> = ({ selectedMont
           id: 'ins_savings_high',
           type: 'positive',
           icon: <ShieldCheck className="w-5 h-5 text-[#00FF88]" />,
-          title: 'Excelência Financeira!',
-          message: `Sua taxa de poupança no mês está em excelentes ${formatPercent(savingsRate)}. Você guardou ${formatBRL(net, isPrivacyMode)}.`,
-          badge: 'Saúde 10/10',
-          badgeColor: 'bg-[#00FF88]/10 text-[#00FF88] border-[#00FF88]/30',
-          actionText: 'Ver Metas',
+          title: 'EXCELÊNCIA DE RETENÇÃO DE CAIXA',
+          message: `Sua taxa de poupança no mês atingiu ${formatPercent(savingsRate)}. Você reservou ${formatBRL(net, isPrivacyMode)} do seu faturamento total.`,
+          badge: 'SCORE 10/10',
+          badgeColor: 'bg-[#00FF88]/15 text-[#00FF88] border-[#00FF88]/40 shadow-[0_0_10px_rgba(0,255,136,0.2)]',
+          actionText: 'Acessar Metas',
           onAction: () => setActivePage('goals'),
         });
       } else if (savingsRate > 0) {
@@ -64,11 +63,11 @@ export const AiInsightsWidget: React.FC<AiInsightsWidgetProps> = ({ selectedMont
           id: 'ins_savings_mid',
           type: 'warning',
           icon: <Lightbulb className="w-5 h-5 text-[#F59E0B]" />,
-          title: 'Oportunidade de Aporte',
-          message: `Você poupou ${formatPercent(savingsRate)} da sua renda (${formatBRL(net, isPrivacyMode)}). A meta ideal da regra 50-30-20 é poupar ao menos 20%.`,
-          badge: 'Meta 20%',
-          badgeColor: 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/30',
-          actionText: 'Simular F.I.R.E',
+          title: 'OPORTUNIDADE DE REAPORTES',
+          message: `Você acumulou ${formatPercent(savingsRate)} da sua renda (${formatBRL(net, isPrivacyMode)}). A diretriz ideal da Regra 50/30/20 indica ao menos 20%.`,
+          badge: 'META 20%',
+          badgeColor: 'bg-[#F59E0B]/15 text-[#F59E0B] border-[#F59E0B]/40',
+          actionText: 'Simulador F.I.R.E',
           onAction: () => setActivePage('calculator'),
         });
       } else {
@@ -76,10 +75,10 @@ export const AiInsightsWidget: React.FC<AiInsightsWidgetProps> = ({ selectedMont
           id: 'ins_savings_neg',
           type: 'danger',
           icon: <AlertTriangle className="w-5 h-5 text-[#FF4D6D]" />,
-          title: 'Déficit no Período',
-          message: `Suas despesas superaram suas receitas em ${formatBRL(Math.abs(net), isPrivacyMode)}. Revise os gastos de maior impacto.`,
-          badge: 'Alerta Vermelho',
-          badgeColor: 'bg-[#FF4D6D]/10 text-[#FF4D6D] border-[#FF4D6D]/30',
+          title: 'ALERTA DE BURN RATE ELEVADO',
+          message: `Suas saídas superaram os aportes em ${formatBRL(Math.abs(net), isPrivacyMode)}. Recomendamos estipular limites de teto de gastos.`,
+          badge: 'DÉFICIT CRÍTICO',
+          badgeColor: 'bg-[#FF4D6D]/15 text-[#FF4D6D] border-[#FF4D6D]/40 animate-pulse',
           actionText: 'Ajustar Orçamentos',
           onAction: () => setBudgetModalOpen(true),
         });
@@ -93,11 +92,11 @@ export const AiInsightsWidget: React.FC<AiInsightsWidgetProps> = ({ selectedMont
         id: 'ins_top_cat',
         type: 'info',
         icon: <Zap className="w-5 h-5 text-[#06B6D4]" />,
-        title: `Maior Ofensor: ${topCategory}`,
-        message: `A categoria ${topCategory} consome ${formatPercent(topCatPct)} do total das suas despesas (${formatBRL(topCatAmount, isPrivacyMode)}).`,
-        badge: `${formatPercent(topCatPct)} das Despesas`,
-        badgeColor: 'bg-[#06B6D4]/10 text-[#06B6D4] border-[#06B6D4]/30',
-        actionText: 'Definir Teto',
+        title: `MAIOR CONSUMIDOR DE CAIXA: ${topCategory.toUpperCase()}`,
+        message: `A categoria ${topCategory} absorve ${formatPercent(topCatPct)} das suas saídas no mês (${formatBRL(topCatAmount, isPrivacyMode)}).`,
+        badge: `${formatPercent(topCatPct)} DAS SAÍDAS`,
+        badgeColor: 'bg-[#06B6D4]/15 text-[#06B6D4] border-[#06B6D4]/40',
+        actionText: 'Definir Teto de Categoria',
         onAction: () => setBudgetModalOpen(true),
       });
     }
@@ -108,11 +107,11 @@ export const AiInsightsWidget: React.FC<AiInsightsWidgetProps> = ({ selectedMont
         id: 'ins_budget_hint',
         type: 'info',
         icon: <Sparkles className="w-5 h-5 text-[#A855F7]" />,
-        title: 'Inteligência de Orçamento',
-        message: 'Defina limites de orçamento por categoria para receber notificações preditivas antes de estourar seus gastos.',
-        badge: 'Recurso Premium',
-        badgeColor: 'bg-[#A855F7]/10 text-[#A855F7] border-[#A855F7]/30',
-        actionText: 'Ativar Orçamentos',
+        title: 'MONITORAMENTO PREDITIVO DE TETO',
+        message: 'Cadastre limites de gastos por categoria para ativar notificações preditivas do robô antes de comprometer seu balanço.',
+        badge: 'RECURSO IA ATIVO',
+        badgeColor: 'bg-[#A855F7]/15 text-[#A855F7] border-[#A855F7]/40',
+        actionText: 'Ativar Tetos de Gastos',
         onAction: () => setBudgetModalOpen(true),
       });
     }
@@ -123,39 +122,41 @@ export const AiInsightsWidget: React.FC<AiInsightsWidgetProps> = ({ selectedMont
   if (insights.length === 0) return null;
 
   return (
-    <Card glow glowColor="#A855F7" className="hover:border-[#A855F7]/40 transition-all duration-300">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-[#A855F7]/15 text-[#A855F7] rounded-xl border border-[#A855F7]/30 shadow-md">
-            <Sparkles className="w-5 h-5 animate-pulse" />
+    <div className="cyber-hud-card hud-corner p-5 flex flex-col justify-between gap-4 border border-[#A855F7]/40 hover:border-[#A855F7]/70 shadow-[0_0_25px_rgba(168,85,247,0.12)]">
+      {/* Header com Ícone de IA Preditiva */}
+      <div className="flex items-center justify-between border-b border-[#2E3B52]/80 pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2.5 bg-gradient-to-br from-[#A855F7]/25 to-[#00FF88]/25 text-[#A855F7] rounded-xl border border-[#A855F7]/40 shadow-[0_0_15px_rgba(168,85,247,0.25)]">
+            <Bot className="w-5 h-5 animate-pulse text-[#A855F7]" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-[#F8FAFC] tracking-tight flex items-center gap-2">
-              IaFinanceira Insights
-              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-gradient-to-r from-[#A855F7]/30 to-[#00FF88]/30 border border-[#A855F7]/50 text-[#F8FAFC]">
-                IA Ativa
+            <h3 className="text-sm font-black text-[#F8FAFC] tracking-tight flex items-center gap-2">
+              IA FINANCIAL CORE
+              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-[#A855F7]/20 border border-[#A855F7]/50 text-[#A855F7]">
+                REDES NEURAIS ATIVAS
               </span>
             </h3>
-            <p className="text-xs text-[#94A3B8] font-medium">Recomendações financeiras personalizadas em tempo real</p>
+            <p className="text-[11px] text-[#94A3B8] font-semibold">Análise preditiva e recomendações financeiras vetoriais</p>
           </div>
         </div>
       </div>
 
+      {/* Lista de Cards de Insights Preditivos */}
       <div className="flex flex-col gap-3 max-h-72 overflow-y-auto pr-1">
         {insights.map((item) => (
           <div
             key={item.id}
-            className="p-3.5 bg-[#0A0B0E]/80 border border-[#1E2330] hover:border-[#3B4C6A] rounded-xl flex flex-col justify-between gap-3 transition-all group"
+            className="p-3.5 bg-[#090D18]/90 border border-[#1E293B] hover:border-[#A855F7]/50 rounded-xl flex flex-col justify-between gap-3 transition-all group hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]"
           >
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {item.icon}
-                  <span className="text-xs font-bold text-[#F8FAFC] group-hover:text-[#00FF88] transition-colors">
+                  <span className="text-xs font-black text-[#F8FAFC] group-hover:text-[#00FF88] transition-colors tracking-wide">
                     {item.title}
                   </span>
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${item.badgeColor}`}>
+                <span className={`text-[9px] font-black px-2 py-0.5 rounded-md border tracking-wider ${item.badgeColor}`}>
                   {item.badge}
                 </span>
               </div>
@@ -168,14 +169,17 @@ export const AiInsightsWidget: React.FC<AiInsightsWidgetProps> = ({ selectedMont
               variant="outline"
               size="sm"
               onClick={item.onAction}
-              className="w-full text-xs justify-between border-[#2E3B52] hover:border-[#00FF88]/40 hover:bg-[#00FF88]/10 text-[#F8FAFC] hover:text-[#00FF88]"
+              className="w-full text-xs justify-between border-[#2E3B52] hover:border-[#A855F7]/50 hover:bg-[#A855F7]/15 text-[#F8FAFC] hover:text-[#A855F7] transition-all"
             >
-              <span>{item.actionText}</span>
+              <span className="flex items-center gap-1.5 font-bold">
+                <Terminal className="w-3.5 h-3.5 text-[#A855F7]" />
+                {item.actionText}
+              </span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Button>
           </div>
         ))}
       </div>
-    </Card>
+    </div>
   );
 };
