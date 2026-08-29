@@ -42,7 +42,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2 }}
-            className="relative w-full max-w-lg bg-[#162032] border border-[#2E3B52] rounded-2xl p-6 shadow-2xl z-10 max-h-[90vh] overflow-y-auto"
+            className="relative w-full max-w-lg bg-[#162032] border border-[#2E3B52] rounded-2xl p-4 sm:p-6 shadow-2xl z-10 max-h-[92vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#2E3B52]">
               <h3 className="text-lg font-bold text-[#F8FAFC]">{title}</h3>
