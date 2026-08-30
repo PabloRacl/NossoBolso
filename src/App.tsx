@@ -209,8 +209,8 @@ export const App: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <IncomeVsExpenseChart data={sixMonthsData} />
-                <ExpensePieChart data={pieChartData} />
+                <IncomeVsExpenseChart transactions={transactions} data={sixMonthsData} />
+                <ExpensePieChart transactions={transactions} selectedMonth={selectedMonth} data={pieChartData} />
               </div>
 
               <RecentTransactions transactions={periodTxs.length > 0 ? periodTxs : transactions} onDelete={handleDeleteTransaction} />
