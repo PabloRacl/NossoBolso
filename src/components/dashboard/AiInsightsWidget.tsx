@@ -3,7 +3,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../services/db';
 import { formatBRL, formatPercent } from '../../utils/formatters';
-import { Sparkles, ShieldCheck, AlertTriangle, ArrowRight, Zap, Lightbulb, Bot, Terminal } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, ArrowRight, Zap, Lightbulb, Bot, Terminal, TrendingUp, PiggyBank } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 interface AiInsightsWidgetProps {
@@ -16,7 +16,7 @@ export const AiInsightsWidget: React.FC<AiInsightsWidgetProps> = ({ selectedMont
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
   const budgets = useLiveQuery(() => db.budgets.toArray(), []) || [];
 
-  const insights = useMemo(() => {
+  const analysis = useMemo(() => {
     const monthTxs = transactions.filter((t) => {
       if (selectedMonth === 'all') return true;
       return t.date.startsWith(selectedMonth);
@@ -25,12 +25,13 @@ export const AiInsightsWidget: React.FC<AiInsightsWidgetProps> = ({ selectedMont
     const inc = monthTxs.filter((t) => t.type === 'income').reduce((a, b) => a + b.amount, 0);
     const exp = monthTxs.filter((t) => t.type === 'expense').reduce((a, b) => a + b.amount, 0);
     const net = inc - exp;
-    const savingsRate = inc > 0 ? (net / inc) * 100 : 0;
+    const retentionRate = inc > 0 ? (net / inc) * 100 : 0;
 
-    // Highest expense category
+    // Categoria de maior gasto no mês
     const expCatMap: Record<string, number> = {};
     monthTxs.filter((t) => t.type === 'expense').forEach((t) => {
-      expCatMap[t.category] = (expCatMap[t.category] || 0) + t.amount;
+      const cat = t.category || 'Outros';
+      expCatMap[cat] = (expCatMap[cat] || 0) + t.amount;
     });
 
     let topCategory = '';
@@ -42,143 +43,165 @@ export const AiInsightsWidget: React.FC<AiInsightsWidgetProps> = ({ selectedMont
       }
     });
 
-    const list = [];
+    const topCatPct = exp > 0 ? (topCatAmount / exp) * 100 : 0;
 
-    // Insight 1: Taxa de Poupança / Saúde Financeira
-    if (inc > 0) {
-      if (savingsRate >= 20) {
-        list.push({
-          id: 'ins_savings_high',
-          type: 'positive',
-          icon: <ShieldCheck className="w-5 h-5 text-[#00FF88]" />,
-          title: 'EXCELÊNCIA DE RETENÇÃO DE CAIXA',
-          message: `Sua taxa de poupança no mês atingiu ${formatPercent(savingsRate)}. Você reservou ${formatBRL(net, isPrivacyMode)} do seu faturamento total.`,
-          badge: 'SCORE 10/10',
-          badgeColor: 'bg-[#00FF88]/15 text-[#00FF88] border-[#00FF88]/40 shadow-[0_0_10px_rgba(0,255,136,0.2)]',
-          actionText: 'Acessar Metas',
-          onAction: () => setActivePage('goals'),
-        });
-      } else if (savingsRate > 0) {
-        list.push({
-          id: 'ins_savings_mid',
-          type: 'warning',
-          icon: <Lightbulb className="w-5 h-5 text-[#F59E0B]" />,
-          title: 'OPORTUNIDADE DE REAPORTES',
-          message: `Você acumulou ${formatPercent(savingsRate)} da sua renda (${formatBRL(net, isPrivacyMode)}). A diretriz ideal da Regra 50/30/20 indica ao menos 20%.`,
-          badge: 'META 20%',
-          badgeColor: 'bg-[#F59E0B]/15 text-[#F59E0B] border-[#F59E0B]/40',
-          actionText: 'Simulador F.I.R.E',
-          onAction: () => setActivePage('calculator'),
-        });
-      } else {
-        list.push({
-          id: 'ins_savings_neg',
-          type: 'danger',
-          icon: <AlertTriangle className="w-5 h-5 text-[#FF4D6D]" />,
-          title: 'ALERTA DE BURN RATE ELEVADO',
-          message: `Suas saídas superaram os aportes em ${formatBRL(Math.abs(net), isPrivacyMode)}. Recomendamos estipular limites de teto de gastos.`,
-          badge: 'DÉFICIT CRÍTICO',
-          badgeColor: 'bg-[#FF4D6D]/15 text-[#FF4D6D] border-[#FF4D6D]/40 animate-pulse',
-          actionText: 'Ajustar Orçamentos',
-          onAction: () => setBudgetModalOpen(true),
-        });
-      }
-    }
+    // Status geral de saúde financeira
+    let healthStatus: 'excellent' | 'warning' | 'critical' = 'excellent';
+    if (net < 0) healthStatus = 'critical';
+    else if (retentionRate < 20) healthStatus = 'warning';
 
-    // Insight 2: Categoria de Maior Impacto
-    if (topCategory && topCatAmount > 0) {
-      const topCatPct = exp > 0 ? (topCatAmount / exp) * 100 : 0;
-      list.push({
-        id: 'ins_top_cat',
-        type: 'info',
-        icon: <Zap className="w-5 h-5 text-[#06B6D4]" />,
-        title: `MAIOR CONSUMIDOR DE CAIXA: ${topCategory.toUpperCase()}`,
-        message: `A categoria ${topCategory} absorve ${formatPercent(topCatPct)} das suas saídas no mês (${formatBRL(topCatAmount, isPrivacyMode)}).`,
-        badge: `${formatPercent(topCatPct)} DAS SAÍDAS`,
-        badgeColor: 'bg-[#06B6D4]/15 text-[#06B6D4] border-[#06B6D4]/40',
-        actionText: 'Definir Teto de Categoria',
-        onAction: () => setBudgetModalOpen(true),
-      });
-    }
-
-    // Insight 3: Dica de Orçamento Inteligente
-    if (budgets.length === 0) {
-      list.push({
-        id: 'ins_budget_hint',
-        type: 'info',
-        icon: <Sparkles className="w-5 h-5 text-[#A855F7]" />,
-        title: 'MONITORAMENTO PREDITIVO DE TETO',
-        message: 'Cadastre limites de gastos por categoria para ativar notificações preditivas do robô antes de comprometer seu balanço.',
-        badge: 'RECURSO IA ATIVO',
-        badgeColor: 'bg-[#A855F7]/15 text-[#A855F7] border-[#A855F7]/40',
-        actionText: 'Ativar Tetos de Gastos',
-        onAction: () => setBudgetModalOpen(true),
-      });
-    }
-
-    return list;
-  }, [transactions, budgets, selectedMonth, isPrivacyMode, setActivePage, setBudgetModalOpen]);
-
-  if (insights.length === 0) return null;
+    return {
+      inc,
+      exp,
+      net,
+      retentionRate,
+      topCategory,
+      topCatAmount,
+      topCatPct,
+      healthStatus,
+      monthTxsCount: monthTxs.length,
+    };
+  }, [transactions, selectedMonth]);
 
   return (
     <div className="cyber-hud-card hud-corner p-5 flex flex-col justify-between gap-4 border border-[#A855F7]/40 hover:border-[#A855F7]/70 shadow-[0_0_25px_rgba(168,85,247,0.12)]">
-      {/* Header com Ícone de IA Preditiva */}
-      <div className="flex items-center justify-between border-b border-[#2E3B52]/80 pb-3">
+      {/* Cabeçalho Limpo & Claro */}
+      <div className="flex flex-wrap items-center justify-between border-b border-[#2E3B52]/80 pb-3 gap-2">
         <div className="flex items-center gap-2.5">
           <div className="p-2.5 bg-gradient-to-br from-[#A855F7]/25 to-[#00FF88]/25 text-[#A855F7] rounded-xl border border-[#A855F7]/40 shadow-[0_0_15px_rgba(168,85,247,0.25)]">
-            <Bot className="w-5 h-5 animate-pulse text-[#A855F7]" />
+            <Bot className="w-5 h-5 text-[#A855F7]" />
           </div>
           <div>
             <h3 className="text-sm font-black text-[#F8FAFC] tracking-tight flex items-center gap-2">
-              IA FINANCIAL CORE
-              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-[#A855F7]/20 border border-[#A855F7]/50 text-[#A855F7]">
-                REDES NEURAIS ATIVAS
-              </span>
+              DIAGNÓSTICO FINANCEIRO DO MÊS
             </h3>
-            <p className="text-[11px] text-[#94A3B8] font-semibold">Análise preditiva e recomendações financeiras vetoriais</p>
+            <p className="text-[11px] text-[#94A3B8] font-semibold">Resumo automático de saldo, retenção de caixa e alertas</p>
           </div>
+        </div>
+
+        {/* Badge Claro de Saúde Financeira */}
+        <div>
+          {analysis.healthStatus === 'excellent' ? (
+            <span className="px-2.5 py-1 rounded-lg bg-[#00FF88]/15 border border-[#00FF88]/40 text-[#00FF88] text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-[0_0_10px_rgba(0,255,136,0.2)]">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Saúde Financeira Forte
+            </span>
+          ) : analysis.healthStatus === 'warning' ? (
+            <span className="px-2.5 py-1 rounded-lg bg-[#F59E0B]/15 border border-[#F59E0B]/40 text-[#F59E0B] text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+              <Lightbulb className="w-3.5 h-3.5" />
+              Retenção Baixa (Abaixo 20%)
+            </span>
+          ) : (
+            <span className="px-2.5 py-1 rounded-lg bg-[#FF4D6D]/15 border border-[#FF4D6D]/40 text-[#FF4D6D] text-[10px] font-black uppercase tracking-wider flex items-center gap-1 animate-pulse">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              Gastos Acima das Receitas
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Lista de Cards de Insights Preditivos */}
-      <div className="flex flex-col gap-3 max-h-72 overflow-y-auto pr-1">
-        {insights.map((item) => (
+      {/* Medidor Visual de Retenção de Salário */}
+      <div className="p-3 bg-[#090D18]/90 border border-[#1E293B] rounded-xl flex flex-col gap-2">
+        <div className="flex items-center justify-between text-xs font-bold">
+          <span className="text-[#94A3B8] flex items-center gap-1.5">
+            <TrendingUp className="w-3.5 h-3.5 text-[#00FF88]" />
+            Capacidade de Sobra / Poupança:
+          </span>
+          <span className={analysis.net >= 0 ? 'text-[#00FF88] font-black' : 'text-[#FF4D6D] font-black'}>
+            {formatBRL(analysis.net, isPrivacyMode)} ({formatPercent(analysis.retentionRate)})
+          </span>
+        </div>
+
+        <div className="w-full h-2 bg-[#0A0B0E] rounded-full overflow-hidden border border-[#2E3B52]">
           <div
-            key={item.id}
-            className="p-3.5 bg-[#090D18]/90 border border-[#1E293B] hover:border-[#A855F7]/50 rounded-xl flex flex-col justify-between gap-3 transition-all group hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]"
+            className={`h-full rounded-full transition-all duration-500 ${
+              analysis.net < 0
+                ? 'bg-[#FF4D6D]'
+                : analysis.retentionRate >= 20
+                ? 'bg-[#00FF88] shadow-[0_0_10px_#00FF88]'
+                : 'bg-[#F59E0B]'
+            }`}
+            style={{ width: `${Math.max(Math.min(analysis.retentionRate, 100), 5)}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Cards Práticos e Diretos */}
+      <div className="flex flex-col gap-2.5 max-h-64 overflow-y-auto pr-1">
+        {/* Card 1: Saldo Líquido */}
+        <div className="p-3 bg-[#090D18]/90 border border-[#1E293B] hover:border-[#00FF88]/40 rounded-xl flex items-center justify-between gap-3 transition-all">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-[#00FF88]/15 text-[#00FF88] rounded-lg border border-[#00FF88]/30 shrink-0">
+              <PiggyBank className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-black text-[#F8FAFC]">Balanço Mensal</span>
+              <span className="text-[11px] text-[#94A3B8]">
+                Recebido {formatBRL(analysis.inc, isPrivacyMode)} • Gastos {formatBRL(analysis.exp, isPrivacyMode)}
+              </span>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setActivePage('goals')}
+            className="text-[11px] font-bold border-[#2E3B52] hover:border-[#00FF88]/50 text-[#00FF88] shrink-0"
           >
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {item.icon}
-                  <span className="text-xs font-black text-[#F8FAFC] group-hover:text-[#00FF88] transition-colors tracking-wide">
-                    {item.title}
-                  </span>
-                </div>
-                <span className={`text-[9px] font-black px-2 py-0.5 rounded-md border tracking-wider ${item.badgeColor}`}>
-                  {item.badge}
+            Ver Metas
+          </Button>
+        </div>
+
+        {/* Card 2: Maior Gasto */}
+        {analysis.topCategory && (
+          <div className="p-3 bg-[#090D18]/90 border border-[#1E293B] hover:border-[#06B6D4]/40 rounded-xl flex items-center justify-between gap-3 transition-all">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-[#06B6D4]/15 text-[#06B6D4] rounded-lg border border-[#06B6D4]/30 shrink-0">
+                <Zap className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-[#F8FAFC]">
+                  Maior Categoria: <span className="text-[#06B6D4]">{analysis.topCategory}</span>
+                </span>
+                <span className="text-[11px] text-[#94A3B8]">
+                  Consome {formatPercent(analysis.topCatPct)} do total das despesas ({formatBRL(analysis.topCatAmount, isPrivacyMode)})
                 </span>
               </div>
-              <p className="text-[11px] text-[#94A3B8] leading-relaxed font-medium">
-                {item.message}
-              </p>
             </div>
-
             <Button
               variant="outline"
               size="sm"
-              onClick={item.onAction}
-              className="w-full text-xs justify-between border-[#2E3B52] hover:border-[#A855F7]/50 hover:bg-[#A855F7]/15 text-[#F8FAFC] hover:text-[#A855F7] transition-all"
+              onClick={() => setBudgetModalOpen(true)}
+              className="text-[11px] font-bold border-[#2E3B52] hover:border-[#06B6D4]/50 text-[#06B6D4] shrink-0"
             >
-              <span className="flex items-center gap-1.5 font-bold">
-                <Terminal className="w-3.5 h-3.5 text-[#A855F7]" />
-                {item.actionText}
-              </span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              Criar Teto
             </Button>
           </div>
-        ))}
+        )}
+
+        {/* Card 3: Recomendação Prática */}
+        <div className="p-3 bg-[#090D18]/90 border border-[#1E293B] hover:border-[#A855F7]/40 rounded-xl flex items-center justify-between gap-3 transition-all">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-[#A855F7]/15 text-[#A855F7] rounded-lg border border-[#A855F7]/30 shrink-0">
+              <Lightbulb className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-black text-[#F8FAFC]">Dica de Rendimento</span>
+              <span className="text-[11px] text-[#94A3B8]">
+                {analysis.net > 0
+                  ? `Mova os ${formatBRL(analysis.net, isPrivacyMode)} para render 100% CDI no banco.`
+                  : 'Ajuste os tetos de gastos por categoria para evitar deficit.'}
+              </span>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setActivePage('calculator')}
+            className="text-[11px] font-bold border-[#2E3B52] hover:border-[#A855F7]/50 text-[#A855F7] shrink-0"
+          >
+            Simular CDI
+          </Button>
+        </div>
       </div>
     </div>
   );
