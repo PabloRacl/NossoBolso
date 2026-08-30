@@ -22,9 +22,23 @@ export const ContrachequeModal: React.FC = () => {
   const [pastedText, setPastedText] = useState('');
   const [fileName, setFileName] = useState('');
   
+  const getLastDayOfMonth = (yearMonthStr: string) => {
+    const [y, m] = yearMonthStr.split('-').map(Number);
+    if (!y || !m) return new Date().toISOString().substring(0, 10);
+    const lastDay = new Date(y, m, 0).getDate();
+    return `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  };
+
+  const getDayOfMonth = (yearMonthStr: string, dayNum: number) => {
+    const [y, m] = yearMonthStr.split('-').map(Number);
+    if (!y || !m) return new Date().toISOString().substring(0, 10);
+    return `${y}-${String(m).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+  };
+
   // Extracted fields — Inicializado com os dados reais do Contracheque PMPE (AGO/2026)
   const [employer, setEmployer] = useState('Polícia Militar de Pernambuco (PMPE)');
   const [referenceMonth, setReferenceMonth] = useState('2026-08');
+  const [entryDate, setEntryDate] = useState<string>(() => getLastDayOfMonth('2026-08'));
   const [grossSalary, setGrossSalary] = useState<number>(8659.00);
   const [netSalary, setNetSalary] = useState<number>(4244.65);
   const [selectedWalletId, setSelectedWalletId] = useState<string>('');
@@ -38,10 +52,17 @@ export const ContrachequeModal: React.FC = () => {
     { id: 'pmpe_5', name: '5091 - SISMEPE (Contrib. Mensal Saúde)', amount: 61.93, category: 'Saúde' },
   ]);
 
+  // Função para alterar o mês de referência e atualizar a data final padrão
+  const handleReferenceMonthChange = (monthStr: string) => {
+    setReferenceMonth(monthStr);
+    setEntryDate(getLastDayOfMonth(monthStr));
+  };
+
   // Função para carregar os dados exatos do Contracheque PMPE
   const handleLoadPMPEPreset = () => {
     setEmployer('Polícia Militar de Pernambuco (PMPE)');
     setReferenceMonth('2026-08');
+    setEntryDate(getLastDayOfMonth('2026-08'));
     setGrossSalary(8659.00);
     setNetSalary(4244.65);
     setDeductions([
@@ -178,7 +199,48 @@ export const ContrachequeModal: React.FC = () => {
 
   const handleConfirmImport = async () => {
     const targetWalletId = selectedWalletId || wallets[0]?.id || 'w1';
-    const dateStr = `${referenceMonth}-05`;
+    const dateStr = entryDate || getLastDayOfMonth(referenceMonth);
+
+    if (importMode === 'net_only') {
+      // 1 Receita com o Salário Líquido
+      await db.transactions.add({
+        id: `salario_${Date.now()}`,
+        description: `Salário Líquido - ${employer}`,
+        amount: netSalary,
+        date: dateStr,
+        type: 'income',
+        category: 'Salário',
+        walletId: targetWalletId,
+        createdAt: new Date().toISOString(),
+      });
+    } else {
+      // Modo Detalhado: 1 Receita com Salário Bruto + Despesas para cada desconto
+      await db.transactions.add({
+        id: `salario_bruto_${Date.now()}`,
+        description: `Salário Bruto - ${employer}`,
+        amount: grossSalary,
+        date: dateStr,
+        type: 'income',
+        category: 'Salário',
+        walletId: targetWalletId,
+        createdAt: new Date().toISOString(),
+      });
+
+      for (const d of deductions) {
+        if (d.amount > 0) {
+          await db.transactions.add({
+            id: `desc_${d.id}_${Date.now()}`,
+            description: `Desconto Folha: ${d.name}`,
+            amount: d.amount,
+            date: dateStr,
+            type: 'expense',
+            category: d.category,
+            walletId: targetWalletId,
+            createdAt: new Date().toISOString(),
+          });
+        }
+      }
+    }
 
     if (importMode === 'net_only') {
       // 1 Receita com o Salário Líquido
@@ -302,40 +364,84 @@ export const ContrachequeModal: React.FC = () => {
         {step === 'evaluate' && (
           <div className="flex flex-col gap-4 max-h-[500px] overflow-y-auto pr-1">
             {/* Header com dados principais */}
-            <div className="p-3 bg-[#0D1424] border border-[#2E3B52] rounded-2xl flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-col">
-                <label className="text-[10px] text-[#94A3B8] font-bold uppercase">Empresa / Empregador</label>
-                <input
-                  type="text"
-                  value={employer}
-                  onChange={(e) => setEmployer(e.target.value)}
-                  className="bg-transparent text-xs font-bold text-[#F8FAFC] focus:outline-none border-b border-[#2E3B52]"
-                />
+            <div className="p-3 bg-[#0D1424] border border-[#2E3B52] rounded-2xl flex flex-col gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-col flex-1 min-w-[180px]">
+                  <label className="text-[10px] text-[#94A3B8] font-bold uppercase">Empresa / Empregador</label>
+                  <input
+                    type="text"
+                    value={employer}
+                    onChange={(e) => setEmployer(e.target.value)}
+                    className="bg-transparent text-xs font-bold text-[#F8FAFC] focus:outline-none border-b border-[#2E3B52]"
+                  />
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-[10px] text-[#94A3B8] font-bold uppercase">Mês Referência</label>
+                  <input
+                    type="month"
+                    value={referenceMonth}
+                    onChange={(e) => handleReferenceMonthChange(e.target.value)}
+                    className="bg-[#12141A] text-xs font-bold text-[#F8FAFC] px-2 py-1 rounded-lg border border-[#2E3B52]"
+                  />
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-[10px] text-[#94A3B8] font-bold uppercase">Depositar na Carteira</label>
+                  <select
+                    value={selectedWalletId}
+                    onChange={(e) => setSelectedWalletId(e.target.value)}
+                    className="bg-[#12141A] text-xs font-bold text-[#F8FAFC] px-2 py-1 rounded-lg border border-[#2E3B52]"
+                  >
+                    {wallets.map((w) => (
+                      <option key={w.id} value={w.id}>
+                        {w.icon} {w.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div className="flex flex-col">
-                <label className="text-[10px] text-[#94A3B8] font-bold uppercase">Mês Referência</label>
-                <input
-                  type="month"
-                  value={referenceMonth}
-                  onChange={(e) => setReferenceMonth(e.target.value)}
-                  className="bg-[#12141A] text-xs font-bold text-[#F8FAFC] px-2 py-1 rounded-lg border border-[#2E3B52]"
-                />
-              </div>
+              {/* Data de Entrada / Recebimento com Atalhos Rápidos */}
+              <div className="pt-2 border-t border-[#1E2330] flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <label className="text-[10px] text-[#00FF88] font-bold uppercase">Data de Entrada / Recebimento:</label>
+                  <input
+                    type="date"
+                    required
+                    value={entryDate}
+                    onChange={(e) => setEntryDate(e.target.value)}
+                    className="bg-[#12141A] text-xs font-black text-[#00FF88] px-2 py-1 rounded-lg border border-[#00FF88]/40 focus:outline-none"
+                  />
+                </div>
 
-              <div className="flex flex-col">
-                <label className="text-[10px] text-[#94A3B8] font-bold uppercase">Depositar na Carteira</label>
-                <select
-                  value={selectedWalletId}
-                  onChange={(e) => setSelectedWalletId(e.target.value)}
-                  className="bg-[#12141A] text-xs font-bold text-[#F8FAFC] px-2 py-1 rounded-lg border border-[#2E3B52]"
-                >
-                  {wallets.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.icon} {w.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-[#94A3B8] font-semibold">Atalhos:</span>
+                  <button
+                    type="button"
+                    onClick={() => setEntryDate(getLastDayOfMonth(referenceMonth))}
+                    className="px-2 py-1 bg-[#00FF88]/15 text-[#00FF88] border border-[#00FF88]/30 rounded-md text-[10px] font-extrabold hover:bg-[#00FF88]/25 transition-all"
+                    title="Definir data para o último dia do mês"
+                  >
+                    🗓️ Último Dia
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEntryDate(getDayOfMonth(referenceMonth, 5))}
+                    className="px-2 py-1 bg-[#06B6D4]/15 text-[#06B6D4] border border-[#06B6D4]/30 rounded-md text-[10px] font-extrabold hover:bg-[#06B6D4]/25 transition-all"
+                    title="Definir data para o dia 05"
+                  >
+                    🗓️ Dia 05
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEntryDate(getDayOfMonth(referenceMonth, 1))}
+                    className="px-2 py-1 bg-[#A855F7]/15 text-[#A855F7] border border-[#A855F7]/30 rounded-md text-[10px] font-extrabold hover:bg-[#A855F7]/25 transition-all"
+                    title="Definir data para o dia 1º"
+                  >
+                    🗓️ Dia 1º
+                  </button>
+                </div>
               </div>
             </div>
 
