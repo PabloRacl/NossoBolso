@@ -200,6 +200,8 @@ export const ContrachequeModal: React.FC = () => {
   const handleConfirmImport = async () => {
     const targetWalletId = selectedWalletId || wallets[0]?.id || 'w1';
     const dateStr = entryDate || getLastDayOfMonth(referenceMonth);
+    const wallet = await db.wallets.get(targetWalletId);
+    let netDelta = 0;
 
     if (importMode === 'net_only') {
       // 1 Receita com o Salário Líquido
@@ -213,10 +215,12 @@ export const ContrachequeModal: React.FC = () => {
         walletId: targetWalletId,
         createdAt: new Date().toISOString(),
       });
+      netDelta = netSalary;
     } else {
       // Modo Detalhado: 1 Receita com Salário Bruto + Despesas para cada desconto
+      const nowTs = Date.now();
       await db.transactions.add({
-        id: `salario_bruto_${Date.now()}`,
+        id: `salario_bruto_${nowTs}`,
         description: `Salário Bruto - ${employer}`,
         amount: grossSalary,
         date: dateStr,
@@ -225,11 +229,13 @@ export const ContrachequeModal: React.FC = () => {
         walletId: targetWalletId,
         createdAt: new Date().toISOString(),
       });
+      netDelta += grossSalary;
 
-      for (const d of deductions) {
+      for (let i = 0; i < deductions.length; i++) {
+        const d = deductions[i];
         if (d.amount > 0) {
           await db.transactions.add({
-            id: `desc_${d.id}_${Date.now()}`,
+            id: `desc_${d.id}_${nowTs}_${i}`,
             description: `Desconto Folha: ${d.name}`,
             amount: d.amount,
             date: dateStr,
@@ -238,49 +244,13 @@ export const ContrachequeModal: React.FC = () => {
             walletId: targetWalletId,
             createdAt: new Date().toISOString(),
           });
+          netDelta -= d.amount;
         }
       }
     }
 
-    if (importMode === 'net_only') {
-      // 1 Receita com o Salário Líquido
-      await db.transactions.add({
-        id: `salario_${Date.now()}`,
-        description: `Salário Líquido - ${employer}`,
-        amount: netSalary,
-        date: dateStr,
-        type: 'income',
-        category: 'Salário',
-        walletId: targetWalletId,
-        createdAt: new Date().toISOString(),
-      });
-    } else {
-      // Modo Detalhado: 1 Receita com Salário Bruto + Despesas para cada desconto
-      await db.transactions.add({
-        id: `salario_bruto_${Date.now()}`,
-        description: `Salário Bruto - ${employer}`,
-        amount: grossSalary,
-        date: dateStr,
-        type: 'income',
-        category: 'Salário',
-        walletId: targetWalletId,
-        createdAt: new Date().toISOString(),
-      });
-
-      for (const d of deductions) {
-        if (d.amount > 0) {
-          await db.transactions.add({
-            id: `desc_${d.id}_${Date.now()}`,
-            description: `Desconto Folha: ${d.name}`,
-            amount: d.amount,
-            date: dateStr,
-            type: 'expense',
-            category: d.category,
-            walletId: targetWalletId,
-            createdAt: new Date().toISOString(),
-          });
-        }
-      }
+    if (wallet) {
+      await db.wallets.update(targetWalletId, { balance: wallet.balance + netDelta });
     }
 
     setStep('success');
