@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useAppStore, getCurrentMonthKey } from '../../store/useAppStore';
 import { Button } from '../ui/Button';
-import { Plus, Upload, Calendar, Tag, ChevronLeft, ChevronRight, Sparkles, Eye, EyeOff, Bell, Target, FileCheck, Search, Menu } from 'lucide-react';
+import { Plus, Upload, Calendar, Tag, ChevronLeft, ChevronRight, Sparkles, Eye, EyeOff, Bell, Target, FileCheck, Search, Menu, History } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../services/db';
 
@@ -19,6 +19,7 @@ export const Topbar: React.FC = () => {
     setBudgetModalOpen,
     toggleMobileMenu,
     setCommandPaletteOpen,
+    toggleHistoryDrawer,
   } = useAppStore();
 
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
@@ -189,6 +190,16 @@ export const Topbar: React.FC = () => {
           <kbd className="px-1.5 py-0.5 bg-[#0D1424] border border-[#2E3B52] rounded text-[10px] font-mono text-[#00FF88]">
             Ctrl K
           </kbd>
+        </button>
+
+        {/* Botão para Abrir Histórico Lateral Drawer */}
+        <button
+          onClick={toggleHistoryDrawer}
+          className="flex items-center gap-1.5 px-3 py-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-xs font-semibold text-[#94A3B8] hover:text-[#00FF88] hover:border-[#00FF88]/40 transition-all cursor-pointer"
+          title="Abrir Painel Lateral de Histórico"
+        >
+          <History className="w-3.5 h-3.5 text-[#00FF88]" />
+          <span className="hidden sm:inline">Histórico</span>
         </button>
 
         {/* Botão de Modo Privacidade (Olho) */}

@@ -27,6 +27,7 @@ import { BudgetModal } from './components/budgets/BudgetModal';
 import { ContrachequeModal } from './components/transactions/ContrachequeModal';
 import { CommandPalette } from './components/layout/CommandPalette';
 import { TransactionParticleAnimation } from './components/layout/TransactionParticleAnimation';
+import { HistoryDrawer } from './components/layout/HistoryDrawer';
 import { PantryView } from './components/pantry/PantryView';
 import { AutomotiveView } from './components/vehicles/AutomotiveView';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -212,8 +213,6 @@ export const App: React.FC = () => {
                 <IncomeVsExpenseChart transactions={transactions} data={sixMonthsData} />
                 <ExpensePieChart transactions={transactions} selectedMonth={selectedMonth} data={pieChartData} />
               </div>
-
-              <RecentTransactions transactions={periodTxs.length > 0 ? periodTxs : transactions} onDelete={handleDeleteTransaction} />
             </>
           )}
 
@@ -237,7 +236,8 @@ export const App: React.FC = () => {
         </motion.div>
       </AnimatePresence>
 
-      {/* Global Modals & Animations */}
+      {/* Global Modals & Side Drawers */}
+      <HistoryDrawer />
       <TransactionParticleAnimation />
       <TransactionModal />
       <WalletModal />

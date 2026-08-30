@@ -45,6 +45,9 @@ interface AppStore {
   toggleSidebarCollapsed: () => void;
   isMobileMenuOpen: boolean;
   toggleMobileMenu: () => void;
+  isHistoryDrawerOpen: boolean;
+  setHistoryDrawerOpen: (open: boolean) => void;
+  toggleHistoryDrawer: () => void;
 
   // Editing targets
   editingTransactionId: string | null;
@@ -112,6 +115,9 @@ export const useAppStore = create<AppStore>((set) => ({
   toggleSidebarCollapsed: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
   isMobileMenuOpen: false,
   toggleMobileMenu: () => set((state) => ({ isMobileMenuOpen: !state.isMobileMenuOpen })),
+  isHistoryDrawerOpen: false,
+  setHistoryDrawerOpen: (open) => set({ isHistoryDrawerOpen: open }),
+  toggleHistoryDrawer: () => set((state) => ({ isHistoryDrawerOpen: !state.isHistoryDrawerOpen })),
 
   editingTransactionId: null,
   setEditingTransactionId: (id) => set({ editingTransactionId: id }),
