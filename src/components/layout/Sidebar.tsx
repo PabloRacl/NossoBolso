@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { LayoutDashboard, ArrowLeftRight, Wallet, CreditCard, Target, ShoppingCart, Car, FileSpreadsheet, Calculator, Sparkles, PanelLeftClose, PanelLeftOpen, Calendar, Search, Smartphone } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, CreditCard, Target, ShoppingCart, Car, FileSpreadsheet, Calculator, Sparkles, PanelLeftClose, PanelLeftOpen, Calendar, Search, Smartphone, Sliders, Compass, Palette, Keyboard, FileText, Database, ChevronDown, ChevronRight } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const Sidebar: React.FC = () => {
   const { activePage, setActivePage, isSidebarCollapsed, toggleSidebarCollapsed, isMobileMenuOpen, toggleMobileMenu, setCommandPaletteOpen } = useAppStore();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(true);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -17,10 +18,22 @@ export const Sidebar: React.FC = () => {
     { id: 'vehicles', label: 'Veículos & Garagem', icon: Car },
     { id: 'reports', label: 'Relatórios', icon: FileSpreadsheet },
     { id: 'calculator', label: 'Calculadora', icon: Calculator },
+    { id: 'settings', label: 'Configurações', icon: Sliders },
   ] as const;
+
+  const subSettings = [
+    { id: 'whatIf', label: 'Simulador "E Se?"', icon: Compass, action: () => useAppStore.getState().setWhatIfModalOpen(true) },
+    { id: 'theme', label: 'Central de Temas', icon: Palette, action: () => useAppStore.getState().setThemeModalOpen(true) },
+    { id: 'shortcuts', label: 'Teclas de Atalho', icon: Keyboard, action: () => useAppStore.getState().setShortcutsModalOpen(true) },
+    { id: 'receipt', label: 'Gerador de Recibo', icon: FileText, action: () => useAppStore.getState().setReceiptModalOpen(true) },
+    { id: 'backup', label: 'Backup & Segurança', icon: Database, action: () => useAppStore.getState().setBackupModalOpen(true) },
+  ];
 
   const handleNavClick = (page: typeof navItems[number]['id']) => {
     setActivePage(page);
+    if (page === 'settings') {
+      setIsSettingsOpen(true);
+    }
     if (isMobileMenuOpen) {
       toggleMobileMenu();
     }
@@ -38,7 +51,7 @@ export const Sidebar: React.FC = () => {
 
       <aside
         className={clsx(
-          'bg-[#0D1424]/95 backdrop-blur-xl border-r border-[#2E3B52]/60 flex flex-col justify-between p-3.5 shrink-0 transition-all duration-300 z-40 select-none',
+          'bg-[#0D1424]/95 backdrop-blur-xl border-r border-[#2E3B52]/60 flex flex-col justify-between p-3.5 shrink-0 transition-all duration-300 z-40 select-none overflow-y-auto max-h-[calc(100vh-65px)]',
           // Desktop behavior
           'hidden md:flex',
           isSidebarCollapsed ? 'md:w-20 md:items-center' : 'md:w-64',
@@ -97,22 +110,64 @@ export const Sidebar: React.FC = () => {
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activePage === item.id;
+              const isSettings = item.id === 'settings';
+
               return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavClick(item.id)}
-                  title={isSidebarCollapsed ? item.label : undefined}
-                  className={clsx(
-                    'flex items-center gap-3.5 py-3 rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer group',
-                    isSidebarCollapsed ? 'md:justify-center md:px-0 w-full px-4' : 'px-4 w-full',
-                    isActive
-                      ? 'bg-[#00FF88]/15 text-[#00FF88] border border-[#00FF88]/30 shadow-md shadow-[#00FF88]/10 font-black'
-                      : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#162032]'
+                <React.Fragment key={item.id}>
+                  <button
+                    onClick={() => {
+                      if (isSettings) {
+                        handleNavClick('settings');
+                        setIsSettingsOpen(!isSettingsOpen);
+                      } else {
+                        handleNavClick(item.id);
+                      }
+                    }}
+                    title={isSidebarCollapsed ? item.label : undefined}
+                    className={clsx(
+                      'flex items-center gap-3.5 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer group justify-between',
+                      isSidebarCollapsed ? 'md:justify-center md:px-0 w-full px-4' : 'px-4 w-full',
+                      isActive
+                        ? 'bg-[#00FF88]/15 text-[#00FF88] border border-[#00FF88]/30 shadow-md shadow-[#00FF88]/10 font-black'
+                        : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#162032]'
+                    )}
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <Icon className={clsx('w-5 h-5 shrink-0 transition-transform group-hover:scale-110', isActive ? 'text-[#00FF88]' : 'text-[#64748B] group-hover:text-[#F8FAFC]')} />
+                      {(!isSidebarCollapsed || isMobileMenuOpen) && <span className="truncate">{item.label}</span>}
+                    </div>
+
+                    {isSettings && (!isSidebarCollapsed || isMobileMenuOpen) && (
+                      <div className="text-[#64748B] group-hover:text-[#00FF88]">
+                        {isSettingsOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Submenu de Configurações */}
+                  {isSettings && isSettingsOpen && (!isSidebarCollapsed || isMobileMenuOpen) && (
+                    <div className="flex flex-col gap-1 pl-6 pr-1 py-1 border-l-2 border-[#00FF88]/30 ml-4 my-0.5 animate-fadeIn">
+                      {subSettings.map((sub) => {
+                        const SubIcon = sub.icon;
+                        return (
+                          <button
+                            key={sub.id}
+                            type="button"
+                            onClick={() => {
+                              setActivePage('settings');
+                              sub.action();
+                              if (isMobileMenuOpen) toggleMobileMenu();
+                            }}
+                            className="flex items-center gap-2.5 py-2 px-2.5 rounded-xl text-xs font-bold text-[#94A3B8] hover:text-[#00FF88] hover:bg-[#00FF88]/10 border border-transparent hover:border-[#00FF88]/20 transition-all text-left cursor-pointer group"
+                          >
+                            <SubIcon className="w-4 h-4 text-[#00FF88] group-hover:scale-110 transition-transform shrink-0" />
+                            <span className="truncate">{sub.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
-                >
-                  <Icon className={clsx('w-5 h-5 shrink-0 transition-transform group-hover:scale-110', isActive ? 'text-[#00FF88]' : 'text-[#64748B] group-hover:text-[#F8FAFC]')} />
-                  {(!isSidebarCollapsed || isMobileMenuOpen) && <span className="truncate">{item.label}</span>}
-                </button>
+                </React.Fragment>
               );
             })}
           </nav>

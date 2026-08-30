@@ -15,6 +15,7 @@ import { WalletCards } from './components/wallets/WalletCards';
 import { GoalCards } from './components/goals/GoalCards';
 import { ReportsView } from './components/reports/ReportsView';
 import { CalculatorView } from './components/calculator/CalculatorView';
+import { SettingsView } from './components/settings/SettingsView';
 import { TransactionModal } from './components/transactions/TransactionModal';
 import { WalletModal } from './components/wallets/WalletModal';
 import { GoalModal } from './components/goals/GoalModal';
@@ -325,6 +326,8 @@ export const App: React.FC = () => {
           {activePage === 'reports' && <ReportsView transactions={transactions} goals={goals} />}
 
           {activePage === 'calculator' && <CalculatorView />}
+
+          {activePage === 'settings' && <SettingsView />}
         </motion.div>
       </AnimatePresence>
 

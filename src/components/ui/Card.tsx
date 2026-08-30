@@ -8,6 +8,7 @@ interface CardProps {
   className?: string;
   glow?: boolean;
   glowColor?: string; // ex: '#00FF88', '#10B981', '#FF4D6D', '#F59E0B', '#06B6D4'
+  onClick?: () => void;
 }
 
 // Variantes com efeito "onda do mar" (suavidade líquida, spring leve, blur dissipando)
@@ -30,9 +31,10 @@ const cardVariants = {
   }
 };
 
-export const Card: React.FC<CardProps> = ({ children, className, glow, glowColor = '#00FF88' }) => {
+export const Card: React.FC<CardProps> = ({ children, className, glow, glowColor = '#00FF88', onClick }) => {
   return (
     <motion.div
+      onClick={onClick}
       variants={cardVariants}
       className={twMerge(
         clsx(

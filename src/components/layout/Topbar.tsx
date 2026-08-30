@@ -94,6 +94,7 @@ export const Topbar: React.FC = () => {
     vehicles: { title: 'Veículos, Garagem & Combustível', subtitle: 'Controle de abastecimentos, consumo (KM/L), manutenções, IPVA e seguro' },
     reports: { title: 'Relatórios & Análises', subtitle: 'Resumo detalhado e exportação de dados' },
     calculator: { title: 'Calculadora Financeira', subtitle: 'Ferramentas de matemática financeira, juros compostos, amortização e comparador SAC vs PRICE' },
+    settings: { title: 'Central de Configurações', subtitle: 'Utilitários do sistema, temas, backups, recibos e simulações' },
   };
 
   const current = pageTitles[activePage] || { title: 'Nosso Bolso', subtitle: 'Gestão Inteligente' };
@@ -210,33 +211,6 @@ export const Topbar: React.FC = () => {
           <QrCode className="w-4 h-4 text-[#06B6D4]" />
         </button>
 
-        {/* Botão de Simulador "E Se?" */}
-        <button
-          onClick={() => useAppStore.getState().setWhatIfModalOpen(true)}
-          className="p-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-[#94A3B8] hover:text-[#F59E0B] hover:border-[#F59E0B]/40 transition-all cursor-pointer"
-          title="Simulador de Cenários Estratégicos 'E Se?'"
-        >
-          <Compass className="w-4 h-4 text-[#F59E0B]" />
-        </button>
-
-        {/* Botão de Temas Customizáveis */}
-        <button
-          onClick={() => useAppStore.getState().setThemeModalOpen(true)}
-          className="p-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-[#94A3B8] hover:text-[#A855F7] hover:border-[#A855F7]/40 transition-all cursor-pointer"
-          title="Central de Temas Customizáveis (Neon)"
-        >
-          <Palette className="w-4 h-4 text-[#A855F7]" />
-        </button>
-
-        {/* Botão de Central de Atalhos de Teclado */}
-        <button
-          onClick={() => useAppStore.getState().setShortcutsModalOpen(true)}
-          className="p-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-[#94A3B8] hover:text-[#00FF88] hover:border-[#00FF88]/40 transition-all cursor-pointer"
-          title="Central de Teclas de Atalho Globais (Ctrl + /)"
-        >
-          <Keyboard className="w-4 h-4 text-[#00FF88]" />
-        </button>
-
         {/* Botão de Instalar App no Celular (PWA) */}
         <button
           onClick={() => useAppStore.getState().setPwaModalOpen(true)}
@@ -244,24 +218,6 @@ export const Topbar: React.FC = () => {
           title="Instalar NossoBolso no Celular / Tablet"
         >
           <Smartphone className="w-4 h-4 text-[#00FF88]" />
-        </button>
-
-        {/* Botão de Gerador de Recibos */}
-        <button
-          onClick={() => useAppStore.getState().setReceiptModalOpen(true)}
-          className="p-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-[#94A3B8] hover:text-[#00FF88] hover:border-[#00FF88]/40 transition-all cursor-pointer"
-          title="Gerador de Recibos & Comprovantes"
-        >
-          <FileText className="w-4 h-4 text-[#00FF88]" />
-        </button>
-
-        {/* Botão de Backup & Segurança */}
-        <button
-          onClick={() => useAppStore.getState().setBackupModalOpen(true)}
-          className="p-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-[#94A3B8] hover:text-[#00FF88] hover:border-[#00FF88]/40 transition-all cursor-pointer"
-          title="Backup & Segurança em JSON"
-        >
-          <Database className="w-4 h-4 text-[#00FF88]" />
         </button>
 
         {/* Botão de Alertas (Sino) com Badge */}
