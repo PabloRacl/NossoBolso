@@ -249,6 +249,7 @@ export const Topbar: React.FC = () => {
           <span className="hidden 2xl:inline">Orçamento</span>
         </Button>
 
+        {/* Botão de Categorias */}
         <Button
           variant="outline"
           size="sm"
@@ -260,6 +261,7 @@ export const Topbar: React.FC = () => {
           <span className="hidden 2xl:inline">Categorias</span>
         </Button>
 
+        {/* Botão de OFX */}
         <Button
           variant="outline"
           size="sm"
@@ -271,6 +273,7 @@ export const Topbar: React.FC = () => {
           <span className="hidden 2xl:inline">OFX</span>
         </Button>
 
+        {/* Botão de Holerite */}
         <Button
           variant="outline"
           size="sm"
