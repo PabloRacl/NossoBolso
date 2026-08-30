@@ -66,14 +66,12 @@ export const HistoryDrawer: React.FC = () => {
       {/* Botão Flutuante Lateral no Canto Direito (Alinhado Logo Abaixo do Topbar, Sem Cobrir os Cards) */}
       <button
         onClick={toggleHistoryDrawer}
-        className="fixed top-[68px] right-0 z-40 px-3 py-2 bg-[#090D18]/95 border-l-2 border-y border-[#00FF88] rounded-l-2xl shadow-[0_0_20px_rgba(0,255,136,0.3)] backdrop-blur-xl flex items-center gap-2 hover:bg-[#00FF88]/20 transition-all duration-300 group cursor-pointer"
+        className="fixed top-[68px] right-0 z-40 px-2.5 py-1.5 bg-[#090D18]/95 border-l-2 border-y border-[#00FF88] rounded-l-2xl shadow-[0_0_20px_rgba(0,255,136,0.3)] backdrop-blur-xl flex items-center gap-1.5 hover:bg-[#00FF88]/20 transition-all duration-300 group cursor-pointer"
         title="Abrir Histórico Lateral de Lançamentos"
       >
-        <div className="p-1 rounded-lg bg-[#00FF88]/20 text-[#00FF88]">
-          <History className="w-4 h-4 text-[#00FF88] group-hover:rotate-45 transition-transform" />
-        </div>
-        <span className="text-xs font-black text-[#F8FAFC] hidden sm:inline tracking-wide">Histórico</span>
-        <span className="px-1.5 py-0.5 rounded-full bg-[#00FF88] text-[#090D16] text-[10px] font-black">
+        <History className="w-3.5 h-3.5 text-[#00FF88] group-hover:rotate-45 transition-transform shrink-0" />
+        <span className="text-xs font-black text-[#F8FAFC] hidden xl:inline">Histórico</span>
+        <span className="px-1.5 py-0.5 bg-[#00FF88]/20 text-[#00FF88] border border-[#00FF88]/40 rounded-full text-[10px] font-black shrink-0">
           {transactions.length}
         </span>
       </button>

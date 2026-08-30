@@ -121,8 +121,8 @@ export const Topbar: React.FC = () => {
           </div>
           <p className="text-[11px] text-[#94A3B8] font-medium mt-1 flex items-center gap-1.5">
             <strong className="text-[#00FF88] font-extrabold">{current.title}</strong>
-            <span className="text-[#475569]">•</span>
-            <span className="truncate max-w-xs sm:max-w-md hidden sm:inline">{current.subtitle}</span>
+            <span className="text-[#475569] hidden xl:inline">•</span>
+            <span className="truncate max-w-[180px] 2xl:max-w-[400px] hidden 2xl:inline">{current.subtitle}</span>
           </p>
         </div>
       </div>
@@ -277,54 +277,55 @@ export const Topbar: React.FC = () => {
           variant="outline"
           size="sm"
           onClick={() => setBudgetModalOpen(true)}
-          className="bg-[#162032] border-[#2E3B52] text-xs px-2.5 sm:px-3"
+          className="bg-[#162032] border-[#2E3B52] text-xs px-2 sm:px-2.5"
           title="Definir Orçamento por Categoria"
         >
           <Target className="w-3.5 h-3.5 text-[#00FF88]" />
-          <span className="hidden xl:inline">Orçamento</span>
+          <span className="hidden 2xl:inline">Orçamento</span>
         </Button>
 
         <Button
           variant="outline"
           size="sm"
           onClick={() => useAppStore.getState().setCategoryModalOpen(true)}
-          className="bg-[#162032] border-[#2E3B52] text-xs px-2.5 sm:px-3"
+          className="bg-[#162032] border-[#2E3B52] text-xs px-2 sm:px-2.5"
           title="Gerenciar Categorias"
         >
           <Tag className="w-3.5 h-3.5 text-[#F59E0B]" />
-          <span className="hidden xl:inline">Categorias</span>
+          <span className="hidden 2xl:inline">Categorias</span>
         </Button>
 
         <Button
           variant="outline"
           size="sm"
           onClick={() => setOfxModalOpen(true)}
-          className="bg-[#162032] border-[#2E3B52] text-xs px-2.5 sm:px-3"
+          className="bg-[#162032] border-[#2E3B52] text-xs px-2 sm:px-2.5"
           title="Importar Arquivo OFX Bancário"
         >
           <Upload className="w-3.5 h-3.5 text-[#06B6D4]" />
-          <span className="hidden lg:inline">OFX</span>
+          <span className="hidden 2xl:inline">OFX</span>
         </Button>
 
         <Button
           variant="outline"
           size="sm"
           onClick={() => setContrachequeModalOpen(true)}
-          className="bg-[#162032] border-[#2E3B52] text-xs px-2.5 sm:px-3"
+          className="bg-[#162032] border-[#2E3B52] text-xs px-2 sm:px-2.5"
           title="Importar e Ler Holerite/Contracheque"
         >
           <FileCheck className="w-3.5 h-3.5 text-[#00FF88]" />
-          <span className="hidden lg:inline">Holerite</span>
+          <span className="hidden 2xl:inline">Holerite</span>
         </Button>
 
         <Button
           variant="primary"
           size="sm"
           onClick={() => setTransactionModalOpen(true)}
-          className="text-xs px-3 shadow-md shadow-[#00FF88]/20"
+          className="text-xs px-2.5 sm:px-3 shadow-md shadow-[#00FF88]/20"
+          title="Nova Transação"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span className="inline">Transação</span>
+          <span className="hidden sm:inline">Transação</span>
         </Button>
       </div>
     </header>
