@@ -142,6 +142,9 @@ export const TransactionModal: React.FC = () => {
       }
     }
 
+    // Disparar animação de moedas no sistema
+    useAppStore.getState().triggerTransactionAnimation(type, parsedAmount, description.trim());
+
     handleClose();
   };
 

@@ -253,6 +253,13 @@ export const ContrachequeModal: React.FC = () => {
       await db.wallets.update(targetWalletId, { balance: wallet.balance + netDelta });
     }
 
+    // Disparar animação de moedas no sistema
+    useAppStore.getState().triggerTransactionAnimation(
+      'income',
+      importMode === 'net_only' ? netSalary : grossSalary,
+      `Contracheque ${employer}`
+    );
+
     setStep('success');
     setTimeout(() => {
       setStep('upload');

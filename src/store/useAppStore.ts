@@ -55,6 +55,15 @@ interface AppStore {
   setEditingWalletId: (id: string | null) => void;
   editingGoalId: string | null;
   setEditingGoalId: (id: string | null) => void;
+
+  // Particle Coin Animations
+  activeParticleAnimation: {
+    id: string;
+    type: 'income' | 'expense';
+    amount?: number;
+    title?: string;
+  } | null;
+  triggerTransactionAnimation: (type: 'income' | 'expense', amount?: number, title?: string) => void;
 }
 
 export const getCurrentMonthKey = () => {
@@ -112,4 +121,13 @@ export const useAppStore = create<AppStore>((set) => ({
   setEditingWalletId: (id) => set({ editingWalletId: id }),
   editingGoalId: null,
   setEditingGoalId: (id) => set({ editingGoalId: id }),
+
+  activeParticleAnimation: null,
+  triggerTransactionAnimation: (type, amount, title) => {
+    const id = `anim_${Date.now()}`;
+    set({ activeParticleAnimation: { id, type, amount, title } });
+    setTimeout(() => {
+      set({ activeParticleAnimation: null });
+    }, 2800);
+  },
 }));

@@ -26,6 +26,7 @@ import { AlertsModal } from './components/alerts/AlertsModal';
 import { BudgetModal } from './components/budgets/BudgetModal';
 import { ContrachequeModal } from './components/transactions/ContrachequeModal';
 import { CommandPalette } from './components/layout/CommandPalette';
+import { TransactionParticleAnimation } from './components/layout/TransactionParticleAnimation';
 import { PantryView } from './components/pantry/PantryView';
 import { AutomotiveView } from './components/vehicles/AutomotiveView';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -236,7 +237,8 @@ export const App: React.FC = () => {
         </motion.div>
       </AnimatePresence>
 
-      {/* Global Modals */}
+      {/* Global Modals & Animations */}
+      <TransactionParticleAnimation />
       <TransactionModal />
       <WalletModal />
       <GoalModal />
