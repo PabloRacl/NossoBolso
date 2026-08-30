@@ -32,16 +32,55 @@ export const CalculatorView: React.FC = () => {
   const [calcExpression, setCalcExpression] = useState('');
   const [isEvaluated, setIsEvaluated] = useState(false);
 
+  const mathOperators = useMemo(() => ['+', '-', '*', '/', '%'], []);
+
   const handleCalcClick = (val: string) => {
-    if (isEvaluated && !['+', '-', '*', '/', '%'].includes(val)) {
-      setCalcDisplay(val);
-      setCalcExpression(val);
+    // Se a calculadora estiver mostrando erro, reinicia ao digitar
+    if (calcDisplay.toLowerCase().includes('erro') || calcExpression.toLowerCase().includes('erro')) {
+      if (mathOperators.includes(val)) return;
+      setCalcDisplay(val === '.' ? '0.' : val);
+      setCalcExpression(val === '.' ? '0.' : val);
+      setIsEvaluated(false);
+      return;
+    }
+
+    if (isEvaluated && !mathOperators.includes(val)) {
+      setCalcDisplay(val === '.' ? '0.' : val);
+      setCalcExpression(val === '.' ? '0.' : val);
       setIsEvaluated(false);
       return;
     }
     setIsEvaluated(false);
 
-    if (calcDisplay === '0' && val !== '.') {
+    const lastChar = calcExpression.slice(-1);
+
+    // Impedir operadores (+, -, *, /, %) duplicados consecutivos
+    if (mathOperators.includes(val)) {
+      if (calcExpression === '' || calcExpression === '0') {
+        if (val === '-') {
+          setCalcDisplay('-');
+          setCalcExpression('-');
+        }
+        return;
+      }
+      // Se o último caractere já for um operador, substitui o operador anterior pelo novo em vez de repetir
+      if (mathOperators.includes(lastChar)) {
+        setCalcDisplay((prev) => prev.slice(0, -1) + val);
+        setCalcExpression((prev) => prev.slice(0, -1) + val);
+        return;
+      }
+      if (lastChar === '.') return;
+    }
+
+    // Impedir pontos decimais (.) múltiplos no mesmo número
+    if (val === '.') {
+      if (lastChar === '.' || mathOperators.includes(lastChar)) return;
+      const parts = calcExpression.split(/[\+\-\*\/\%]/);
+      const currentNum = parts[parts.length - 1];
+      if (currentNum.includes('.')) return;
+    }
+
+    if ((calcDisplay === '0' || calcDisplay === '') && val !== '.') {
       setCalcDisplay(val);
       setCalcExpression(val);
     } else {
@@ -57,7 +96,11 @@ export const CalculatorView: React.FC = () => {
   };
 
   const handleCalcDelete = () => {
-    if (calcDisplay.length <= 1) {
+    if (calcDisplay.toLowerCase().includes('erro')) {
+      handleCalcClear();
+      return;
+    }
+    if (calcExpression.length <= 1) {
       setCalcDisplay('0');
       setCalcExpression('');
     } else {
@@ -68,9 +111,24 @@ export const CalculatorView: React.FC = () => {
 
   const handleCalcEvaluate = () => {
     try {
-      const sanitized = calcExpression.replace(/×/g, '*').replace(/÷/g, '/').replace(/%/g, '/100');
-      // Avaliação segura de expressão matemática sem o uso de eval solto
+      if (!calcExpression || calcDisplay.toLowerCase().includes('erro')) return;
+
+      // Limpar qualquer operador pendente no final da expressão antes de calcular
+      let cleanExpr = calcExpression.trim();
+      while (mathOperators.includes(cleanExpr.slice(-1))) {
+        cleanExpr = cleanExpr.slice(0, -1);
+      }
+      if (!cleanExpr) return;
+
+      const sanitized = cleanExpr.replace(/×/g, '*').replace(/÷/g, '/').replace(/%/g, '/100');
       const result = new Function(`"use strict"; return (${sanitized})`)();
+
+      if (isNaN(result) || !isFinite(result)) {
+        setCalcDisplay('Erro');
+        setIsEvaluated(true);
+        return;
+      }
+
       const formattedResult = String(Math.round(result * 10000) / 10000);
       setCalcDisplay(formattedResult);
       setCalcExpression(formattedResult);
