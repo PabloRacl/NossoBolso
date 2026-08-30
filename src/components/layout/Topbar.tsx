@@ -99,7 +99,7 @@ export const Topbar: React.FC = () => {
   const current = pageTitles[activePage] || { title: 'Nosso Bolso', subtitle: 'Gestão Inteligente' };
 
   return (
-    <header className="w-full flex flex-wrap items-center justify-between gap-4 py-3.5 px-6 bg-[#0D1424]/95 backdrop-blur-xl border-b border-[#2E3B52]/60 sticky top-0 z-40">
+    <header className="w-full flex flex-wrap items-center justify-between gap-4 py-3.5 px-6 bg-[#0D1424]/95 backdrop-blur-xl border-b border-[#2E3B52]/60 sticky top-0 z-50">
       {/* Canto Esquerdo: Botão Hambúrguer Mobile + Logo Cyber Emerald Wallet */}
       <div className="flex items-center gap-3 shrink-0">
         <button

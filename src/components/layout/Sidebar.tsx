@@ -32,18 +32,18 @@ export const Sidebar: React.FC = () => {
       {isMobileMenuOpen && (
         <div
           onClick={toggleMobileMenu}
-          className="md:hidden fixed inset-0 bg-[#0A0B0E]/80 backdrop-blur-sm z-40 transition-opacity"
+          className="md:hidden fixed inset-x-0 top-[65px] bottom-0 bg-[#0A0B0E]/80 backdrop-blur-sm z-30 transition-opacity"
         />
       )}
 
       <aside
         className={clsx(
-          'bg-[#0D1424]/95 backdrop-blur-xl border-r border-[#2E3B52]/60 flex flex-col justify-between p-3.5 shrink-0 transition-all duration-300 z-50 select-none',
+          'bg-[#0D1424]/95 backdrop-blur-xl border-r border-[#2E3B52]/60 flex flex-col justify-between p-3.5 shrink-0 transition-all duration-300 z-40 select-none',
           // Desktop behavior
           'hidden md:flex',
           isSidebarCollapsed ? 'md:w-20 md:items-center' : 'md:w-64',
           // Mobile overlay behavior
-          isMobileMenuOpen && '!flex fixed inset-y-0 left-0 w-64 shadow-2xl top-[65px]'
+          isMobileMenuOpen && '!flex fixed top-[65px] bottom-0 left-0 w-64 shadow-2xl z-40'
         )}
       >
         <div className="w-full flex flex-col gap-2">
