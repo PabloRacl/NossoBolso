@@ -126,6 +126,10 @@ export interface Vehicle {
   fuelType?: 'flex' | 'gasoline' | 'ethanol' | 'diesel' | 'electric';
   color?: string;
   isMain?: boolean;
+  customAvgKml?: number;
+  customTotalFuel?: number;
+  customTotalMaintenance?: number;
+  customCostPerKm?: number;
   createdAt: string;
 }
 
