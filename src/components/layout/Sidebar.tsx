@@ -66,6 +66,32 @@ export const Sidebar: React.FC = () => {
             </button>
           </div>
 
+          {/* Botão de Busca Rápida (Ctrl+K) posicionado diretamente ABAIXO de NAVEGAÇÃO e ACIMA de Dashboard */}
+          <div className="w-full mb-1">
+            <button
+              onClick={() => {
+                setCommandPaletteOpen(true);
+                if (isMobileMenuOpen) toggleMobileMenu();
+              }}
+              title="Abrir Busca Rápida (Ctrl + K)"
+              className={clsx(
+                'flex items-center gap-3 py-2.5 bg-[#162032] border border-[#2E3B52] rounded-xl text-xs font-bold text-[#94A3B8] hover:text-[#F8FAFC] hover:border-[#00FF88]/40 transition-all group cursor-pointer w-full',
+                isSidebarCollapsed && !isMobileMenuOpen ? 'justify-center px-0' : 'px-3.5 justify-between'
+              )}
+            >
+              <div className="flex items-center gap-2.5">
+                <Search className="w-4 h-4 text-[#00FF88] group-hover:scale-110 transition-transform shrink-0" />
+                {(!isSidebarCollapsed || isMobileMenuOpen) && <span>Buscar...</span>}
+              </div>
+
+              {(!isSidebarCollapsed || isMobileMenuOpen) && (
+                <kbd className="px-1.5 py-0.5 bg-[#0D1424] border border-[#2E3B52] rounded text-[10px] font-mono text-[#00FF88] shrink-0">
+                  Ctrl K
+                </kbd>
+              )}
+            </button>
+          </div>
+
           {/* Navigation Links */}
           <nav className="flex flex-col gap-1.5 w-full">
             {navItems.map((item) => {
@@ -90,32 +116,6 @@ export const Sidebar: React.FC = () => {
               );
             })}
           </nav>
-
-          {/* Botão de Busca Rápida (Ctrl+K) posicionada diretamente ABAIXO dos botões de navegação */}
-          <div className="w-full pt-2 border-t border-[#1E293B]/80 mt-1">
-            <button
-              onClick={() => {
-                setCommandPaletteOpen(true);
-                if (isMobileMenuOpen) toggleMobileMenu();
-              }}
-              title="Abrir Busca Rápida (Ctrl + K)"
-              className={clsx(
-                'flex items-center gap-3 py-2.5 bg-[#162032] border border-[#2E3B52] rounded-xl text-xs font-bold text-[#94A3B8] hover:text-[#F8FAFC] hover:border-[#00FF88]/40 transition-all group cursor-pointer w-full',
-                isSidebarCollapsed && !isMobileMenuOpen ? 'justify-center px-0' : 'px-3.5 justify-between'
-              )}
-            >
-              <div className="flex items-center gap-2.5">
-                <Search className="w-4 h-4 text-[#00FF88] group-hover:scale-110 transition-transform shrink-0" />
-                {(!isSidebarCollapsed || isMobileMenuOpen) && <span>Buscar...</span>}
-              </div>
-
-              {(!isSidebarCollapsed || isMobileMenuOpen) && (
-                <kbd className="px-1.5 py-0.5 bg-[#0D1424] border border-[#2E3B52] rounded text-[10px] font-mono text-[#00FF88] shrink-0">
-                  Ctrl K
-                </kbd>
-              )}
-            </button>
-          </div>
         </div>
 
         {/* Rodapé Elegante */}
