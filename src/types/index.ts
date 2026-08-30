@@ -24,6 +24,12 @@ export interface Wallet {
   balance: number;
   color: string;
   icon: string;
+  bankName?: string;
+  lastDigits?: string;
+  cardBrand?: 'mastercard' | 'visa' | 'elo' | 'amex' | 'hipercard';
+  yieldRateCdi?: number;
+  closingDay?: number;
+  dueDay?: number;
   creditLimit?: number;
 }
 
