@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore, PageType } from '../../store/useAppStore';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../services/db';
+import { db, generateFullTestDataset } from '../../services/db';
 import { formatBRL } from '../../utils/formatters';
 import {
   Search,
@@ -19,6 +19,7 @@ import {
   Tag,
   Bell,
   ArrowRight,
+  Sparkles,
 } from 'lucide-react';
 
 interface CommandPaletteProps {
@@ -75,6 +76,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
 
   const actions = [
     { id: 'act_new_tx', label: 'Nova Transação', icon: <Plus className="w-4 h-4 text-[#00FF88]" />, run: () => setTransactionModalOpen(true) },
+    { id: 'act_seed_test_db', label: '🧪 Gerar / Carregar Banco de Dados de Testes', icon: <Sparkles className="w-4 h-4 text-[#00FF88]" />, run: async () => {
+        if (confirm('Deseja carregar a massa completa de dados bancários, contracheque e veículos para teste?')) {
+          await generateFullTestDataset();
+          alert('✅ Banco de dados local de testes gerado com sucesso!');
+          window.location.reload();
+        }
+      }
+    },
     { id: 'act_ofx', label: 'Importar Extrato OFX', icon: <Upload className="w-4 h-4 text-[#06B6D4]" />, run: () => setOfxModalOpen(true) },
     { id: 'act_holerite', label: 'Importar e Ler Contracheque / Holerite', icon: <FileCheck className="w-4 h-4 text-[#10B981]" />, run: () => setContrachequeModalOpen(true) },
     { id: 'act_budget', label: 'Gerenciar Orçamentos por Categoria', icon: <Target className="w-4 h-4 text-[#F59E0B]" />, run: () => setBudgetModalOpen(true) },
