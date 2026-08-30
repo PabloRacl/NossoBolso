@@ -1,9 +1,11 @@
 import React, { useMemo } from 'react';
 import { useAppStore, getCurrentMonthKey } from '../../store/useAppStore';
 import { Button } from '../ui/Button';
-import { Plus, Upload, Calendar, Tag, ChevronLeft, ChevronRight, Sparkles, Eye, EyeOff, Bell, Target, FileCheck, Search, Menu, History, Wallet } from 'lucide-react';
+import { Plus, Upload, Calendar, Tag, ChevronLeft, ChevronRight, Sparkles, Eye, EyeOff, Bell, Target, FileCheck, Search, Menu, History, Database, Mic, QrCode, Compass, Palette, FileText, Keyboard } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../services/db';
+import { BioCyberLogo } from './BioCyberLogo';
+import { requestNotificationPermission } from '../../services/notificationService';
 
 export const Topbar: React.FC = () => {
   const {
@@ -108,9 +110,7 @@ export const Topbar: React.FC = () => {
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-[#00FF88]/20 via-[#06B6D4]/15 to-[#0D1424] border border-[#00FF88]/50 shadow-[0_0_20px_rgba(0,255,136,0.3)] group cursor-pointer hover:scale-105 transition-all">
-          <Wallet className="w-5 h-5 text-[#00FF88] group-hover:rotate-12 transition-transform" />
-        </div>
+        <BioCyberLogo />
 
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
@@ -179,19 +179,6 @@ export const Topbar: React.FC = () => {
           )}
         </div>
 
-        {/* Botão de Busca / Command Palette (Ctrl+K) */}
-        <button
-          onClick={() => setCommandPaletteOpen(true)}
-          className="flex items-center gap-2 px-3 py-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-xs font-semibold text-[#94A3B8] hover:text-[#F8FAFC] hover:border-[#00FF88]/40 transition-all group cursor-pointer"
-          title="Abrir Busca Rápida (Ctrl + K)"
-        >
-          <Search className="w-3.5 h-3.5 text-[#00FF88] group-hover:scale-110 transition-transform" />
-          <span className="hidden sm:inline">Buscar...</span>
-          <kbd className="px-1.5 py-0.5 bg-[#0D1424] border border-[#2E3B52] rounded text-[10px] font-mono text-[#00FF88]">
-            Ctrl K
-          </kbd>
-        </button>
-
         {/* Botão para Abrir Histórico Lateral Drawer */}
         <button
           onClick={toggleHistoryDrawer}
@@ -215,11 +202,77 @@ export const Topbar: React.FC = () => {
           {isPrivacyMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         </button>
 
+        {/* Botão de Comando por Voz (IA) */}
+        <button
+          onClick={() => useAppStore.getState().setVoiceModalOpen(true)}
+          className="p-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-[#94A3B8] hover:text-[#00FF88] hover:border-[#00FF88]/40 transition-all cursor-pointer"
+          title="Assistente de Comando de Voz por IA"
+        >
+          <Mic className="w-4 h-4 text-[#00FF88]" />
+        </button>
+
+        {/* Botão de Leitor de Nota Fiscal (QRCode) */}
+        <button
+          onClick={() => useAppStore.getState().setQrCodeModalOpen(true)}
+          className="p-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-[#94A3B8] hover:text-[#06B6D4] hover:border-[#06B6D4]/40 transition-all cursor-pointer"
+          title="Escanear Nota Fiscal NFC-e por QRCode"
+        >
+          <QrCode className="w-4 h-4 text-[#06B6D4]" />
+        </button>
+
+        {/* Botão de Simulador "E Se?" */}
+        <button
+          onClick={() => useAppStore.getState().setWhatIfModalOpen(true)}
+          className="p-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-[#94A3B8] hover:text-[#F59E0B] hover:border-[#F59E0B]/40 transition-all cursor-pointer"
+          title="Simulador de Cenários Estratégicos 'E Se?'"
+        >
+          <Compass className="w-4 h-4 text-[#F59E0B]" />
+        </button>
+
+        {/* Botão de Temas Customizáveis */}
+        <button
+          onClick={() => useAppStore.getState().setThemeModalOpen(true)}
+          className="p-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-[#94A3B8] hover:text-[#A855F7] hover:border-[#A855F7]/40 transition-all cursor-pointer"
+          title="Central de Temas Customizáveis (Neon)"
+        >
+          <Palette className="w-4 h-4 text-[#A855F7]" />
+        </button>
+
+        {/* Botão de Central de Atalhos de Teclado */}
+        <button
+          onClick={() => useAppStore.getState().setShortcutsModalOpen(true)}
+          className="p-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-[#94A3B8] hover:text-[#00FF88] hover:border-[#00FF88]/40 transition-all cursor-pointer"
+          title="Central de Teclas de Atalho Globais (Ctrl + /)"
+        >
+          <Keyboard className="w-4 h-4 text-[#00FF88]" />
+        </button>
+
+        {/* Botão de Gerador de Recibos */}
+        <button
+          onClick={() => useAppStore.getState().setReceiptModalOpen(true)}
+          className="p-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-[#94A3B8] hover:text-[#00FF88] hover:border-[#00FF88]/40 transition-all cursor-pointer"
+          title="Gerador de Recibos & Comprovantes"
+        >
+          <FileText className="w-4 h-4 text-[#00FF88]" />
+        </button>
+
+        {/* Botão de Backup & Segurança */}
+        <button
+          onClick={() => useAppStore.getState().setBackupModalOpen(true)}
+          className="p-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-[#94A3B8] hover:text-[#00FF88] hover:border-[#00FF88]/40 transition-all cursor-pointer"
+          title="Backup & Segurança em JSON"
+        >
+          <Database className="w-4 h-4 text-[#00FF88]" />
+        </button>
+
         {/* Botão de Alertas (Sino) com Badge */}
         <button
-          onClick={() => setAlertsModalOpen(true)}
-          className="relative p-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-[#94A3B8] hover:text-[#F8FAFC] transition-all"
-          title="Central de Alertas & Vencimentos"
+          onClick={async () => {
+            await requestNotificationPermission();
+            setAlertsModalOpen(true);
+          }}
+          className="relative p-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-[#94A3B8] hover:text-[#F8FAFC] transition-all cursor-pointer"
+          title="Central de Alertas & Vencimentos do Navegador"
         >
           <Bell className="w-4 h-4 text-[#F59E0B]" />
           {upcomingAlertCount > 0 && (

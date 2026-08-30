@@ -1,14 +1,15 @@
 import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { LayoutDashboard, ArrowLeftRight, Wallet, CreditCard, Target, ShoppingCart, Car, FileSpreadsheet, Calculator, Sparkles, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, CreditCard, Target, ShoppingCart, Car, FileSpreadsheet, Calculator, Sparkles, PanelLeftClose, PanelLeftOpen, Calendar, Search } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const Sidebar: React.FC = () => {
-  const { activePage, setActivePage, isSidebarCollapsed, toggleSidebarCollapsed, isMobileMenuOpen, toggleMobileMenu } = useAppStore();
+  const { activePage, setActivePage, isSidebarCollapsed, toggleSidebarCollapsed, isMobileMenuOpen, toggleMobileMenu, setCommandPaletteOpen } = useAppStore();
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'transactions', label: 'Transações', icon: ArrowLeftRight },
+    { id: 'calendar', label: 'Calendário de Caixa', icon: Calendar },
     { id: 'wallets', label: 'Carteiras', icon: Wallet },
     { id: 'debts', label: 'Financiamentos', icon: CreditCard },
     { id: 'goals', label: 'Metas', icon: Target },
@@ -46,19 +47,24 @@ export const Sidebar: React.FC = () => {
         )}
       >
         <div className="w-full flex flex-col gap-2">
-          {/* Cabeçalho Discreto da Sidebar com Botão de Mapeamento/Recolhimento */}
-          {!isSidebarCollapsed && (
-            <div className="flex items-center justify-between px-3 py-1.5 mb-1 text-[11px] font-black uppercase tracking-wider text-[#64748B]">
-              <span>Navegação</span>
-              <button
-                onClick={toggleSidebarCollapsed}
-                className="p-1 rounded-lg hover:bg-[#00FF88]/15 hover:text-[#00FF88] text-[#64748B] transition-all cursor-pointer"
-                title="Recolher Sidebar"
-              >
+          {/* Cabeçalho Permanente da Sidebar com Botão de Recolhimento/Expansão */}
+          <div className={clsx(
+            'flex items-center justify-between py-1.5 mb-1 text-[11px] font-black uppercase tracking-wider text-[#64748B] w-full',
+            isSidebarCollapsed && !isMobileMenuOpen ? 'justify-center px-0' : 'px-3'
+          )}>
+            {(!isSidebarCollapsed || isMobileMenuOpen) && <span>Navegação</span>}
+            <button
+              onClick={toggleSidebarCollapsed}
+              className="p-1.5 rounded-xl hover:bg-[#00FF88]/15 text-[#00FF88] border border-[#00FF88]/30 transition-all cursor-pointer shadow-sm hover:scale-105"
+              title={isSidebarCollapsed ? 'Expandir Menu Lateral' : 'Recolher Menu Lateral'}
+            >
+              {isSidebarCollapsed && !isMobileMenuOpen ? (
+                <PanelLeftOpen className="w-4 h-4 text-[#00FF88]" />
+              ) : (
                 <PanelLeftClose className="w-4 h-4 text-[#00FF88]" />
-              </button>
-            </div>
-          )}
+              )}
+            </button>
+          </div>
 
           {/* Navigation Links */}
           <nav className="flex flex-col gap-1.5 w-full">
@@ -84,32 +90,42 @@ export const Sidebar: React.FC = () => {
               );
             })}
           </nav>
+
+          {/* Botão de Busca Rápida (Ctrl+K) posicionada diretamente ABAIXO dos botões de navegação */}
+          <div className="w-full pt-2 border-t border-[#1E293B]/80 mt-1">
+            <button
+              onClick={() => {
+                setCommandPaletteOpen(true);
+                if (isMobileMenuOpen) toggleMobileMenu();
+              }}
+              title="Abrir Busca Rápida (Ctrl + K)"
+              className={clsx(
+                'flex items-center gap-3 py-2.5 bg-[#162032] border border-[#2E3B52] rounded-xl text-xs font-bold text-[#94A3B8] hover:text-[#F8FAFC] hover:border-[#00FF88]/40 transition-all group cursor-pointer w-full',
+                isSidebarCollapsed && !isMobileMenuOpen ? 'justify-center px-0' : 'px-3.5 justify-between'
+              )}
+            >
+              <div className="flex items-center gap-2.5">
+                <Search className="w-4 h-4 text-[#00FF88] group-hover:scale-110 transition-transform shrink-0" />
+                {(!isSidebarCollapsed || isMobileMenuOpen) && <span>Buscar...</span>}
+              </div>
+
+              {(!isSidebarCollapsed || isMobileMenuOpen) && (
+                <kbd className="px-1.5 py-0.5 bg-[#0D1424] border border-[#2E3B52] rounded text-[10px] font-mono text-[#00FF88] shrink-0">
+                  Ctrl K
+                </kbd>
+              )}
+            </button>
+          </div>
         </div>
 
-        {/* Rodapé Elegante com Alternador de Expandir/Recolher */}
+        {/* Rodapé Elegante */}
         <div className="w-full pt-2">
-          {isSidebarCollapsed && !isMobileMenuOpen ? (
-            <button
-              onClick={toggleSidebarCollapsed}
-              className="w-full p-2.5 bg-[#162032] border border-[#2E3B52] hover:border-[#00FF88]/40 text-[#00FF88] rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-sm hover:scale-105"
-              title="Expandir Menu Lateral"
-            >
-              <PanelLeftOpen className="w-5 h-5 text-[#00FF88]" />
-            </button>
-          ) : (
+          {(!isSidebarCollapsed || isMobileMenuOpen) && (
             <div className="p-3 bg-[#162032]/80 border border-[#2E3B52] rounded-xl flex items-center justify-between text-xs text-[#94A3B8] w-full">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[#00FF88] shrink-0" />
                 <span className="font-extrabold text-[#F8FAFC] text-[11px]">Finance OS v2.0</span>
               </div>
-
-              <button
-                onClick={toggleSidebarCollapsed}
-                className="p-1 rounded-lg hover:bg-[#00FF88]/15 hover:text-[#00FF88] text-[#64748B] transition-all cursor-pointer"
-                title="Recolher Menu Lateral"
-              >
-                <PanelLeftClose className="w-4 h-4 text-[#00FF88]" />
-              </button>
             </div>
           )}
         </div>

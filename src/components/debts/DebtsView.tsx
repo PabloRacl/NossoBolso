@@ -6,7 +6,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { formatBRL, formatPercent } from '../../utils/formatters';
 import { formatDate } from '../../utils/dateUtils';
 import { useAppStore } from '../../store/useAppStore';
-import { Plus, Car, CreditCard, ShieldAlert, CheckCircle2, Calendar, Trash2, Zap, Pencil } from 'lucide-react';
+import { Plus, Car, CreditCard, ShieldAlert, CheckCircle2, Calendar, Trash2, Zap, Pencil, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const containerVariants = {
@@ -97,10 +97,17 @@ export const DebtsView: React.FC = () => {
           </p>
         </div>
 
-        <Button variant="primary" onClick={() => setDebtContractModalOpen(true)}>
-          <Plus className="w-4 h-4" />
-          <span>Novo Financiamento (ex: Carro 36x)</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => useAppStore.getState().setPmpeConsignadoModalOpen(true)}>
+            <ShieldCheck className="w-4 h-4 text-[#00FF88]" />
+            <span>Margem Consignável PMPE</span>
+          </Button>
+
+          <Button variant="primary" onClick={() => setDebtContractModalOpen(true)}>
+            <Plus className="w-4 h-4" />
+            <span>Novo Financiamento</span>
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}

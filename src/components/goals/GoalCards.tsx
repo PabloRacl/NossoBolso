@@ -11,6 +11,8 @@ import { Plus, Target, Trash2, Edit2 } from 'lucide-react';
 import { db } from '../../services/db';
 import { motion } from 'framer-motion';
 
+import { GoalCalculatorWidget } from './GoalCalculatorWidget';
+
 interface GoalCardsProps {
   goals: Goal[];
 }
@@ -72,6 +74,9 @@ export const GoalCards: React.FC<GoalCardsProps> = ({ goals }) => {
           <span>Nova Meta</span>
         </Button>
       </div>
+
+      {/* Widget de Cálculo de Aportes & Contagem Regressiva */}
+      <GoalCalculatorWidget goals={goals} />
 
       {goals.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-12 text-center">

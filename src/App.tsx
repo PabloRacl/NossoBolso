@@ -9,6 +9,7 @@ import { ExpensePieChart } from './components/dashboard/ExpensePieChart';
 import { RecentTransactions } from './components/dashboard/RecentTransactions';
 import { BudgetProgressWidget } from './components/dashboard/BudgetProgressWidget';
 import { AiInsightsWidget } from './components/dashboard/AiInsightsWidget';
+import { FinancialBadgesWidget } from './components/dashboard/FinancialBadgesWidget';
 import { TransactionTable } from './components/transactions/TransactionTable';
 import { WalletCards } from './components/wallets/WalletCards';
 import { GoalCards } from './components/goals/GoalCards';
@@ -28,8 +29,20 @@ import { ContrachequeModal } from './components/transactions/ContrachequeModal';
 import { CommandPalette } from './components/layout/CommandPalette';
 import { TransactionParticleAnimation } from './components/layout/TransactionParticleAnimation';
 import { HistoryDrawer } from './components/layout/HistoryDrawer';
+import { BackupModal } from './components/backup/BackupModal';
 import { PantryView } from './components/pantry/PantryView';
 import { AutomotiveView } from './components/vehicles/AutomotiveView';
+import { CashFlowCalendarView } from './components/calendar/CashFlowCalendarView';
+import { CurrencyMarketWidget } from './components/widgets/CurrencyMarketWidget';
+import { VoiceCommandModal } from './components/voice/VoiceCommandModal';
+import { QrCodeScannerModal } from './components/scanner/QrCodeScannerModal';
+import { WhatIfSimulatorModal } from './components/simulator/WhatIfSimulatorModal';
+import { IndependenceSimulatorModal } from './components/calculator/IndependenceSimulatorModal';
+import { FinancialHealthScoreWidget } from './components/dashboard/FinancialHealthScoreWidget';
+import { ThemeSelectorModal } from './components/theme/ThemeSelectorModal';
+import { ReceiptGeneratorModal } from './components/receipts/ReceiptGeneratorModal';
+import { ShortcutsModal } from './components/layout/ShortcutsModal';
+import { PmpeConsignadoSimulatorModal } from './components/calculator/PmpeConsignadoSimulatorModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const pageTransitionVariants = {
@@ -48,7 +61,29 @@ const pageTransitionVariants = {
 };
 
 export const App: React.FC = () => {
-  const { activePage, selectedMonth, setSelectedMonth, isCommandPaletteOpen, setCommandPaletteOpen } = useAppStore();
+  const {
+    activePage,
+    selectedMonth,
+    setSelectedMonth,
+    isCommandPaletteOpen,
+    setCommandPaletteOpen,
+    isVoiceModalOpen,
+    setVoiceModalOpen,
+    isQrCodeModalOpen,
+    setQrCodeModalOpen,
+    isWhatIfModalOpen,
+    setWhatIfModalOpen,
+    isFireModalOpen,
+    setFireModalOpen,
+    isThemeModalOpen,
+    setThemeModalOpen,
+    isReceiptModalOpen,
+    setReceiptModalOpen,
+    isShortcutsModalOpen,
+    setShortcutsModalOpen,
+    isPmpeConsignadoModalOpen,
+    setPmpeConsignadoModalOpen,
+  } = useAppStore();
 
   useEffect(() => {
     seedInitialData().then(() => {
@@ -56,17 +91,59 @@ export const App: React.FC = () => {
     });
   }, []);
 
-  // Ouvinte global do atalho Ctrl + K / Cmd + K para busca rápida
+  // Ouvinte global de teclas de atalho inteligentes
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignorar se estiver digitando em um input ou textarea
+      const targetTag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      const isInput = targetTag === 'input' || targetTag === 'textarea' || targetTag === 'select';
+
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setCommandPaletteOpen(!useAppStore.getState().isCommandPaletteOpen);
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        setShortcutsModalOpen(!useAppStore.getState().isShortcutsModalOpen);
+        return;
+      }
+
+      if (!isInput && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        const k = e.key.toLowerCase();
+        const store = useAppStore.getState();
+
+        if (k === 'm') {
+          e.preventDefault();
+          store.setVoiceModalOpen(!store.isVoiceModalOpen);
+        } else if (k === 'q') {
+          e.preventDefault();
+          store.setQrCodeModalOpen(!store.isQrCodeModalOpen);
+        } else if (k === 'e') {
+          e.preventDefault();
+          store.setWhatIfModalOpen(!store.isWhatIfModalOpen);
+        } else if (k === 'h') {
+          e.preventDefault();
+          store.toggleHistoryDrawer();
+        } else if (k === 'b') {
+          e.preventDefault();
+          store.setBackupModalOpen(!store.isBackupModalOpen);
+        } else if (k === 't') {
+          e.preventDefault();
+          store.setThemeModalOpen(!store.isThemeModalOpen);
+        } else if (k === 'r') {
+          e.preventDefault();
+          store.setReceiptModalOpen(!store.isReceiptModalOpen);
+        } else if (k === 'p') {
+          e.preventDefault();
+          store.togglePrivacyMode();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setCommandPaletteOpen]);
+  }, [setCommandPaletteOpen, setShortcutsModalOpen]);
 
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
   const wallets = useLiveQuery(() => db.wallets.toArray(), []) || [];
@@ -209,6 +286,12 @@ export const App: React.FC = () => {
                 <BudgetProgressWidget selectedMonth={selectedMonth} />
               </div>
 
+              <FinancialHealthScoreWidget />
+
+              <FinancialBadgesWidget />
+
+              <CurrencyMarketWidget />
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <IncomeVsExpenseChart transactions={transactions} data={sixMonthsData} />
                 <ExpensePieChart transactions={transactions} selectedMonth={selectedMonth} data={pieChartData} />
@@ -219,6 +302,8 @@ export const App: React.FC = () => {
           {activePage === 'transactions' && (
             <TransactionTable transactions={transactions} onDelete={handleDeleteTransaction} />
           )}
+
+          {activePage === 'calendar' && <CashFlowCalendarView />}
 
           {activePage === 'wallets' && <WalletCards wallets={wallets} />}
 
@@ -238,6 +323,15 @@ export const App: React.FC = () => {
 
       {/* Global Modals & Side Drawers */}
       <HistoryDrawer />
+      <BackupModal />
+      <ShortcutsModal isOpen={isShortcutsModalOpen} onClose={() => setShortcutsModalOpen(false)} />
+      <ThemeSelectorModal isOpen={isThemeModalOpen} onClose={() => setThemeModalOpen(false)} />
+      <ReceiptGeneratorModal isOpen={isReceiptModalOpen} onClose={() => setReceiptModalOpen(false)} />
+      <VoiceCommandModal isOpen={isVoiceModalOpen} onClose={() => setVoiceModalOpen(false)} />
+      <QrCodeScannerModal isOpen={isQrCodeModalOpen} onClose={() => setQrCodeModalOpen(false)} />
+      <WhatIfSimulatorModal isOpen={isWhatIfModalOpen} onClose={() => setWhatIfModalOpen(false)} />
+      <IndependenceSimulatorModal isOpen={isFireModalOpen} onClose={() => setFireModalOpen(false)} />
+      <PmpeConsignadoSimulatorModal isOpen={isPmpeConsignadoModalOpen} onClose={() => setPmpeConsignadoModalOpen(false)} />
       <TransactionParticleAnimation />
       <TransactionModal />
       <WalletModal />

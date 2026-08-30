@@ -145,7 +145,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-extrabold uppercase text-[#94A3B8] tracking-wider group-hover:text-[#FF4D6D] transition-colors">
-              Burn Rate (Saídas)
+              Ritmo de Gastos (Saídas)
             </span>
             <div className="p-2.5 bg-[#FF4D6D]/15 text-[#FF4D6D] rounded-xl border border-[#FF4D6D]/30 group-hover:scale-110 transition-transform">
               <TrendingDown className="w-4 h-4" />

@@ -45,6 +45,8 @@ import { EditComponentSpecModal } from './EditComponentSpecModal';
 import { EditMetricModal } from './EditMetricModal';
 import { Vehicle } from '../../types';
 
+import { VehicleMaintenanceAlerts } from './VehicleMaintenanceAlerts';
+
 export const AutomotiveView: React.FC = () => {
   const { isPrivacyMode } = useAppStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -459,6 +461,9 @@ export const AutomotiveView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Central de Alerta de Manutenções da Garagem */}
+      <VehicleMaintenanceAlerts />
 
       {/* STAT CARDS AUTOMOTIVOS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

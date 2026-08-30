@@ -7,6 +7,7 @@ import { PantryItem } from '../../types';
 import { PantryItemModal } from './PantryItemModal';
 import { BarcodeScannerModal } from './BarcodeScannerModal';
 import { FinishShoppingModal } from './FinishShoppingModal';
+import { UnitPriceCalculatorModal } from './UnitPriceCalculatorModal';
 import { formatBRL } from '../../utils/formatters';
 import { useAppStore } from '../../store/useAppStore';
 import {
@@ -53,6 +54,7 @@ export const PantryView: React.FC = () => {
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
+  const [isUnitCalcModalOpen, setIsUnitCalcModalOpen] = useState(false);
 
   // Search & Category Filters in Stock
   const [searchFilter, setSearchFilter] = useState('');
@@ -416,6 +418,11 @@ export const PantryView: React.FC = () => {
         editingItem={editingItem}
       />
 
+      <UnitPriceCalculatorModal
+        isOpen={isUnitCalcModalOpen}
+        onClose={() => setIsUnitCalcModalOpen(false)}
+      />
+
       <BarcodeScannerModal
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
@@ -468,6 +475,14 @@ export const PantryView: React.FC = () => {
 
         {/* Ferramentas de Exportação e Adição */}
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <button
+            onClick={() => setIsUnitCalcModalOpen(true)}
+            className="p-2.5 rounded-xl bg-[#00FF88]/15 text-[#00FF88] border border-[#00FF88]/30 hover:bg-[#00FF88]/25 transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+            title="Otimizador de Preço por KG/Litro na Prateleira"
+          >
+            <Sparkles className="w-4 h-4 text-[#00FF88]" />
+            <span className="hidden sm:inline">Otimizador R$/KG</span>
+          </button>
           {activeTab === 'shopping' && (
             <>
               <button

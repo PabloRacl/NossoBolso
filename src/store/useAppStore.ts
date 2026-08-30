@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type PageType = 'dashboard' | 'transactions' | 'wallets' | 'debts' | 'goals' | 'pantry' | 'vehicles' | 'reports' | 'calculator';
+export type PageType = 'dashboard' | 'transactions' | 'wallets' | 'debts' | 'goals' | 'pantry' | 'vehicles' | 'reports' | 'calculator' | 'calendar';
 
 interface AppStore {
   activePage: PageType;
@@ -37,6 +37,24 @@ interface AppStore {
   setContrachequeModalOpen: (open: boolean) => void;
   isCommandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
+  isBackupModalOpen: boolean;
+  setBackupModalOpen: (open: boolean) => void;
+  isVoiceModalOpen: boolean;
+  setVoiceModalOpen: (open: boolean) => void;
+  isQrCodeModalOpen: boolean;
+  setQrCodeModalOpen: (open: boolean) => void;
+  isWhatIfModalOpen: boolean;
+  setWhatIfModalOpen: (open: boolean) => void;
+  isFireModalOpen: boolean;
+  setFireModalOpen: (open: boolean) => void;
+  isThemeModalOpen: boolean;
+  setThemeModalOpen: (open: boolean) => void;
+  isReceiptModalOpen: boolean;
+  setReceiptModalOpen: (open: boolean) => void;
+  isShortcutsModalOpen: boolean;
+  setShortcutsModalOpen: (open: boolean) => void;
+  isPmpeConsignadoModalOpen: boolean;
+  setPmpeConsignadoModalOpen: (open: boolean) => void;
 
   // Privacy & Layout
   isPrivacyMode: boolean;
@@ -108,6 +126,24 @@ export const useAppStore = create<AppStore>((set) => ({
   setContrachequeModalOpen: (open) => set({ isContrachequeModalOpen: open }),
   isCommandPaletteOpen: false,
   setCommandPaletteOpen: (open) => set({ isCommandPaletteOpen: open }),
+  isBackupModalOpen: false,
+  setBackupModalOpen: (open) => set({ isBackupModalOpen: open }),
+  isVoiceModalOpen: false,
+  setVoiceModalOpen: (open) => set({ isVoiceModalOpen: open }),
+  isQrCodeModalOpen: false,
+  setQrCodeModalOpen: (open) => set({ isQrCodeModalOpen: open }),
+  isWhatIfModalOpen: false,
+  setWhatIfModalOpen: (open) => set({ isWhatIfModalOpen: open }),
+  isFireModalOpen: false,
+  setFireModalOpen: (open) => set({ isFireModalOpen: open }),
+  isThemeModalOpen: false,
+  setThemeModalOpen: (open) => set({ isThemeModalOpen: open }),
+  isReceiptModalOpen: false,
+  setReceiptModalOpen: (open) => set({ isReceiptModalOpen: open }),
+  isShortcutsModalOpen: false,
+  setShortcutsModalOpen: (open) => set({ isShortcutsModalOpen: open }),
+  isPmpeConsignadoModalOpen: false,
+  setPmpeConsignadoModalOpen: (open) => set({ isPmpeConsignadoModalOpen: open }),
 
   isPrivacyMode: false,
   togglePrivacyMode: () => set((state) => ({ isPrivacyMode: !state.isPrivacyMode })),
