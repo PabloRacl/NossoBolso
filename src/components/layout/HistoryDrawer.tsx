@@ -63,10 +63,10 @@ export const HistoryDrawer: React.FC = () => {
 
   return (
     <>
-      {/* Botão Flutuante Lateral no Canto Direito (Abaixo da Barra de Navegação Superior) */}
+      {/* Botão Flutuante Lateral no Canto Direito (Alinhado Logo Abaixo do Topbar, Sem Cobrir os Cards) */}
       <button
         onClick={toggleHistoryDrawer}
-        className="fixed top-32 right-0 z-40 px-3 py-2.5 bg-[#090D18]/95 border-l-2 border-y border-[#00FF88] rounded-l-2xl shadow-[0_0_20px_rgba(0,255,136,0.3)] backdrop-blur-xl flex items-center gap-2 hover:bg-[#00FF88]/20 transition-all duration-300 group cursor-pointer"
+        className="fixed top-[68px] right-0 z-40 px-3 py-2 bg-[#090D18]/95 border-l-2 border-y border-[#00FF88] rounded-l-2xl shadow-[0_0_20px_rgba(0,255,136,0.3)] backdrop-blur-xl flex items-center gap-2 hover:bg-[#00FF88]/20 transition-all duration-300 group cursor-pointer"
         title="Abrir Histórico Lateral de Lançamentos"
       >
         <div className="p-1 rounded-lg bg-[#00FF88]/20 text-[#00FF88]">
