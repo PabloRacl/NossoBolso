@@ -63,10 +63,10 @@ export const HistoryDrawer: React.FC = () => {
 
   return (
     <>
-      {/* Botão Flutuante Lateral no Canto Direito (Sempre Acessível) */}
+      {/* Botão Flutuante Lateral no Canto Direito (Abaixo da Barra de Navegação Superior) */}
       <button
         onClick={toggleHistoryDrawer}
-        className="fixed top-24 right-0 z-40 px-3 py-2.5 bg-[#090D18]/95 border-l-2 border-y border-[#00FF88] rounded-l-2xl shadow-[0_0_20px_rgba(0,255,136,0.3)] backdrop-blur-xl flex items-center gap-2 hover:bg-[#00FF88]/20 transition-all duration-300 group cursor-pointer"
+        className="fixed top-32 right-0 z-40 px-3 py-2.5 bg-[#090D18]/95 border-l-2 border-y border-[#00FF88] rounded-l-2xl shadow-[0_0_20px_rgba(0,255,136,0.3)] backdrop-blur-xl flex items-center gap-2 hover:bg-[#00FF88]/20 transition-all duration-300 group cursor-pointer"
         title="Abrir Histórico Lateral de Lançamentos"
       >
         <div className="p-1 rounded-lg bg-[#00FF88]/20 text-[#00FF88]">
@@ -181,7 +181,9 @@ export const HistoryDrawer: React.FC = () => {
                   filteredTxs.map((tx) => (
                     <div
                       key={tx.id}
-                      className="flex items-center justify-between p-3 rounded-xl bg-[#090D18]/90 hover:bg-[#162032] border border-[#1E293B] hover:border-[#00FF88]/40 transition-all duration-200 group"
+                      onClick={() => handleEdit(tx.id)}
+                      className="flex items-center justify-between p-3 rounded-xl bg-[#090D18]/90 hover:bg-[#162032] border border-[#1E293B] hover:border-[#00FF88]/40 transition-all duration-200 group cursor-pointer"
+                      title="Clique para editar este lançamento"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <div
