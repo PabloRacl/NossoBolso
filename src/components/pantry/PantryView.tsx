@@ -35,7 +35,10 @@ import {
   Target,
   Layers,
   Zap,
-  Check
+  Check,
+  CheckSquare,
+  Square,
+  Filter
 } from 'lucide-react';
 
 type PantryTab = 'stock' | 'wizard' | 'shopping';
@@ -72,8 +75,10 @@ export const PantryView: React.FC = () => {
   const [cartDiscounts, setCartDiscounts] = useState<Record<string, number>>({});
   const [selectedWalletId, setSelectedWalletId] = useState<string>('');
 
-  // Novas Funcionalidades: Teto de Orçamento e Agrupamento por Corredor
+  // Novas Funcionalidades: Teto de Orçamento, Desconto no Caixa, Filtros e Agrupamento por Corredor
   const [budgetCap, setBudgetCap] = useState<string>('500.00');
+  const [cashierDiscount, setCashierDiscount] = useState<string>('0');
+  const [shoppingFilter, setShoppingFilter] = useState<'all' | 'checked' | 'pending'>('all');
   const [groupByAisle, setGroupByAisle] = useState<boolean>(true);
 
   // 1. Filtered Stock Items
@@ -237,18 +242,63 @@ export const PantryView: React.FC = () => {
     });
 
     const capNum = parseFloat(budgetCap) || 0;
-    const isOverBudget = capNum > 0 && totalSpent > capNum;
-    const budgetPct = capNum > 0 ? Math.min(Math.round((totalSpent / capNum) * 100), 100) : 0;
+    const discountNum = parseFloat(cashierDiscount) || 0;
+    const netTotalSpent = Math.max(totalSpent - discountNum, 0);
+    const isOverBudget = capNum > 0 && netTotalSpent > capNum;
+    const budgetPct = capNum > 0 ? Math.min(Math.round((netTotalSpent / capNum) * 100), 100) : 0;
+    const remainingBudget = capNum > 0 ? capNum - netTotalSpent : 0;
 
     return {
       totalSpent,
+      discountNum,
+      netTotalSpent,
       checkedCount,
       totalNeeded: neededItems.length,
       capNum,
       isOverBudget,
       budgetPct,
+      remainingBudget,
     };
-  }, [neededItems, cartChecked, cartPrices, cartQuantities, cartPriceModes, cartComboTotals, cartDiscounts, budgetCap]);
+  }, [neededItems, cartChecked, cartPrices, cartQuantities, cartPriceModes, cartComboTotals, cartDiscounts, budgetCap, cashierDiscount]);
+
+  const isAllChecked = useMemo(() => {
+    return neededItems.length > 0 && neededItems.every((item) => cartChecked[item.id]);
+  }, [neededItems, cartChecked]);
+
+  const handleToggleSelectAll = () => {
+    if (isAllChecked) {
+      setCartChecked({});
+    } else {
+      const newChecked: Record<string, boolean> = {};
+      neededItems.forEach((item) => {
+        newChecked[item.id] = true;
+      });
+      setCartChecked(newChecked);
+    }
+  };
+
+  const displayedNeededItems = useMemo(() => {
+    if (shoppingFilter === 'checked') {
+      return neededItems.filter((item) => cartChecked[item.id]);
+    }
+    if (shoppingFilter === 'pending') {
+      return neededItems.filter((item) => !cartChecked[item.id]);
+    }
+    return neededItems;
+  }, [neededItems, cartChecked, shoppingFilter]);
+
+  const displayedItemsByAisle = useMemo(() => {
+    return itemsByAisle
+      .map(([category, catItems]) => {
+        const filteredCatItems = catItems.filter((item) => {
+          if (shoppingFilter === 'checked') return cartChecked[item.id];
+          if (shoppingFilter === 'pending') return !cartChecked[item.id];
+          return true;
+        });
+        return [category, filteredCatItems] as [string, PantryItem[]];
+      })
+      .filter(([, catItems]) => catItems.length > 0);
+  }, [itemsByAisle, cartChecked, shoppingFilter]);
 
   const handleToggleCartItem = (id: string) => {
     setCartChecked((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -782,19 +832,36 @@ export const PantryView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Teto de Orçamento da Feira */}
-              <div className="flex items-center gap-3 bg-[#0A0B0E]/80 p-2.5 rounded-xl border border-[#2E3B52]">
-                <Target className="w-4 h-4 text-[#F59E0B]" />
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-extrabold uppercase text-[#94A3B8]">Teto da Feira (R$)</span>
-                  <input
-                    type="number"
-                    step="10.00"
-                    value={budgetCap}
-                    onChange={(e) => setBudgetCap(e.target.value)}
-                    className="w-24 bg-transparent text-sm font-black text-[#F59E0B] focus:outline-none"
-                    placeholder="Ex: 500,00"
-                  />
+              {/* Teto de Orçamento da Feira & Desconto no Caixa */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2.5 bg-[#0A0B0E]/80 p-2.5 rounded-xl border border-[#2E3B52]">
+                  <Target className="w-4 h-4 text-[#F59E0B]" />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-extrabold uppercase text-[#94A3B8]">Teto da Feira (R$)</span>
+                    <input
+                      type="number"
+                      step="10.00"
+                      value={budgetCap}
+                      onChange={(e) => setBudgetCap(e.target.value)}
+                      className="w-24 bg-transparent text-sm font-black text-[#F59E0B] focus:outline-none"
+                      placeholder="Ex: 500,00"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 bg-[#0A0B0E]/80 p-2.5 rounded-xl border border-[#2E3B52]">
+                  <BadgePercent className="w-4 h-4 text-[#00FF88]" />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-extrabold uppercase text-[#94A3B8]">Desconto Caixa (R$)</span>
+                    <input
+                      type="number"
+                      step="1.00"
+                      value={cashierDiscount}
+                      onChange={(e) => setCashierDiscount(e.target.value)}
+                      className="w-20 bg-transparent text-sm font-black text-[#00FF88] focus:outline-none"
+                      placeholder="0,00"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -816,7 +883,7 @@ export const PantryView: React.FC = () => {
                 <select
                   value={selectedWalletId}
                   onChange={(e) => setSelectedWalletId(e.target.value)}
-                  className="bg-[#0A0B0E] text-xs font-bold text-[#F8FAFC] px-3 py-2.5 rounded-xl border border-[#2E3B52] focus:outline-none"
+                  className="bg-[#0A0B0E] text-xs font-bold text-[#F8FAFC] px-3 py-2.5 rounded-xl border border-[#2E3B52] focus:outline-none cursor-pointer"
                 >
                   {wallets.map((w) => (
                     <option key={w.id} value={w.id}>
@@ -832,17 +899,30 @@ export const PantryView: React.FC = () => {
               </div>
             </div>
 
-            {/* Barra de Progresso do Teto do Orçamento */}
+            {/* Barra de Progresso do Teto do Orçamento e Saldo Restante */}
             {shoppingSummary.capNum > 0 && (
               <div className="flex flex-col gap-1.5 pt-2 border-t border-[#2E3B52]/60">
-                <div className="flex items-center justify-between text-xs font-extrabold">
-                  <span className={shoppingSummary.isOverBudget ? 'text-[#FF4D6D] flex items-center gap-1' : 'text-[#00FF88]'}>
-                    {shoppingSummary.isOverBudget && <AlertTriangle className="w-3.5 h-3.5 text-[#FF4D6D]" />}
-                    No Carrinho: {formatBRL(shoppingSummary.totalSpent, isPrivacyMode)} / Teto {formatBRL(shoppingSummary.capNum, isPrivacyMode)}
-                  </span>
-                  <span className={shoppingSummary.isOverBudget ? 'text-[#FF4D6D]' : 'text-[#94A3B8]'}>
-                    {shoppingSummary.budgetPct}% do teto limite
-                  </span>
+                <div className="flex flex-wrap items-center justify-between text-xs font-extrabold gap-2">
+                  <div className="flex items-center gap-3">
+                    <span className={shoppingSummary.isOverBudget ? 'text-[#FF4D6D] flex items-center gap-1' : 'text-[#00FF88]'}>
+                      {shoppingSummary.isOverBudget && <AlertTriangle className="w-3.5 h-3.5 text-[#FF4D6D]" />}
+                      No Carrinho: {formatBRL(shoppingSummary.netTotalSpent, isPrivacyMode)} / Teto {formatBRL(shoppingSummary.capNum, isPrivacyMode)}
+                    </span>
+                    {shoppingSummary.discountNum > 0 && (
+                      <span className="text-[10px] text-[#00FF88] bg-[#00FF88]/15 px-2 py-0.5 rounded-md border border-[#00FF88]/30">
+                        Cupom: -{formatBRL(shoppingSummary.discountNum, isPrivacyMode)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className={shoppingSummary.remainingBudget >= 0 ? 'text-[#06B6D4]' : 'text-[#FF4D6D]'}>
+                      Saldo Restante: {formatBRL(shoppingSummary.remainingBudget, isPrivacyMode)}
+                    </span>
+                    <span className={shoppingSummary.isOverBudget ? 'text-[#FF4D6D]' : 'text-[#94A3B8]'}>
+                      {shoppingSummary.budgetPct}% do teto
+                    </span>
+                  </div>
                 </div>
                 <div className="w-full h-2.5 bg-[#0A0B0E] rounded-full overflow-hidden border border-[#2E3B52]">
                   <div
@@ -860,33 +940,105 @@ export const PantryView: React.FC = () => {
             )}
           </div>
 
-          {/* BARRA DE BOTÃO DE ORGANIZAÇÃO POR CORREDOR */}
-          <div className="flex items-center justify-between px-2 text-xs">
+          {/* BARRA DE FERRAMENTAS DE MARCAR TODOS, LIMPAR E FILTROS RÁPIDOS */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#0D1424]/90 border border-[#2E3B52] rounded-2xl shadow-md">
+            {/* Botão de Marcar / Desmarcar Todos & Limpar */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleToggleSelectAll}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-black transition-all cursor-pointer active:scale-95 ${
+                  isAllChecked
+                    ? 'bg-[#FF4D6D]/20 text-[#FF4D6D] border-[#FF4D6D]/40 hover:bg-[#FF4D6D]/30'
+                    : 'bg-[#00FF88]/20 text-[#00FF88] border-[#00FF88]/40 hover:bg-[#00FF88]/30 shadow-md shadow-[#00FF88]/10'
+                }`}
+                title={isAllChecked ? 'Desmarcar todos os itens da feira' : 'Marcar todos os itens da feira no carrinho'}
+              >
+                {isAllChecked ? <Square className="w-4 h-4" /> : <CheckSquare className="w-4 h-4" />}
+                <span>{isAllChecked ? 'Desmarcar Todos' : '⚡ Marcar Todos'}</span>
+              </button>
+
+              {shoppingSummary.checkedCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Deseja desmarcar todos os itens do carrinho?')) {
+                      setCartChecked({});
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#162032] text-[#94A3B8] border border-[#2E3B52] hover:text-[#FF4D6D] hover:border-[#FF4D6D]/40 text-xs font-bold transition-all cursor-pointer"
+                  title="Limpar marções do carrinho"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Limpar Carrinho</span>
+                </button>
+              )}
+            </div>
+
+            {/* Filtros Rápidos de Exibição */}
+            <div className="flex items-center p-1 bg-[#0A0B0E] border border-[#2E3B52] rounded-xl text-xs gap-1">
+              <button
+                type="button"
+                onClick={() => setShoppingFilter('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                  shoppingFilter === 'all'
+                    ? 'bg-[#06B6D4]/20 text-[#06B6D4] border border-[#06B6D4]/40 shadow-sm'
+                    : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+                }`}
+              >
+                Todos ({neededItems.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setShoppingFilter('checked')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                  shoppingFilter === 'checked'
+                    ? 'bg-[#00FF88]/20 text-[#00FF88] border border-[#00FF88]/40 shadow-sm'
+                    : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+                }`}
+              >
+                🛒 No Carrinho ({shoppingSummary.checkedCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setShoppingFilter('pending')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                  shoppingFilter === 'pending'
+                    ? 'bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/40 shadow-sm'
+                    : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+                }`}
+              >
+                ⏳ Faltando ({neededItems.length - shoppingSummary.checkedCount})
+              </button>
+            </div>
+
+            {/* Alternador de Agrupamento por Corredor */}
             <button
+              type="button"
               onClick={() => setGroupByAisle(!groupByAisle)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#162032] text-[#06B6D4] border border-[#2E3B52] hover:border-[#06B6D4]/40 font-bold transition-all"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#162032] text-[#06B6D4] border border-[#2E3B52] hover:border-[#06B6D4]/40 text-xs font-bold transition-all cursor-pointer"
             >
               <Layers className="w-4 h-4" />
-              <span>{groupByAisle ? '🏬 Agrupado por Corredores' : '📋 Lista Simples'}</span>
+              <span>{groupByAisle ? '🏬 Por Corredores' : '📋 Lista Simples'}</span>
             </button>
-
-            <span className="text-[#94A3B8] font-medium">
-              Dica: Toque em <strong className="text-[#00FF88]">Câmera Barcode</strong> para marcar itens direto com o celular!
-            </span>
           </div>
 
           {/* LISTA DE COMPRAS (AGRUPADA OU SIMPLES) */}
-          {neededItems.length === 0 ? (
+          {displayedNeededItems.length === 0 ? (
             <Card className="p-12 text-center flex flex-col items-center gap-3">
               <CheckCircle2 className="w-12 h-12 text-[#00FF88]" />
-              <h4 className="text-base font-bold text-[#F8FAFC]">Seu estoque está 100% abastecido!</h4>
+              <h4 className="text-base font-bold text-[#F8FAFC]">Nenhum item exibido para este filtro!</h4>
               <p className="text-xs text-[#94A3B8]">
-                Nenhum item do seu estoque está abaixo da quantidade ideal no momento.
+                {shoppingFilter === 'checked'
+                  ? 'Você ainda não marcou nenhum item no carrinho.'
+                  : shoppingFilter === 'pending'
+                  ? 'Todos os itens necessários já foram marcados!'
+                  : 'Nenhum item do seu estoque está abaixo da quantidade ideal no momento.'}
               </p>
             </Card>
           ) : groupByAisle ? (
             <div className="flex flex-col gap-6">
-              {itemsByAisle.map(([category, catItems]) => (
+              {displayedItemsByAisle.map(([category, catItems]) => (
                 <div key={category} className="flex flex-col gap-3">
                   <div className="flex items-center gap-2 pb-1 border-b border-[#2E3B52]">
                     <span className="text-xs font-black uppercase tracking-wider text-[#06B6D4] px-2.5 py-0.5 rounded-md bg-[#06B6D4]/15 border border-[#06B6D4]/30">
@@ -902,7 +1054,7 @@ export const PantryView: React.FC = () => {
             </div>
           ) : (
             <div className="flex flex-col gap-3.5">
-              {neededItems.map((item) => renderShoppingCard(item))}
+              {displayedNeededItems.map((item) => renderShoppingCard(item))}
             </div>
           )}
 
@@ -911,7 +1063,7 @@ export const PantryView: React.FC = () => {
             <div className="flex flex-col">
               <span className="text-[10px] text-[#94A3B8] font-bold uppercase">No Carrinho</span>
               <span className="text-xl font-black text-[#00FF88]">
-                {formatBRL(shoppingSummary.totalSpent, isPrivacyMode)}
+                {formatBRL(shoppingSummary.netTotalSpent, isPrivacyMode)}
               </span>
             </div>
 
@@ -933,7 +1085,7 @@ export const PantryView: React.FC = () => {
       <FinishShoppingModal
         isOpen={isFinishModalOpen}
         onClose={() => setIsFinishModalOpen(false)}
-        totalSpent={shoppingSummary.totalSpent}
+        totalSpent={shoppingSummary.netTotalSpent}
         checkedCount={shoppingSummary.checkedCount}
         wallets={wallets}
         onConfirmFinish={handleConfirmFinishShopping}
