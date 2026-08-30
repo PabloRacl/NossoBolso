@@ -151,6 +151,7 @@ export const App: React.FC = () => {
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
   const wallets = useLiveQuery(() => db.wallets.toArray(), []) || [];
   const goals = useLiveQuery(() => db.goals.toArray(), []) || [];
+  const debtContracts = useLiveQuery(() => db.debtContracts.toArray(), []) || [];
 
   // Auto-switch selectedMonth if current selected month has no transactions but other transactions exist
   useEffect(() => {
@@ -165,16 +166,19 @@ export const App: React.FC = () => {
     }
   }, [transactions, selectedMonth, setSelectedMonth]);
 
-  // Total Balances & Debt Calculations
+  // Total Balances & Debt Calculations (sem dupla contagem de despesas já pagas)
   const totalBalance = wallets.reduce((acc, w) => acc + (w.balance > 0 ? w.balance : 0), 0);
   
-  // Total Debt = Negative wallet balances (credit card balance used) + Expenses in Debt categories
+  // Total Debt = Faturas de cartão de crédito pendentes + Saldo devedor restante dos contratos de financiamento
   const walletDebts = wallets.reduce((acc, w) => acc + (w.balance < 0 ? Math.abs(w.balance) : 0), 0);
-  const debtTxTotal = transactions
-    .filter((t) => t.type === 'expense' && (t.category.toLowerCase().includes('dívida') || t.category.toLowerCase().includes('fatura') || t.category.toLowerCase().includes('empréstimo')))
-    .reduce((acc, t) => acc + t.amount, 0);
+  const contractDebtsTotal = debtContracts.reduce((acc, c) => {
+    const paidTxs = transactions.filter((t) => t.contractId === c.id);
+    const paidAmount = paidTxs.reduce((sum, t) => sum + t.amount, 0);
+    const remaining = c.totalAmount - paidAmount;
+    return acc + (remaining > 0 ? remaining : 0);
+  }, 0);
 
-  const totalDebt = walletDebts + debtTxTotal;
+  const totalDebt = walletDebts + contractDebtsTotal;
 
   // Historic Totals (All Time)
   const totalIncome = transactions.filter((t) => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);

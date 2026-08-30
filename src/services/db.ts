@@ -348,15 +348,19 @@ export async function processRecurringTransactions() {
           createdAt: new Date().toISOString(),
         };
 
-        await db.transactions.add(newTx);
+        try {
+          await db.transactions.add(newTx);
 
-        const wallet = await db.wallets.get(item.walletId);
-        if (wallet) {
-          const delta = item.type === 'income' ? item.amount : -item.amount;
-          await db.wallets.update(item.walletId, { balance: wallet.balance + delta });
+          const wallet = await db.wallets.get(item.walletId);
+          if (wallet) {
+            const delta = item.type === 'income' ? item.amount : -item.amount;
+            await db.wallets.update(item.walletId, { balance: wallet.balance + delta });
+          }
+
+          await db.recurringTransactions.update(item.id, { lastGeneratedMonth: currentMonthKey });
+        } catch {
+          // Transação já gerada para este mês (evita duplicatas em ambiente concorrente)
         }
-
-        await db.recurringTransactions.update(item.id, { lastGeneratedMonth: currentMonthKey });
       }
     }
   } catch (err) {

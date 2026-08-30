@@ -1,19 +1,20 @@
 import { db } from './db';
+import { Transaction, Wallet, Category, Goal, DebtContract, Budget, RecurringTransaction, PantryItem, VehicleRecord, Vehicle } from '../types';
 
 export interface BackupPayload {
   version: string;
   exportDate: string;
   data: {
-    transactions: any[];
-    wallets: any[];
-    categories: any[];
-    goals: any[];
-    debtContracts: any[];
-    budgets: any[];
-    recurringTransactions: any[];
-    pantryItems: any[];
-    vehicleRecords: any[];
-    vehicles: any[];
+    transactions: Transaction[];
+    wallets: Wallet[];
+    categories: Category[];
+    goals: Goal[];
+    debtContracts: DebtContract[];
+    budgets: Budget[];
+    recurringTransactions: RecurringTransaction[];
+    pantryItems: PantryItem[];
+    vehicleRecords: VehicleRecord[];
+    vehicles: Vehicle[];
   };
 }
 
@@ -61,7 +62,7 @@ export async function exportDatabaseJSON(): Promise<void> {
 }
 
 export async function importDatabaseJSON(file: File): Promise<{ success: boolean; message: string; count: number }> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const reader = new FileReader();
 
     reader.onload = async (e) => {
@@ -73,7 +74,7 @@ export async function importDatabaseJSON(file: File): Promise<{ success: boolean
         }
 
         const payload: BackupPayload = JSON.parse(text);
-        if (!payload.data || !Array.isArray(payload.data.transactions)) {
+        if (!payload.data || typeof payload.data !== 'object' || !Array.isArray(payload.data.transactions)) {
           resolve({ success: false, message: 'Formato de arquivo de backup inválido.', count: 0 });
           return;
         }
@@ -122,9 +123,10 @@ export async function importDatabaseJSON(file: File): Promise<{ success: boolean
           message: `Restauração concluída com sucesso! ${totalItems} registros importados.`,
           count: totalItems,
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : 'Erro desconhecido';
         console.error('Erro na importação do backup:', err);
-        resolve({ success: false, message: `Falha ao processar backup: ${err?.message || 'Erro desconhecido'}`, count: 0 });
+        resolve({ success: false, message: `Falha ao processar backup: ${errorMsg}`, count: 0 });
       }
     };
 

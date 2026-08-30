@@ -36,12 +36,20 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
   };
 
   const handleExportCSV = () => {
+    const sanitizeCsvCell = (val: string) => {
+      let clean = val.replace(/"/g, '""');
+      if (/^[=+@-]/ .test(clean)) {
+        clean = `'${clean}`;
+      }
+      return `"${clean}"`;
+    };
+
     const headers = ['ID', 'Descricao', 'Tipo', 'Categoria', 'Data', 'Valor (R$)'];
     const rows = filtered.map((tx) => [
       tx.id,
-      `"${tx.description.replace(/"/g, '""')}"`,
+      sanitizeCsvCell(tx.description),
       tx.type === 'income' ? 'Receita' : 'Despesa',
-      `"${tx.category.replace(/"/g, '""')}"`,
+      sanitizeCsvCell(tx.category),
       tx.date,
       tx.amount.toFixed(2),
     ]);

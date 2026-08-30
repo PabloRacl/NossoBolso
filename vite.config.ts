@@ -14,7 +14,7 @@ export default defineConfig({
     open: true,
   },
   build: {
-    target: 'esnext',
+    target: 'es2020',
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
