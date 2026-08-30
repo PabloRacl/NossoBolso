@@ -180,7 +180,7 @@ export const WealthProjectionChart: React.FC = () => {
                   <YAxis stroke="#64748B" fontSize={11} tickFormatter={(val) => `R$${(val / 1000).toFixed(0)}k`} />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#0D1424', borderColor: '#2E3B52', borderRadius: '12px' }}
-                    formatter={(val: any) => [formatBRL(Number(val)), '']}
+                    formatter={(val: number | string | Array<number | string>) => [formatBRL(Number(val)), '']}
                   />
                   <Area type="monotone" dataKey="total" name="Patrimônio Total" stroke="#A855F7" strokeWidth={2.5} fillOpacity={1} fill="url(#colorTotalWealth)" />
                   <Area type="monotone" dataKey="invested" name="Total Aportado" stroke="#38BDF8" strokeWidth={1.5} fillOpacity={0} />

@@ -17,8 +17,9 @@ export const BackupModal: React.FC = () => {
       setFeedback(null);
       await exportDatabaseJSON();
       setFeedback({ type: 'success', message: 'Backup exportado com sucesso! Arquivo JSON salvo na sua pasta de downloads.' });
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: `Erro ao exportar backup: ${err?.message || 'Erro desconhecido'}` });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Erro desconhecido';
+      setFeedback({ type: 'error', message: `Erro ao exportar backup: ${errorMsg}` });
     } finally {
       setIsExporting(false);
     }
@@ -45,8 +46,9 @@ export const BackupModal: React.FC = () => {
       } else {
         setFeedback({ type: 'error', message: res.message });
       }
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: `Erro ao restaurar: ${err?.message || 'Erro desconhecido'}` });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Erro desconhecido';
+      setFeedback({ type: 'error', message: `Erro ao restaurar: ${errorMsg}` });
     } finally {
       setIsImporting(false);
       e.target.value = '';

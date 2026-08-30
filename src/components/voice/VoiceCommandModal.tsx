@@ -37,13 +37,13 @@ export const VoiceCommandModal: React.FC<{ isOpen: boolean; onClose: () => void 
       setFeedback('Ouvindo... Fale seu comando (ex: "Adicionar despesa de 50 reais em restaurante")');
     };
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: { resultIndex: number; results: { [key: number]: { [key: number]: { transcript: string } } } }) => {
       const current = event.resultIndex;
       const text = event.results[current][0].transcript;
       setTranscript(text);
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: { error?: string }) => {
       console.error('Erro de reconhecimento de voz:', event.error);
       setIsListening(false);
       setFeedback('Não consegui entender a fala. Tente novamente!');

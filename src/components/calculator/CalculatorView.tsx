@@ -462,7 +462,7 @@ export const CalculatorView: React.FC = () => {
                         <YAxis stroke="#64748B" fontSize={11} tickFormatter={(val) => `R$${(val / 1000).toFixed(0)}k`} />
                         <Tooltip
                           contentStyle={{ backgroundColor: '#0D1424', borderColor: '#2E3B52', borderRadius: '12px' }}
-                          formatter={(value: any) => [formatBRL(Number(value)), '']}
+                          formatter={(value: number | string | Array<number | string>) => [formatBRL(Number(value)), '']}
                         />
                         <Area type="monotone" dataKey="total" name="Total Acumulado" stroke="#00FF88" strokeWidth={2.5} fillOpacity={1} fill="url(#colorTotal)" />
                         <Area type="monotone" dataKey="invested" name="Capital Investido" stroke="#38BDF8" strokeWidth={2} fillOpacity={1} fill="url(#colorInvested)" />

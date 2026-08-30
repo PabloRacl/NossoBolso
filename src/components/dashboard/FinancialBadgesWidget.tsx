@@ -24,7 +24,7 @@ export const FinancialBadgesWidget: React.FC = () => {
   const badges = useMemo((): BadgeItem[] => {
     // 1. Guardião da Reserva (Reserva > R$ 10.000)
     const savingsBalance = wallets
-      .filter((w) => w.type === 'savings' || w.yieldRateCdi)
+      .filter((w) => w.type === 'savings' || (w.yieldRateCdi !== undefined && w.yieldRateCdi > 0))
       .reduce((acc, w) => acc + (w.balance || 0), 0);
     const savingsUnlocked = savingsBalance >= 10000;
     const savingsProgress = Math.min(Math.round((savingsBalance / 10000) * 100), 100);
