@@ -43,6 +43,7 @@ import { ThemeSelectorModal } from './components/theme/ThemeSelectorModal';
 import { ReceiptGeneratorModal } from './components/receipts/ReceiptGeneratorModal';
 import { ShortcutsModal } from './components/layout/ShortcutsModal';
 import { PmpeConsignadoSimulatorModal } from './components/calculator/PmpeConsignadoSimulatorModal';
+import { InstallPwaModal } from './components/pwa/InstallPwaModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const pageTransitionVariants = {
@@ -83,6 +84,8 @@ export const App: React.FC = () => {
     setShortcutsModalOpen,
     isPmpeConsignadoModalOpen,
     setPmpeConsignadoModalOpen,
+    isPwaModalOpen,
+    setPwaModalOpen,
   } = useAppStore();
 
   useEffect(() => {
@@ -332,6 +335,7 @@ export const App: React.FC = () => {
       <WhatIfSimulatorModal isOpen={isWhatIfModalOpen} onClose={() => setWhatIfModalOpen(false)} />
       <IndependenceSimulatorModal isOpen={isFireModalOpen} onClose={() => setFireModalOpen(false)} />
       <PmpeConsignadoSimulatorModal isOpen={isPmpeConsignadoModalOpen} onClose={() => setPmpeConsignadoModalOpen(false)} />
+      <InstallPwaModal isOpen={isPwaModalOpen} onClose={() => setPwaModalOpen(false)} />
       <TransactionParticleAnimation />
       <TransactionModal />
       <WalletModal />

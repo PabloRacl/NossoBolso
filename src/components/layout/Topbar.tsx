@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useAppStore, getCurrentMonthKey } from '../../store/useAppStore';
 import { Button } from '../ui/Button';
-import { Plus, Upload, Calendar, Tag, ChevronLeft, ChevronRight, Sparkles, Eye, EyeOff, Bell, Target, FileCheck, Search, Menu, History, Database, Mic, QrCode, Compass, Palette, FileText, Keyboard } from 'lucide-react';
+import { Plus, Upload, Calendar, Tag, ChevronLeft, ChevronRight, Sparkles, Eye, EyeOff, Bell, Target, FileCheck, Search, Menu, History, Database, Mic, QrCode, Compass, Palette, FileText, Keyboard, Smartphone } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../services/db';
 import { BioCyberLogo } from './BioCyberLogo';
@@ -235,6 +235,15 @@ export const Topbar: React.FC = () => {
           title="Central de Teclas de Atalho Globais (Ctrl + /)"
         >
           <Keyboard className="w-4 h-4 text-[#00FF88]" />
+        </button>
+
+        {/* Botão de Instalar App no Celular (PWA) */}
+        <button
+          onClick={() => useAppStore.getState().setPwaModalOpen(true)}
+          className="p-2 bg-[#162032] border border-[#2E3B52] rounded-xl text-[#94A3B8] hover:text-[#00FF88] hover:border-[#00FF88]/40 transition-all cursor-pointer"
+          title="Instalar NossoBolso no Celular / Tablet"
+        >
+          <Smartphone className="w-4 h-4 text-[#00FF88]" />
         </button>
 
         {/* Botão de Gerador de Recibos */}

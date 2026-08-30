@@ -55,6 +55,8 @@ interface AppStore {
   setShortcutsModalOpen: (open: boolean) => void;
   isPmpeConsignadoModalOpen: boolean;
   setPmpeConsignadoModalOpen: (open: boolean) => void;
+  isPwaModalOpen: boolean;
+  setPwaModalOpen: (open: boolean) => void;
 
   // Privacy & Layout
   isPrivacyMode: boolean;
@@ -144,6 +146,8 @@ export const useAppStore = create<AppStore>((set) => ({
   setShortcutsModalOpen: (open) => set({ isShortcutsModalOpen: open }),
   isPmpeConsignadoModalOpen: false,
   setPmpeConsignadoModalOpen: (open) => set({ isPmpeConsignadoModalOpen: open }),
+  isPwaModalOpen: false,
+  setPwaModalOpen: (open) => set({ isPwaModalOpen: open }),
 
   isPrivacyMode: false,
   togglePrivacyMode: () => set((state) => ({ isPrivacyMode: !state.isPrivacyMode })),

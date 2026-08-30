@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { LayoutDashboard, ArrowLeftRight, Wallet, CreditCard, Target, ShoppingCart, Car, FileSpreadsheet, Calculator, Sparkles, PanelLeftClose, PanelLeftOpen, Calendar, Search } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, CreditCard, Target, ShoppingCart, Car, FileSpreadsheet, Calculator, Sparkles, PanelLeftClose, PanelLeftOpen, Calendar, Search, Smartphone } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const Sidebar: React.FC = () => {
@@ -118,10 +118,28 @@ export const Sidebar: React.FC = () => {
           </nav>
         </div>
 
-        {/* Rodapé Elegante */}
-        <div className="w-full pt-2">
+        {/* Rodapé Elegante com Botão de Instalar App no Celular */}
+        <div className="w-full pt-2 flex flex-col gap-2">
+          <button
+            onClick={() => {
+              useAppStore.getState().setPwaModalOpen(true);
+              if (isMobileMenuOpen) toggleMobileMenu();
+            }}
+            title="Instalar NossoBolso no Celular / Tablet"
+            className={clsx(
+              'flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#00FF88]/15 to-[#06B6D4]/15 border border-[#00FF88]/40 hover:border-[#00FF88] rounded-xl text-xs font-black text-[#00FF88] transition-all cursor-pointer shadow-md shadow-[#00FF88]/10 group w-full',
+              isSidebarCollapsed && !isMobileMenuOpen ? 'justify-center px-0' : 'justify-between'
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-[#00FF88] group-hover:scale-110 transition-transform shrink-0" />
+              {(!isSidebarCollapsed || isMobileMenuOpen) && <span>Instalar no Celular</span>}
+            </div>
+            {(!isSidebarCollapsed || isMobileMenuOpen) && <span className="text-[10px] uppercase tracking-wider font-extrabold bg-[#00FF88]/20 px-1.5 py-0.5 rounded text-[#00FF88]">PWA</span>}
+          </button>
+
           {(!isSidebarCollapsed || isMobileMenuOpen) && (
-            <div className="p-3 bg-[#162032]/80 border border-[#2E3B52] rounded-xl flex items-center justify-between text-xs text-[#94A3B8] w-full">
+            <div className="p-2.5 bg-[#162032]/80 border border-[#2E3B52] rounded-xl flex items-center justify-between text-xs text-[#94A3B8] w-full">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[#00FF88] shrink-0" />
                 <span className="font-extrabold text-[#F8FAFC] text-[11px]">Finance OS v2.0</span>
