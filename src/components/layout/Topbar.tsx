@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useAppStore, getCurrentMonthKey } from '../../store/useAppStore';
 import { Button } from '../ui/Button';
-import { Plus, Upload, Calendar, Tag, ChevronLeft, ChevronRight, Sparkles, Eye, EyeOff, Bell, Target, FileCheck, Search, Menu, History } from 'lucide-react';
+import { Plus, Upload, Calendar, Tag, ChevronLeft, ChevronRight, Sparkles, Eye, EyeOff, Bell, Target, FileCheck, Search, Menu, History, Wallet } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../services/db';
 
@@ -98,7 +98,7 @@ export const Topbar: React.FC = () => {
 
   return (
     <header className="w-full flex flex-wrap items-center justify-between gap-4 py-3.5 px-6 bg-[#0D1424]/95 backdrop-blur-xl border-b border-[#2E3B52]/60 sticky top-0 z-40">
-      {/* Canto Esquerdo: Botão Hambúrguer Mobile + Logo com Folha de Ouro Cintilante */}
+      {/* Canto Esquerdo: Botão Hambúrguer Mobile + Logo Cyber Emerald Wallet */}
       <div className="flex items-center gap-3 shrink-0">
         <button
           onClick={toggleMobileMenu}
@@ -108,8 +108,8 @@ export const Topbar: React.FC = () => {
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFD700]/25 via-[#F59E0B]/20 to-[#B45309]/30 border border-[#FFD700]/50 shadow-[0_0_20px_rgba(255,215,0,0.3)] gold-shimmer cursor-pointer">
-          <span className="text-2xl drop-shadow-[0_2px_10px_rgba(255,215,0,0.8)]">🍃</span>
+        <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-[#00FF88]/20 via-[#06B6D4]/15 to-[#0D1424] border border-[#00FF88]/50 shadow-[0_0_20px_rgba(0,255,136,0.3)] group cursor-pointer hover:scale-105 transition-all">
+          <Wallet className="w-5 h-5 text-[#00FF88] group-hover:rotate-12 transition-transform" />
         </div>
 
         <div className="flex flex-col">
