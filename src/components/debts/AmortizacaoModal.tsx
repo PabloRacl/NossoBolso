@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { useAppStore } from '../../store/useAppStore';
@@ -6,7 +6,7 @@ import { db } from '../../services/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { formatBRL } from '../../utils/formatters';
 import { formatDate } from '../../utils/dateUtils';
-import { Zap, CheckSquare, Square, Info } from 'lucide-react';
+import { Zap, CheckSquare, Square, Info, Percent, Edit3 } from 'lucide-react';
 import type { Transaction } from '../../types';
 
 interface InstallmentInfo {
@@ -19,21 +19,24 @@ interface InstallmentInfo {
 }
 
 /**
- * Calcula o valor presente (valor hoje) de uma parcela futura,
- * removendo os juros embutidos nos meses restantes até o vencimento.
- *
- * Fórmula: valorHoje = valorParcela / (1 + taxaMensal)^meses
+ * Calcula a diferença em meses (com fração de dias) entre a data de hoje e a data de vencimento da parcela.
  */
-function calcDiscountedValue(originalValue: number, monthlyRate: number, monthsAhead: number): number {
-  if (monthlyRate <= 0 || monthsAhead <= 0) return originalValue;
-  return originalValue / Math.pow(1 + monthlyRate / 100, monthsAhead);
-}
-
 function getMonthsDiff(fromDate: Date, toDate: Date): number {
   const yearDiff = toDate.getFullYear() - fromDate.getFullYear();
   const monthDiff = toDate.getMonth() - fromDate.getMonth();
-  const totalMonths = yearDiff * 12 + monthDiff;
+  const dayDiff = (toDate.getDate() - fromDate.getDate()) / 30;
+  const totalMonths = yearDiff * 12 + monthDiff + dayDiff;
   return Math.max(totalMonths, 0);
+}
+
+/**
+ * Valor Hoje = PMT / (1 + i/100)^n
+ */
+function calcDiscountedValue(originalValue: number, monthlyRate: number, monthsAhead: number): number {
+  if (monthlyRate <= 0 || monthsAhead <= 0) return originalValue;
+  const rateFraction = monthlyRate / 100;
+  const presentValue = originalValue / Math.pow(1 + rateFraction, monthsAhead);
+  return Math.max(presentValue, 0);
 }
 
 export const AmortizacaoModal: React.FC = () => {
@@ -50,14 +53,40 @@ export const AmortizacaoModal: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Taxa Mensal Personalizável
+  const [customMonthlyRate, setCustomMonthlyRate] = useState<string>('');
+
+  // Mapeamento de Valores Customizados por Parcela (ID da Transação -> Valor Digito pelo Usuário)
+  const [customInstallmentValues, setCustomInstallmentValues] = useState<Record<string, string>>({});
+
   // Estados para amortização SAC
   const [amortizationExtraAmount, setAmortizationExtraAmount] = useState('');
   const [sacImpactType, setSacImpactType] = useState<'prazo' | 'parcela'>('prazo');
 
   const contract = contracts.find((c) => c.id === amortizacaoContractId);
-  const interestRate = contract?.interestRate ?? 0;
 
-  // Build list of future unpaid installments with discount calculation (apenas PRICE)
+  // Detecta taxa mensal do contrato
+  const detectedMonthlyRate = useMemo(() => {
+    if (!contract || !contract.interestRate) return 1.43;
+    const rate = contract.interestRate;
+    if (contract.interestRateType === 'yearly' || rate > 6) {
+      return Math.round((rate / 12) * 1000) / 1000;
+    }
+    return rate;
+  }, [contract]);
+
+  const activeMonthlyRate = useMemo(() => {
+    const parsed = parseFloat(customMonthlyRate);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+    return detectedMonthlyRate;
+  }, [customMonthlyRate, detectedMonthlyRate]);
+
+  useEffect(() => {
+    setCustomMonthlyRate(String(detectedMonthlyRate));
+    setCustomInstallmentValues({});
+  }, [detectedMonthlyRate, amortizacaoContractId]);
+
+  // Lista de parcelas com deságio calculado ou valor customizado inserido pelo usuário
   const installments: InstallmentInfo[] = useMemo(() => {
     if (!contract || contract.amortizationSystem === 'sac') return [];
     const today = new Date();
@@ -66,11 +95,22 @@ export const AmortizacaoModal: React.FC = () => {
 
     return transactions
       .filter((t) => t.contractId === contract.id && t.date > todayStr)
-      .sort((a, b) => b.date.localeCompare(a.date)) // Most distant first
+      .sort((a, b) => b.date.localeCompare(a.date))
       .map((tx) => {
         const dueDate = new Date(tx.date + 'T12:00:00');
         const monthsAhead = getMonthsDiff(today, dueDate);
-        const discountedValue = calcDiscountedValue(tx.amount, interestRate, monthsAhead);
+        
+        // Verificar se há valor customizado digitado pelo usuário para esta parcela
+        const userTyped = customInstallmentValues[tx.id];
+        let discountedValue: number;
+
+        if (userTyped !== undefined && userTyped !== '') {
+          const parsed = parseFloat(userTyped.replace(',', '.'));
+          discountedValue = !isNaN(parsed) ? parsed : calcDiscountedValue(tx.amount, activeMonthlyRate, monthsAhead);
+        } else {
+          discountedValue = calcDiscountedValue(tx.amount, activeMonthlyRate, monthsAhead);
+        }
+
         const installmentNumber = tx.installments?.current ?? 0;
 
         return {
@@ -82,9 +122,9 @@ export const AmortizacaoModal: React.FC = () => {
           monthsAhead,
         };
       });
-  }, [contract, transactions, interestRate]);
+  }, [contract, transactions, activeMonthlyRate, customInstallmentValues]);
 
-  // Selection handlers (PRICE)
+  // Handler de seleção
   const toggleInstallment = (txId: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -107,16 +147,28 @@ export const AmortizacaoModal: React.FC = () => {
 
   const allSelected = installments.length > 0 && selectedIds.size === installments.length;
 
-  // Summary calculations (PRICE)
+  const handleCustomValueChange = (txId: string, val: string) => {
+    setCustomInstallmentValues((prev) => ({
+      ...prev,
+      [txId]: val,
+    }));
+    // Garante que ao digitar o valor a parcela seja marcada como selecionada
+    if (!selectedIds.has(txId)) {
+      setSelectedIds((prev) => new Set(prev).add(txId));
+    }
+  };
+
+  // Totais do resumo
   const selectedInstallments = installments.filter((i) => selectedIds.has(i.tx.id));
   const totalOriginal = selectedInstallments.reduce((acc, i) => acc + i.originalValue, 0);
   const totalDiscounted = selectedInstallments.reduce((acc, i) => acc + i.discountedValue, 0);
-  const totalSavings = totalOriginal - totalDiscounted;
+  const totalSavings = Math.max(totalOriginal - totalDiscounted, 0);
 
   const handleClose = () => {
     setSelectedIds(new Set());
     setAmortizationExtraAmount('');
     setSacImpactType('prazo');
+    setCustomInstallmentValues({});
     setAmortizacaoContractId(null);
     setAmortizacaoModalOpen(false);
   };
@@ -130,7 +182,6 @@ export const AmortizacaoModal: React.FC = () => {
         const extraVal = parseFloat(amortizationExtraAmount);
         if (isNaN(extraVal) || extraVal <= 0) return;
 
-        // 1. Criar transação de despesa extraordinária de amortização
         const amortTxId = 'tx_amort_' + Math.random().toString(36).substring(2, 9);
         const todayStr = new Date().toISOString().split('T')[0];
 
@@ -147,7 +198,6 @@ export const AmortizacaoModal: React.FC = () => {
           notes: `Amortização extraordinária por redução de ${sacImpactType}.`,
         });
 
-        // 2. Obter transações futuras
         const allContractTxs = await db.transactions
           .where('contractId')
           .equals(contract.id)
@@ -157,10 +207,10 @@ export const AmortizacaoModal: React.FC = () => {
           .filter((t) => t.date > todayStr && t.id !== amortTxId)
           .sort((a, b) => a.date.localeCompare(b.date));
 
-        const paidCount = allContractTxs.length - futureTxs.length - 1; // desconta a de amortização recém criada
+        const paidCount = allContractTxs.length - futureTxs.length - 1;
 
-        const parsedRate = contract.interestRate ?? 0;
-        const monthlyRate = contract.interestRateType === 'yearly' ? (parsedRate / 12 / 100) : (parsedRate / 100);
+        const parsedRate = activeMonthlyRate;
+        const monthlyRate = parsedRate / 100;
         const parsedInsurance = contract.insuranceAmount ?? 0;
 
         const startInstallment = contract.startInstallmentNum ?? 1;
@@ -171,7 +221,6 @@ export const AmortizacaoModal: React.FC = () => {
         const newBalance = Math.max(currentBalance - extraVal, 0);
 
         if (sacImpactType === 'parcela') {
-          // Dilui no restante
           const remainingCount = futureTxs.length;
           const newMonthlyAmortization = newBalance / (remainingCount || 1);
 
@@ -189,7 +238,6 @@ export const AmortizacaoModal: React.FC = () => {
             runningBalance -= newMonthlyAmortization;
           }
 
-          // Atualiza saldo total financiado para manter coerência
           await db.debtContracts.update(contract.id, {
             totalAmount: Math.max(contract.totalAmount - extraVal, 0),
           });
@@ -219,14 +267,12 @@ export const AmortizacaoModal: React.FC = () => {
             runningBalance -= currentAmortization;
           }
 
-          // Atualiza total de parcelas e valor total no contrato
           const newTotalInstallments = paidCount + txsToKeep.length;
           await db.debtContracts.update(contract.id, {
             totalInstallments: Math.max(newTotalInstallments, 0),
             totalAmount: Math.max(contract.totalAmount - extraVal, 0),
           });
 
-          // Re-rotular transações
           const remainingTxs = await db.transactions
             .where('contractId')
             .equals(contract.id)
@@ -236,7 +282,6 @@ export const AmortizacaoModal: React.FC = () => {
             .filter((t) => t.id !== amortTxId && t.date > todayStr)
             .sort((a, b) => a.date.localeCompare(b.date));
 
-          // E as transações passadas
           const pastRemaining = remainingTxs
             .filter((t) => t.id !== amortTxId && t.date <= todayStr)
             .sort((a, b) => a.date.localeCompare(b.date));
@@ -260,7 +305,25 @@ export const AmortizacaoModal: React.FC = () => {
 
         handleClose();
       } else {
-        // PRICE original
+        // Antecipação PRICE com o valor exato pago (cria despesa real com valor descontado e remove parcelas futuras)
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        // 1. Criar lançamento da antecipação com o valor real com desconto
+        const amortTxId = 'tx_antecip_' + Math.random().toString(36).substring(2, 9);
+        await db.transactions.add({
+          id: amortTxId,
+          description: `Antecipação (${selectedIds.size}x parcelas - ${contract.title})`,
+          amount: totalDiscounted,
+          date: todayStr,
+          type: 'expense',
+          category: contract.category,
+          walletId: contract.walletId,
+          contractId: contract.id,
+          createdAt: new Date().toISOString(),
+          notes: `Antecipação de ${selectedIds.size} parcelas com economia de ${formatBRL(totalSavings)}.`,
+        });
+
+        // 2. Deletar as parcelas futuras selecionadas
         for (const id of selectedIds) {
           await db.transactions.delete(id);
         }
@@ -278,7 +341,9 @@ export const AmortizacaoModal: React.FC = () => {
           .equals(contract.id)
           .toArray();
 
-        const sortedRemaining = remainingTxs.sort((a, b) => a.date.localeCompare(b.date));
+        const sortedRemaining = remainingTxs
+          .filter((t) => t.id !== amortTxId)
+          .sort((a, b) => a.date.localeCompare(b.date));
         const updatedTotal = sortedRemaining.length;
 
         for (let i = 0; i < sortedRemaining.length; i++) {
@@ -305,44 +370,61 @@ export const AmortizacaoModal: React.FC = () => {
       isOpen={isAmortizacaoModalOpen}
       onClose={handleClose}
       title="Amortização — Reduzir Financiamento"
+      maxWidth="max-w-xl"
     >
       <div className="flex flex-col gap-4">
-        {/* Info Banner */}
-        <div className="p-3 bg-[#06B6D4]/10 border border-[#06B6D4]/30 rounded-xl flex items-center gap-3">
-          <div className="p-2 bg-[#06B6D4]/20 text-[#06B6D4] rounded-xl shrink-0">
-            <Info className="w-5 h-5" />
+        {/* Banner Informativo */}
+        <div className="p-3.5 bg-[#06B6D4]/10 border border-[#06B6D4]/30 rounded-2xl flex items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-[#06B6D4]/20 text-[#06B6D4] rounded-xl shrink-0">
+              <Info className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-[#F8FAFC]">
+                {contract?.amortizationSystem === 'sac' ? 'Amortização de Saldo Devedor (SAC)' : 'Abatimento Proporcional de Juros'}
+              </p>
+              <p className="text-[11px] text-[#94A3B8] font-medium mt-0.5">
+                Você pode usar a taxa mensal simulada ou digitar o valor exato no campo "VALOR HOJE".
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-[#94A3B8]">
-            {contract?.amortizationSystem === 'sac' ? (
-              <>
-                No sistema <span className="font-bold text-[#06B6D4]">SAC</span>, a amortização extraordinária reduz diretamente seu saldo devedor principal, recalculando os juros futuros.
-              </>
-            ) : (
-              <>
-                Ao antecipar o pagamento das parcelas, você tem{' '}
-                <span className="font-bold text-[#06B6D4]">abatimento nos juros</span>.
-                {interestRate > 0
-                  ? ` Taxa mensal: ${interestRate.toFixed(2)}%`
-                  : ' Configure a taxa de juros no contrato para ver o desconto.'}
-              </>
-            )}
-          </p>
         </div>
 
-        {/* Contract Info */}
+        {/* Dados do Contrato & Ajuste da Taxa Mensal */}
         {contract && (
-          <div className="p-3 bg-[#12141A] border border-[#1E2330] rounded-xl">
-            <h4 className="text-sm font-extrabold text-[#F8FAFC]">{contract.title}</h4>
-            <p className="text-xs text-[#94A3B8] mt-0.5">
-              {contract.amortizationSystem === 'sac'
-                ? `Sistema SAC • ${contract.interestRate}% de juros`
-                : `${contract.totalInstallments}x de ${formatBRL(contract.installmentAmount)} • ${installments.length} parcela(s) a antecipar`}
-            </p>
+          <div className="p-4 bg-[#12141A] border border-[#1E293B] rounded-2xl flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-black text-[#F8FAFC]">{contract.title}</h4>
+              <p className="text-xs text-[#94A3B8] font-medium mt-0.5">
+                {contract.amortizationSystem === 'sac'
+                  ? `Sistema SAC • Taxa: ${contract.interestRate || 1.8}% a.m.`
+                  : `${contract.totalInstallments}x de ${formatBRL(contract.installmentAmount)} • ${installments.length} parcelas a antecipar`}
+              </p>
+            </div>
+
+            {/* Ajuste Global da Taxa Mensal (PRICE) */}
+            {contract.amortizationSystem === 'price' && (
+              <div className="flex items-center gap-2 bg-[#090D18] border border-[#00FF88]/40 px-3 py-1.5 rounded-xl shadow-inner">
+                <Percent className="w-3.5 h-3.5 text-[#00FF88]" />
+                <span className="text-[10px] font-black text-[#94A3B8] uppercase">Taxa a.m.:</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.1"
+                  max="10"
+                  className="w-16 bg-transparent text-xs font-black text-[#00FF88] text-right focus:outline-none"
+                  value={customMonthlyRate}
+                  onChange={(e) => setCustomMonthlyRate(e.target.value)}
+                  title="Taxa mensal estimada de deságio"
+                />
+                <span className="text-xs font-black text-[#00FF88]">%</span>
+              </div>
+            )}
           </div>
         )}
 
         {contract?.amortizationSystem === 'sac' ? (
-          /* SAC Amortization Form */
+          /* Formulário SAC */
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-[11px] font-bold text-[#94A3B8] uppercase">Valor a Amortizar Extraordinariamente (R$)</label>
@@ -351,7 +433,7 @@ export const AmortizacaoModal: React.FC = () => {
                 step="0.01"
                 min="0.01"
                 placeholder="Ex: 5.000,00"
-                className="w-full h-10 px-3 text-xs bg-[#0A0B0E] border border-[#1E2330] text-[#F8FAFC] rounded-xl focus:border-[#F59E0B] focus:outline-none transition-colors"
+                className="w-full h-11 px-4 text-sm bg-[#0A0B0E] border border-[#1E293B] text-[#F8FAFC] rounded-xl focus:border-[#F59E0B] focus:outline-none transition-colors font-bold"
                 value={amortizationExtraAmount}
                 onChange={(e) => setAmortizationExtraAmount(e.target.value)}
               />
@@ -365,49 +447,32 @@ export const AmortizacaoModal: React.FC = () => {
                   onClick={() => setSacImpactType('prazo')}
                   className={`p-3 rounded-xl border flex flex-col items-start gap-1 transition-all ${
                     sacImpactType === 'prazo'
-                      ? 'bg-[#00FF88]/5 border-[#00FF88]/40 text-[#F8FAFC]'
+                      ? 'bg-[#00FF88]/10 border-[#00FF88]/40 text-[#F8FAFC]'
                       : 'bg-[#12141A] border-[#1E2330] hover:border-[#2E3B52] text-[#94A3B8]'
                   }`}
                 >
                   <span className="text-xs font-bold text-[#F8FAFC]">Reduzir Prazo</span>
-                  <span className="text-[10px] text-[#94A3B8]">Reduz os meses restantes.</span>
+                  <span className="text-[10px] text-[#94A3B8]">Elimina meses finais da dívida.</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setSacImpactType('parcela')}
                   className={`p-3 rounded-xl border flex flex-col items-start gap-1 transition-all ${
                     sacImpactType === 'parcela'
-                      ? 'bg-[#00FF88]/5 border-[#00FF88]/40 text-[#F8FAFC]'
+                      ? 'bg-[#00FF88]/10 border-[#00FF88]/40 text-[#F8FAFC]'
                       : 'bg-[#12141A] border-[#1E2330] hover:border-[#2E3B52] text-[#94A3B8]'
                   }`}
                 >
                   <span className="text-xs font-bold text-[#F8FAFC]">Reduzir Parcela</span>
-                  <span className="text-[10px] text-[#94A3B8]">Reduz o valor mensal.</span>
+                  <span className="text-[10px] text-[#94A3B8]">Baixa o valor pago todo mês.</span>
                 </button>
               </div>
             </div>
-
-            {parseFloat(amortizationExtraAmount) > 0 && contract && (
-              <div className="p-3 bg-[#12141A] border border-[#00FF88]/20 rounded-xl flex items-center justify-between text-xs">
-                <span className="text-[#94A3B8]">Novo Saldo Devedor Estimado:</span>
-                <span className="font-black text-[#00FF88]">
-                  {(() => {
-                    const startInstallment = contract.startInstallmentNum ?? 1;
-                    const totalPlannedInstallments = contract.totalInstallments - startInstallment + 1;
-                    const baseAmortization = contract.totalAmount / totalPlannedInstallments;
-                    const paidCount = transactions.filter((t) => t.contractId === contract.id && new Date(t.date) <= new Date()).length;
-                    const currentBalance = contract.totalAmount - (paidCount * baseAmortization);
-                    const newBalance = Math.max(currentBalance - parseFloat(amortizationExtraAmount), 0);
-                    return newBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                  })()}
-                </span>
-              </div>
-            )}
           </div>
         ) : (
-          /* PRICE Amortization Selection */
+          /* Antecipação PRICE (Lista com Entrada Editável de Valor Hoje) */
           <>
-            {/* Select All */}
+            {/* Selecionar Todas */}
             {installments.length > 0 && (
               <button
                 type="button"
@@ -419,67 +484,88 @@ export const AmortizacaoModal: React.FC = () => {
                 ) : (
                   <Square className="w-5 h-5 text-[#64748B] shrink-0" />
                 )}
-                <span className="text-sm font-bold text-[#F8FAFC]">Selecionar todas</span>
+                <span className="text-xs font-black text-[#F8FAFC] uppercase tracking-wider">Selecionar todas as parcelas</span>
               </button>
             )}
 
-            {/* Installments List */}
+            {/* Lista de Parcelas com Input Editável de Valor Hoje */}
             {installments.length > 0 ? (
-              <div className="flex flex-col gap-1 max-h-[340px] overflow-y-auto pr-1 custom-scrollbar">
+              <div className="flex flex-col gap-2 max-h-[340px] overflow-y-auto pr-1 custom-scrollbar">
                 {installments.map((inst) => {
                   const isSelected = selectedIds.has(inst.tx.id);
-                  const hasDiscount = interestRate > 0 && inst.monthsAhead > 0;
+                  const currentCustomStr = customInstallmentValues[inst.tx.id] ?? '';
 
                   return (
-                    <button
+                    <div
                       key={inst.tx.id}
-                      type="button"
-                      onClick={() => toggleInstallment(inst.tx.id)}
-                      className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all duration-200 ${
+                      className={`flex items-center justify-between p-3.5 rounded-2xl border text-left transition-all duration-200 ${
                         isSelected
-                          ? 'bg-[#00FF88]/5 border-[#00FF88]/30'
-                          : 'bg-[#12141A] border-[#1E2330] hover:border-[#2E3B52]'
+                          ? 'bg-[#00FF88]/10 border-[#00FF88]/50 shadow-[0_0_15px_rgba(0,255,136,0.1)]'
+                          : 'bg-[#090D18] border-[#1E293B] hover:border-[#3B4C6A]'
                       }`}
                     >
-                      <div className="pt-0.5 shrink-0">
-                        {isSelected ? (
-                          <CheckSquare className="w-5 h-5 text-[#00FF88]" />
-                        ) : (
-                          <Square className="w-5 h-5 text-[#64748B]" />
-                        )}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleInstallment(inst.tx.id)}
+                        className="flex items-center gap-3.5 min-w-0 flex-1"
+                      >
+                        <div className="shrink-0">
+                          {isSelected ? (
+                            <CheckSquare className="w-5 h-5 text-[#00FF88]" />
+                          ) : (
+                            <Square className="w-5 h-5 text-[#64748B]" />
+                          )}
+                        </div>
 
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-[#F8FAFC]">
-                          Parcela {inst.installmentNumber}{' '}
-                          <span className="font-normal text-[#64748B]">
-                            ({formatDate(inst.dueDate)})
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-black text-[#F8FAFC]">
+                            Parcela {inst.installmentNumber}{' '}
+                            <span className="font-normal text-[#94A3B8]">
+                              ({formatDate(inst.dueDate)})
+                            </span>
+                          </span>
+                          <span className="text-[10px] text-[#64748B] font-medium mt-0.5">
+                            Antecipação de {Math.round(inst.monthsAhead)} mês(es)
+                          </span>
+                        </div>
+                      </button>
+
+                      <div className="flex items-center gap-4 shrink-0 text-right">
+                        <div className="flex flex-col items-end hidden sm:flex">
+                          <span className="text-[9px] font-black text-[#94A3B8] uppercase">PARCELA</span>
+                          <span className="text-xs font-black text-[#F8FAFC]">
+                            {formatBRL(inst.originalValue)}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-6 mt-1.5">
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-semibold text-[#64748B] uppercase">
-                              Valor da parcela
-                            </span>
-                            <span className="text-sm font-black text-[#F8FAFC]">
-                              {formatBRL(inst.originalValue)}
-                            </span>
+                        {/* Campo Editável para Valor Hoje Preciso */}
+                        <div
+                          className={`flex flex-col items-end p-1.5 rounded-xl border transition-all ${
+                            isSelected
+                              ? 'bg-[#00FF88]/15 border-[#00FF88]/50 shadow-[0_0_8px_rgba(0,255,136,0.2)]'
+                              : 'bg-[#121929] border-[#2E3B52]'
+                          }`}
+                        >
+                          <span className="text-[9px] font-black text-[#00FF88] uppercase flex items-center gap-1">
+                            <Edit3 className="w-2.5 h-2.5" />
+                            VALOR HOJE
+                          </span>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <span className="text-xs font-black text-[#00FF88]">R$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder={inst.discountedValue.toFixed(2)}
+                              className="w-20 bg-transparent text-xs font-black text-[#00FF88] text-right focus:outline-none focus:bg-[#00FF88]/10 rounded px-1"
+                              value={currentCustomStr}
+                              onChange={(e) => handleCustomValueChange(inst.tx.id, e.target.value)}
+                              title="Digite o valor exato cobrado pelo seu banco para esta parcela"
+                            />
                           </div>
-
-                          {hasDiscount && (
-                            <div className="flex flex-col">
-                              <span className="text-[10px] font-semibold text-[#64748B] uppercase">
-                                Valor hoje
-                              </span>
-                              <span className="text-sm font-black text-[#00FF88]">
-                                {formatBRL(inst.discountedValue)}
-                              </span>
-                            </div>
-                          )}
                         </div>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -493,37 +579,32 @@ export const AmortizacaoModal: React.FC = () => {
               </div>
             )}
 
-            {/* Summary Footer */}
+            {/* Resumo com Valor a Pagar Hoje */}
             {selectedIds.size > 0 && (
-              <div className="p-4 bg-gradient-to-br from-[#0A0B0E] to-[#12141A] border border-[#00FF88]/20 rounded-xl flex flex-col gap-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#94A3B8]">Parcelas selecionadas</span>
+              <div className="p-4 bg-gradient-to-br from-[#090D18] to-[#121929] border border-[#00FF88]/30 rounded-2xl flex flex-col gap-2 shadow-lg">
+                <div className="flex items-center justify-between text-xs font-extrabold text-[#94A3B8]">
+                  <span>Parcelas selecionadas:</span>
                   <span className="font-black text-[#F8FAFC]">{selectedIds.size}</span>
                 </div>
 
-                {interestRate > 0 && (
-                  <>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#94A3B8]">Valor original total</span>
-                      <span className="font-bold text-[#94A3B8] line-through">
-                        {formatBRL(totalOriginal)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#94A3B8]">Economia nos juros</span>
-                      <span className="font-black text-[#10B981]">
-                        -{formatBRL(totalSavings)}
-                      </span>
-                    </div>
-                  </>
-                )}
-
-                <div className="pt-2 border-t border-[#1E2330] flex items-center justify-between">
-                  <span className="text-xs font-semibold text-[#94A3B8]">
-                    {interestRate > 0 ? 'Valor a pagar hoje' : 'Total das parcelas selecionadas'}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[#94A3B8]">Valor original total:</span>
+                  <span className="font-bold text-[#94A3B8] line-through">
+                    {formatBRL(totalOriginal)}
                   </span>
-                  <span className="text-lg font-black text-[#00FF88]">
-                    {formatBRL(interestRate > 0 ? totalDiscounted : totalOriginal)}
+                </div>
+
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[#94A3B8]">Economia nos juros (Abatimento):</span>
+                  <span className="font-black text-[#10B981]">
+                    -{formatBRL(totalSavings)}
+                  </span>
+                </div>
+
+                <div className="pt-2 border-t border-[#1E293B] flex items-center justify-between">
+                  <span className="text-xs font-black text-[#F8FAFC]">Valor a pagar hoje:</span>
+                  <span className="text-xl font-black text-[#00FF88] drop-shadow-[0_0_10px_rgba(0,255,136,0.3)]">
+                    {formatBRL(totalDiscounted)}
                   </span>
                 </div>
               </div>
@@ -531,15 +612,15 @@ export const AmortizacaoModal: React.FC = () => {
           </>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-3 pt-2 border-t border-[#1E2330]">
-          <Button type="button" variant="ghost" onClick={handleClose}>
+        {/* Rodapé de Ações */}
+        <div className="flex justify-end gap-3.5 pt-3 border-t border-[#1E293B]">
+          <Button type="button" variant="ghost" onClick={handleClose} className="font-bold text-sm">
             Cancelar
           </Button>
           <Button
             type="button"
-            variant="primary"
             onClick={handleConfirm}
+            className="font-bold text-sm bg-[#00FF88] hover:bg-[#00E577] text-[#090D16] shadow-[0_4px_14px_rgba(0,255,136,0.2)] rounded-xl px-5"
             disabled={
               isProcessing ||
               (contract?.amortizationSystem === 'sac'
