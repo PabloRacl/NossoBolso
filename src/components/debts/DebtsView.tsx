@@ -38,8 +38,10 @@ export const DebtsView: React.FC = () => {
   // Calculate paid installments per contract
   const contractStats = contracts.map((c) => {
     const contractTxs = transactions.filter((t) => t.contractId === c.id);
+    const startInstallment = c.startInstallmentNum ?? 1;
+    const initialPaidCount = Math.max(startInstallment - 1, 0);
     const paidTxs = contractTxs.filter((t) => new Date(t.date) <= new Date());
-    const paidCount = paidTxs.length;
+    const paidCount = Math.min(initialPaidCount + paidTxs.length, c.totalInstallments);
 
     let paidAmount = 0;
     let remainingAmount = 0;
@@ -49,18 +51,16 @@ export const DebtsView: React.FC = () => {
 
     if (isSAC) {
       // No SAC, a amortização mensal é fixa.
-      // O saldo devedor inicial é c.totalAmount. O total amortizado pago é paidCount * amortização.
-      const startInstallment = c.startInstallmentNum ?? 1;
-      const totalPlannedInstallments = c.totalInstallments - startInstallment + 1;
-      const monthlyAmortization = c.totalAmount / (totalPlannedInstallments || 1);
+      const monthlyAmortization = c.totalAmount / (c.totalInstallments || 1);
       const totalAmortized = paidCount * monthlyAmortization;
-      remainingAmount = c.totalAmount - totalAmortized;
+      remainingAmount = Math.max(c.totalAmount - totalAmortized, 0);
       paidAmount = totalAmortized;
       progressPct = c.totalAmount > 0 ? (totalAmortized / c.totalAmount) * 100 : 0;
     } else {
-      // No PRICE, consideramos o total pago como a soma das parcelas vencidas
-      paidAmount = paidTxs.reduce((acc, t) => acc + t.amount, 0);
-      remainingAmount = c.totalAmount - paidAmount;
+      // No PRICE, consideramos o total pago como paidCount * valor da parcela
+      const singleInstallmentVal = (c.installmentAmount || 0) + (c.insuranceAmount || 0);
+      paidAmount = paidCount * singleInstallmentVal;
+      remainingAmount = Math.max(c.totalAmount - paidAmount, 0);
       progressPct = c.totalAmount > 0 ? (paidAmount / c.totalAmount) * 100 : 0;
     }
 
@@ -310,34 +310,104 @@ export const DebtsView: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Expanded Installment List */}
+                {/* Expanded Installment List (Cronograma Organizado) */}
                 {expandedContractId === contract.id && (
-                  <div className="mt-2 p-3 bg-[#0A0B0E] border border-[#1E2330] rounded-xl flex flex-col gap-2 max-h-64 overflow-y-auto">
-                    <h5 className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-1">
-                      Cronograma de Vencimento das {contractTxs.length} Parcelas
-                    </h5>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                      {contractTxs.map((tx) => {
-                        const isPaid = new Date(tx.date) <= new Date();
-                        return (
+                  <div className="mt-2 p-4 bg-[#0A0B0E] border border-[#1E293B] rounded-2xl flex flex-col gap-3 animate-fadeIn shadow-xl">
+                    {/* Cabeçalho do Cronograma com Filtros */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#2E3B52]/60 pb-3">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-[#00FF88]" />
+                        <h5 className="text-xs font-black text-[#F8FAFC] uppercase tracking-wider">
+                          CRONOGRAMA DE VENCIMENTO ({contract.totalInstallments} PARCELAS)
+                        </h5>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black text-[#10B981] bg-[#10B981]/15 px-2.5 py-1 rounded-lg border border-[#10B981]/30">
+                          {paidCount} Pagas ({formatBRL(paidAmount)})
+                        </span>
+                        <span className="text-[10px] font-black text-[#F59E0B] bg-[#F59E0B]/15 px-2.5 py-1 rounded-lg border border-[#F59E0B]/30">
+                          {contract.totalInstallments - paidCount} Pendentes ({formatBRL(remainingAmount)})
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Grid Organizado de Parcelas */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-80 overflow-y-auto pr-1">
+                      {(() => {
+                        const startNum = contract.startInstallmentNum ?? 1;
+                        const singleVal = (contract.installmentAmount || 0) + (contract.insuranceAmount || 0);
+
+                        const allInstallments = [];
+                        for (let i = 1; i <= contract.totalInstallments; i++) {
+                          const isPastInitial = i < startNum;
+                          const tx = contractTxs.find((t) => t.installments?.current === i);
+                          const isPaid = isPastInitial || (tx ? new Date(tx.date) <= new Date() : false);
+                          const isNext = i === startNum && !isPaid;
+
+                          allInstallments.push({
+                            num: i,
+                            amount: tx ? tx.amount : singleVal,
+                            date: tx ? tx.date : '',
+                            isPaid,
+                            isNext,
+                          });
+                        }
+
+                        return allInstallments.map((inst) => (
                           <div
-                            key={tx.id}
-                            className={`p-2 rounded-lg border text-xs flex items-center justify-between ${
-                              isPaid
+                            key={`inst_${contract.id}_${inst.num}`}
+                            className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
+                              inst.isPaid
                                 ? 'bg-[#10B981]/10 border-[#10B981]/30 text-[#F8FAFC]'
-                                : 'bg-[#12141A] border-[#1E2330] text-[#94A3B8]'
+                                : inst.isNext
+                                ? 'bg-[#F59E0B]/15 border-[#F59E0B]/60 text-[#F8FAFC] shadow-[0_0_12px_rgba(245,158,11,0.2)]'
+                                : 'bg-[#090D18] border-[#1E293B] hover:border-[#3B4C6A] text-[#94A3B8]'
                             }`}
                           >
-                            <div className="flex flex-col">
-                              <span className="font-bold text-[#F8FAFC]">{tx.description}</span>
-                              <span className="text-[10px] text-[#94A3B8]">{formatDate(tx.date)}</span>
+                            <div className="flex items-center gap-3">
+                              <span className={`px-2.5 py-1 rounded-lg text-xs font-black font-mono border ${
+                                inst.isPaid
+                                  ? 'bg-[#10B981]/20 text-[#10B981] border-[#10B981]/40'
+                                  : inst.isNext
+                                  ? 'bg-[#F59E0B]/20 text-[#F59E0B] border-[#F59E0B]/40'
+                                  : 'bg-[#1E293B] text-[#94A3B8] border-[#334155]'
+                              }`}>
+                                {String(inst.num).padStart(2, '0')} / {contract.totalInstallments}
+                              </span>
+
+                              <div className="flex flex-col">
+                                <span className="text-xs font-black text-[#F8FAFC]">
+                                  {inst.isPaid ? 'Parcela Paga' : (inst.isNext ? 'Próxima Parcela' : 'Parcela Futura')}
+                                </span>
+                                <span className="text-[11px] text-[#94A3B8] font-medium">
+                                  {inst.date ? formatDate(inst.date) : 'Paga na contratação'}
+                                </span>
+                              </div>
                             </div>
-                            <span className={`font-bold ${isPaid ? 'text-[#10B981]' : 'text-[#F59E0B]'}`}>
-                              {isPaid ? '✓ Paga' : formatBRL(tx.amount)}
-                            </span>
+
+                            <div className="flex items-center gap-2.5 shrink-0">
+                              <span className="text-xs font-black text-[#F8FAFC]">
+                                {formatBRL(inst.amount)}
+                              </span>
+
+                              {inst.isPaid ? (
+                                <span className="text-[10px] font-black text-[#10B981] bg-[#10B981]/20 border border-[#10B981]/40 px-2 py-0.5 rounded-md">
+                                  ✓ PAGA
+                                </span>
+                              ) : inst.isNext ? (
+                                <span className="text-[10px] font-black text-[#F59E0B] bg-[#F59E0B]/20 border border-[#F59E0B]/40 px-2 py-0.5 rounded-md animate-pulse">
+                                  ⚡ PRÓXIMA
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-black text-[#64748B] bg-[#1E293B] border border-[#334155] px-2 py-0.5 rounded-md">
+                                  A VENCER
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        );
-                      })}
+                        ));
+                      })()}
                     </div>
                   </div>
                 )}
