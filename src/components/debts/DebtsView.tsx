@@ -6,7 +6,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { formatBRL, formatPercent } from '../../utils/formatters';
 import { formatDate } from '../../utils/dateUtils';
 import { useAppStore } from '../../store/useAppStore';
-import { Plus, Car, CreditCard, ShieldAlert, CheckCircle2, Calendar, Trash2, Zap, Pencil, ShieldCheck } from 'lucide-react';
+import { Plus, Car, CreditCard, ShieldAlert, CheckCircle2, Calendar, Trash2, Zap, Pencil, ShieldCheck, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const containerVariants = {
@@ -32,61 +32,67 @@ export const DebtsView: React.FC = () => {
 
   const [expandedContractId, setExpandedContractId] = useState<string | null>(null);
 
-  // Calculate totals
-  const totalFinanced = contracts.reduce((acc, c) => acc + c.totalAmount, 0);
-
-  // Calculate paid installments per contract com precisão impecável
-  const contractStats = contracts.map((c) => {
-    const contractTxs = transactions.filter((t) => t.contractId === c.id);
-    const startInstallment = c.startInstallmentNum ?? 1;
-    const initialPaidCount = Math.max(startInstallment - 1, 0);
-    const postContractPaidTxs = contractTxs.filter(
-      (t) => t.installments && t.installments.current >= startInstallment && new Date(t.date) <= new Date()
-    );
-    const paidCount = Math.min(initialPaidCount + postContractPaidTxs.length, c.totalInstallments);
-
-    let paidAmount = 0;
-    let remainingAmount = 0;
-    let progressPct = 0;
-
-    const isSAC = c.amortizationSystem === 'sac';
-
-    if (isSAC) {
-      const monthlyAmortization = c.totalAmount / (c.totalInstallments || 1);
-      const totalAmortized = paidCount * monthlyAmortization;
-      remainingAmount = Math.max(c.totalAmount - totalAmortized, 0);
-      paidAmount = totalAmortized;
-      progressPct = c.totalAmount > 0 ? (totalAmortized / c.totalAmount) * 100 : 0;
-    } else {
-      const singleInstallmentVal = (c.installmentAmount || 0) + (c.insuranceAmount || 0);
-      paidAmount = paidCount * singleInstallmentVal;
-      remainingAmount = Math.max(c.totalAmount - paidAmount, 0);
-      progressPct = c.totalAmount > 0 ? (paidAmount / c.totalAmount) * 100 : 0;
-    }
-
-    return {
-      contract: c,
-      contractTxs,
-      paidCount,
-      paidAmount,
-      remainingAmount: remainingAmount > 0 ? remainingAmount : 0,
-      progressPct,
-    };
-  });
-
-  // Auto-repair pontual se um contrato ficou salvo com totalInstallments = 25 em vez de 36
+  // Auto-repair para garantir que o contrato do ONIX ou outros contratos preservem originalTotalInstallments = 36
   useEffect(() => {
     contracts.forEach(async (c) => {
-      if (c.totalInstallments === 25 && /onix/i.test(c.title)) {
+      if ((!c.originalTotalInstallments || c.originalTotalInstallments < 36) && /onix/i.test(c.title)) {
         await db.debtContracts.update(c.id, {
-          totalInstallments: 36,
+          originalTotalInstallments: 36,
           startInstallmentNum: 6,
         });
       }
     });
   }, [contracts]);
 
-  const totalPaid = contractStats.reduce((acc, s) => acc + s.paidAmount, 0);
+  // Calculate totals
+  const totalFinanced = contracts.reduce((acc, c) => {
+    const originalTotal = c.originalTotalInstallments || Math.max(c.totalInstallments, 36);
+    const singleVal = (c.installmentAmount || 0) + (c.insuranceAmount || 0);
+    return acc + (originalTotal * singleVal);
+  }, 0);
+
+  // Calculate stats per contract
+  const contractStats = contracts.map((c) => {
+    const contractTxs = transactions.filter((t) => t.contractId === c.id);
+    const startInstallment = c.startInstallmentNum ?? 1;
+    const originalTotal = c.originalTotalInstallments || (c.title.includes('ONIX') ? 36 : Math.max(c.totalInstallments, 36));
+    const singleVal = (c.installmentAmount || 0) + (c.insuranceAmount || 0);
+
+    // 1. Parcelas pagas antes da contratação (ex: 5)
+    const initialPaidCount = Math.max(startInstallment - 1, 0);
+    const initialPaidAmount = initialPaidCount * singleVal;
+
+    // 2. Parcelas restantes pendentes com transação no banco de dados (ex: 20)
+    const remainingPendingCount = contractTxs.length;
+    const remainingAmount = contractTxs.reduce((acc, t) => acc + t.amount, 0);
+
+    // 3. Parcelas eliminadas/abatidas por amortização extraordinária (ex: 36 - 5 - 20 = 11)
+    const amortizedCount = Math.max(originalTotal - initialPaidCount - remainingPendingCount, 0);
+    const amortizedAmountSaved = amortizedCount * singleVal;
+
+    // 4. Progresso de Quitação
+    const paidCount = initialPaidCount;
+    const totalDoneCount = initialPaidCount + amortizedCount;
+    const progressPct = originalTotal > 0 ? (totalDoneCount / originalTotal) * 100 : 0;
+
+    return {
+      contract: c,
+      contractTxs,
+      originalTotal,
+      startInstallment,
+      initialPaidCount,
+      initialPaidAmount,
+      remainingPendingCount,
+      remainingAmount,
+      amortizedCount,
+      amortizedAmountSaved,
+      paidCount,
+      progressPct,
+    };
+  });
+
+  const totalPaid = contractStats.reduce((acc, s) => acc + s.initialPaidAmount, 0);
+  const totalAmortizedSaved = contractStats.reduce((acc, s) => acc + s.amortizedAmountSaved, 0);
   const totalRemaining = contractStats.reduce((acc, s) => acc + s.remainingAmount, 0);
 
   const handleEditContract = (id: string) => {
@@ -138,11 +144,11 @@ export const DebtsView: React.FC = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
       >
         <Card className="border-l-4 border-l-[#38BDF8]">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold uppercase text-[#94A3B8]">Total em Financiamentos</span>
+            <span className="text-xs font-bold uppercase text-[#94A3B8]">Custo Total Contratado</span>
             <Car className="w-5 h-5 text-[#38BDF8]" />
           </div>
           <div className="text-2xl font-black text-[#38BDF8]">{formatBRL(totalFinanced)}</div>
@@ -156,6 +162,15 @@ export const DebtsView: React.FC = () => {
           </div>
           <div className="text-2xl font-black text-[#10B981]">{formatBRL(totalPaid)}</div>
           <p className="text-xs text-[#64748B] mt-1">Parcelas quitadas até a data atual</p>
+        </Card>
+
+        <Card className="border-l-4 border-l-[#00FF88] shadow-[0_0_15px_rgba(0,255,136,0.1)]">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold uppercase text-[#94A3B8]">Economizado com Amortização</span>
+            <Zap className="w-5 h-5 text-[#00FF88] animate-pulse" />
+          </div>
+          <div className="text-2xl font-black text-[#00FF88]">{formatBRL(totalAmortizedSaved)}</div>
+          <p className="text-xs text-[#00FF88]/80 font-semibold mt-1">Juros e parcelas eliminadas</p>
         </Card>
 
         <Card className="border-l-4 border-l-[#F59E0B]">
@@ -190,7 +205,19 @@ export const DebtsView: React.FC = () => {
           animate="visible"
           className="flex flex-col gap-4"
         >
-          {contractStats.map(({ contract, contractTxs, paidCount, paidAmount, remainingAmount, progressPct }) => {
+          {contractStats.map(({ 
+            contract, 
+            contractTxs, 
+            originalTotal,
+            startInstallment,
+            initialPaidCount, 
+            initialPaidAmount, 
+            remainingPendingCount,
+            remainingAmount, 
+            amortizedCount,
+            amortizedAmountSaved,
+            progressPct 
+          }) => {
             const isHouse = /casa|apartamento|apê|habitação|imóvel|lote|terreno/i.test(contract.title) || contract.category === 'Moradia';
             const emoji = isHouse ? '🏠' : '🚗';
 
@@ -229,9 +256,15 @@ export const DebtsView: React.FC = () => {
                         <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${colors.bg} ${colors.text} border ${colors.border}`}>
                           {contract.amortizationSystem ? contract.amortizationSystem.toUpperCase() : 'PRICE'}
                         </span>
+                        {amortizedCount > 0 && (
+                          <span className="text-[10px] font-black text-[#00FF88] bg-[#00FF88]/15 border border-[#00FF88]/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Sparkles className="w-3 h-3 text-[#00FF88]" />
+                            <span>{amortizedCount} AMORTIZADA(S)</span>
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-[#94A3B8] font-medium mt-0.5">
-                        {contract.totalInstallments}x de {formatBRL(contract.installmentAmount)} • {contract.category}
+                        Prazo Contratado: <span className="font-bold text-[#F8FAFC]">{originalTotal}x</span> ({remainingPendingCount} Restantes • {amortizedCount} Eliminadas) • {contract.category}
                       </p>
                     </div>
                   </div>
@@ -268,7 +301,7 @@ export const DebtsView: React.FC = () => {
                 <div className="flex flex-col gap-1.5 pt-2 border-t border-[#1E2330]">
                   <div className="flex items-center justify-between text-xs font-bold">
                     <span className="text-[#94A3B8]">
-                      Progresso de Quitação: <span className="text-[#F8FAFC]">{paidCount} de {contract.totalInstallments} parcelas pagas</span> ({formatBRL(paidAmount)})
+                      Progresso de Quitação: <span className="text-[#F8FAFC]">{initialPaidCount + amortizedCount} de {originalTotal} parcelas pagas/abatidas</span> ({formatBRL(initialPaidAmount + amortizedAmountSaved)})
                     </span>
                     <span className="text-[#00FF88]">{formatPercent(progressPct)}</span>
                   </div>
@@ -291,53 +324,47 @@ export const DebtsView: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Expanded Installment List (Cronograma Organizado com Destaque de Amortização) */}
+                {/* Expanded Installment List (Cronograma Completo das 36 Parcelas com Amortizadas Visíveis!) */}
                 {expandedContractId === contract.id && (
                   <div className="mt-2 p-4 bg-[#0A0B0E] border border-[#1E293B] rounded-2xl flex flex-col gap-3 animate-fadeIn shadow-xl">
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#2E3B52]/60 pb-3">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-[#00FF88]" />
                         <h5 className="text-xs font-black text-[#F8FAFC] uppercase tracking-wider">
-                          CRONOGRAMA DE VENCIMENTO ({contract.totalInstallments} PARCELAS)
+                          CRONOGRAMA DE VENCIMENTO ({originalTotal} PARCELAS)
                         </h5>
                       </div>
 
-                      {/* Badges de Telemetria com Destaque em Evidência para Amortizações */}
+                      {/* Badges em Evidência de Telemetria com Destaque para Amortizações */}
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[10px] font-black text-[#10B981] bg-[#10B981]/15 px-2.5 py-1 rounded-lg border border-[#10B981]/30">
-                          {paidCount} Pagas ({formatBRL(paidAmount)})
+                          {initialPaidCount} Pagas ({formatBRL(initialPaidAmount)})
                         </span>
 
-                        {(() => {
-                          const startNum = contract.startInstallmentNum ?? 1;
-                          const totalNum = contract.totalInstallments;
-                          const amortizedCount = Math.max(totalNum - startNum + 1 - contractTxs.length, 0);
-                          if (amortizedCount <= 0) return null;
-                          return (
-                            <span className="text-[10px] font-black text-[#00FF88] bg-[#00FF88]/15 px-2.5 py-1 rounded-lg border border-[#00FF88]/40 flex items-center gap-1 shadow-[0_0_12px_rgba(0,255,136,0.3)] animate-pulse">
-                              <Zap className="w-3.5 h-3.5 text-[#00FF88]" />
-                              <span>⚡ {amortizedCount} Antecipada(s) por Amortização</span>
-                            </span>
-                          );
-                        })()}
+                        {amortizedCount > 0 && (
+                          <span className="text-[10px] font-black text-[#00FF88] bg-[#00FF88]/15 px-2.5 py-1 rounded-lg border border-[#00FF88]/40 flex items-center gap-1 shadow-[0_0_12px_rgba(0,255,136,0.3)] animate-pulse">
+                            <Zap className="w-3.5 h-3.5 text-[#00FF88]" />
+                            <span>⚡ {amortizedCount} Antecipada(s) por Amortização ({formatBRL(amortizedAmountSaved)})</span>
+                          </span>
+                        )}
 
                         <span className="text-[10px] font-black text-[#F59E0B] bg-[#F59E0B]/15 px-2.5 py-1 rounded-lg border border-[#F59E0B]/30">
-                          {contractTxs.length} Pendentes ({formatBRL(remainingAmount)})
+                          {remainingPendingCount} Pendentes ({formatBRL(remainingAmount)})
                         </span>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-80 overflow-y-auto pr-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-96 overflow-y-auto pr-1">
                       {(() => {
-                        const startNum = contract.startInstallmentNum ?? 1;
                         const singleVal = (contract.installmentAmount || 0) + (contract.insuranceAmount || 0);
 
                         const allInstallments = [];
-                        for (let i = 1; i <= contract.totalInstallments; i++) {
-                          const isPastInitial = i < startNum;
+                        for (let i = 1; i <= originalTotal; i++) {
+                          const isPastInitial = i < startInstallment;
                           const tx = contractTxs.find((t) => t.installments?.current === i);
                           const isPaid = isPastInitial;
-                          const isNext = !isPaid && i === startNum;
+                          const isNext = !isPaid && i === startInstallment;
+                          const isPending = !isPaid && !isNext && !!tx;
                           const isAmortized = !isPaid && !isNext && !tx;
 
                           allInstallments.push({
@@ -346,6 +373,7 @@ export const DebtsView: React.FC = () => {
                             date: tx ? tx.date : '',
                             isPaid,
                             isNext,
+                            isPending,
                             isAmortized,
                           });
                         }
@@ -373,7 +401,7 @@ export const DebtsView: React.FC = () => {
                                   ? 'bg-[#00FF88]/20 text-[#00FF88] border-[#00FF88]/40 font-bold'
                                   : 'bg-[#1E293B] text-[#94A3B8] border-[#334155]'
                               }`}>
-                                {String(inst.num).padStart(2, '0')} / {contract.totalInstallments}
+                                {String(inst.num).padStart(2, '0')} / {originalTotal}
                               </span>
 
                               <div className="flex flex-col">

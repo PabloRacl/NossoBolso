@@ -57,6 +57,7 @@ export interface DebtContract {
   id: string;
   title: string;
   totalInstallments: number;
+  originalTotalInstallments?: number; // Prazo original contratado (ex: 36)
   installmentAmount: number;
   totalAmount: number;
   interestRate?: number; // Taxa de juros
