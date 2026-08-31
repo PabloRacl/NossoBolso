@@ -50,6 +50,10 @@ export const FinancialBadgesWidget: React.FC = () => {
     // 6. Caçador de Juros (Financiamentos cadastrados)
     const debtsUnlocked = debtContracts.length >= 1;
 
+    // 7. Mestre Amortizador (Herói Anti-Juros - Atitude Louvável!)
+    const hasAmortized = debtContracts.some((c) => (c.startInstallmentNum ?? 1) > 1) ||
+      transactions.some((t) => t.contractId && (t.description.includes('Antecipação') || t.description.includes('Amortização')));
+
     return [
       {
         id: 'b_savings',
@@ -98,12 +102,21 @@ export const FinancialBadgesWidget: React.FC = () => {
       },
       {
         id: 'b_debts',
-        title: 'Caçador de Amortização',
-        description: 'Mapeou e amortizou contratos de longo prazo.',
+        title: 'Caçador de Contratos',
+        description: 'Mapeou e estruturou contratos de longo prazo.',
         icon: <Trophy className="w-5 h-5 text-[#A855F7]" />,
         isUnlocked: debtsUnlocked,
         progressPercent: debtsUnlocked ? 100 : 0,
         unlockedText: 'Contrato Sob Controle',
+      },
+      {
+        id: 'b_amortization',
+        title: '⚡ Mestre Amortizador',
+        description: 'Atitude louvável! Efetuou amortização extraordinária, abatendo juros bancários.',
+        icon: <Zap className="w-5 h-5 text-[#00FF88] animate-pulse" />,
+        isUnlocked: hasAmortized,
+        progressPercent: hasAmortized ? 100 : 0,
+        unlockedText: '🏆 Herói Anti-Juros',
       },
     ];
   }, [transactions, wallets, pantryItems, vehicleRecords, debtContracts]);

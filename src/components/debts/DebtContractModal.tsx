@@ -127,11 +127,13 @@ export const DebtContractModal: React.FC = () => {
       if (instVal <= 0) return;
       calculatedTotalAmount = totalContractCost;
 
-      // Gerar as transações restantes a vencer a partir da próxima parcela (startNum)
-      for (let i = 0; i < remainingCount; i++) {
-        const currentNum = startNum + i;
+      // Gerar TODAS as parcelas do contrato (da Parcela 1 até totalInstallmentsNum)
+      for (let currentNum = 1; currentNum <= totalInstallmentsNum; currentNum++) {
+        // Offset de meses em relação à próxima parcela (startNum)
+        const offsetMonths = currentNum - startNum;
         const txDate = new Date(baseDate);
-        txDate.setMonth(baseDate.getMonth() + i);
+        txDate.setMonth(baseDate.getMonth() + offsetMonths);
+
         const yyyy = txDate.getFullYear();
         const mm = String(txDate.getMonth() + 1).padStart(2, '0');
         const dd = String(txDate.getDate()).padStart(2, '0');
@@ -154,18 +156,19 @@ export const DebtContractModal: React.FC = () => {
         });
       }
     } else {
-      // Sistema SAC
+      // Sistema SAC - Gerar todas as parcelas do contrato
       const balanceToAmortize = parseFloat(financedAmount);
       if (isNaN(balanceToAmortize) || balanceToAmortize <= 0) return;
 
       const monthlyRate = interestRateType === 'yearly' ? (parsedRate / 12 / 100) : (parsedRate / 100);
       const monthlyAmortization = balanceToAmortize / totalInstallmentsNum;
-      let runningBalance = balanceToAmortize - (paidCount * monthlyAmortization);
+      let runningBalance = balanceToAmortize;
 
-      for (let i = 0; i < remainingCount; i++) {
-        const currentNum = startNum + i;
+      for (let currentNum = 1; currentNum <= totalInstallmentsNum; currentNum++) {
+        const offsetMonths = currentNum - startNum;
         const txDate = new Date(baseDate);
-        txDate.setMonth(baseDate.getMonth() + i);
+        txDate.setMonth(baseDate.getMonth() + offsetMonths);
+
         const yyyy = txDate.getFullYear();
         const mm = String(txDate.getMonth() + 1).padStart(2, '0');
         const dd = String(txDate.getDate()).padStart(2, '0');
