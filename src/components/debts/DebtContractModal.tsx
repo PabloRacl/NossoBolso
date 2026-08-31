@@ -56,11 +56,8 @@ export const DebtContractModal: React.FC = () => {
           setStartDate(contract.startDate);
           setCategory(contract.category);
           setWalletId(contract.walletId);
-          if (contract.amortizationSystem === 'price') {
-            setInstallmentAmount(String(contract.installmentAmount));
-          } else {
-            setFinancedAmount(String(contract.totalAmount));
-          }
+          setInstallmentAmount(contract.installmentAmount ? String(contract.installmentAmount) : '');
+          setFinancedAmount(contract.totalAmount ? String(contract.totalAmount) : '');
         }
       });
     }
@@ -176,7 +173,7 @@ export const DebtContractModal: React.FC = () => {
 
         const periodInterest = runningBalance * monthlyRate;
         const periodTotal = monthlyAmortization + periodInterest + parsedInsurance;
-        const roundedTotal = Math.round(periodTotal * 100) / 100;
+        const roundedTotal = instVal > 0 ? instVal : Math.round(periodTotal * 100) / 100;
 
         transactionsToInsert.push({
           id: `tx_${contractId}_${currentNum}`,
@@ -212,8 +209,9 @@ export const DebtContractModal: React.FC = () => {
     const contractData = {
       id: contractId,
       title: title.trim(),
-      totalInstallments: totalInstallmentsNum, // Guarda 36
-      installmentAmount: amortizationSystem === 'price' ? instVal : (parseFloat(financedAmount) / totalInstallmentsNum),
+      totalInstallments: totalInstallmentsNum, // Guarda 360
+      originalTotalInstallments: totalInstallmentsNum,
+      installmentAmount: instVal > 0 ? instVal : (parseFloat(financedAmount) / totalInstallmentsNum),
       totalAmount: amortizationSystem === 'price' ? calculatedTotalAmount : parseFloat(financedAmount),
       interestRate: parsedRate > 0 ? parsedRate : undefined,
       interestRateType,
@@ -339,19 +337,33 @@ export const DebtContractModal: React.FC = () => {
         </div>
 
         {/* Valores Principais */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-black text-[#94A3B8] tracking-widest uppercase">
-              {amortizationSystem === 'price' ? "Valor Parcela" : "Saldo Devedor"}
+            <label className="text-[10px] font-black text-[#00FF88] tracking-widest uppercase flex items-center gap-1">
+              <span>Valor Parcela (R$)</span>
             </label>
             <input
               type="number"
               step="0.01"
               required
-              placeholder={amortizationSystem === 'price' ? "Ex: 1176,10" : "Ex: 36862,23"}
+              placeholder="Ex: 345,50"
+              className="w-full h-11 px-4 text-sm bg-[#0A0B0E] border border-[#00FF88]/40 rounded-xl text-[#00FF88] font-extrabold focus:border-[#00FF88] focus:ring-1 focus:ring-[#00FF88] focus:outline-none transition-all duration-200 shadow-[0_0_10px_rgba(0,255,136,0.1)]"
+              value={installmentAmount}
+              onChange={(e) => setInstallmentAmount(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-black text-[#94A3B8] tracking-widest uppercase">
+              Saldo Devedor (R$)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Ex: 36862,23"
               className="w-full h-11 px-4 text-sm bg-[#0A0B0E] border border-[#2E3B52] rounded-xl text-[#F8FAFC] placeholder-[#64748B] focus:border-[#00FF88] focus:ring-1 focus:ring-[#00FF88] focus:outline-none transition-all duration-200"
-              value={amortizationSystem === 'price' ? installmentAmount : financedAmount}
-              onChange={(e) => amortizationSystem === 'price' ? setInstallmentAmount(e.target.value) : setFinancedAmount(e.target.value)}
+              value={financedAmount}
+              onChange={(e) => setFinancedAmount(e.target.value)}
             />
           </div>
 
@@ -362,7 +374,7 @@ export const DebtContractModal: React.FC = () => {
             <input
               type="number"
               step="0.01"
-              placeholder="Ex: 14,68"
+              placeholder="Ex: 0,50"
               className="w-full h-11 px-4 text-sm bg-[#0A0B0E] border border-[#2E3B52] rounded-xl text-[#F8FAFC] placeholder-[#64748B] focus:border-[#00FF88] focus:ring-1 focus:ring-[#00FF88] focus:outline-none transition-all duration-200"
               value={insuranceAmount}
               onChange={(e) => setInsuranceAmount(e.target.value)}
@@ -378,7 +390,7 @@ export const DebtContractModal: React.FC = () => {
                 type="number"
                 step="0.01"
                 min="0"
-                placeholder="Ex: 1.8"
+                placeholder="Ex: 5.1"
                 className="w-full px-3 text-sm bg-transparent text-[#F8FAFC] placeholder-[#64748B] focus:outline-none h-full"
                 value={interestRate}
                 onChange={(e) => setInterestRate(e.target.value)}
