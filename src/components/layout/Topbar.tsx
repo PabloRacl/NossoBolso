@@ -68,8 +68,8 @@ export const Topbar: React.FC = () => {
     }).length;
   }, [transactions]);
 
-  // Generate available months list from database transactions
-  const availableMonths = useMemo(() => {
+  // Agrupamento e organização lógica da lista de meses
+  const monthGroups = useMemo(() => {
     const monthsSet = new Set<string>();
     monthsSet.add(currentMonthKey);
     transactions.forEach((t) => {
@@ -77,7 +77,19 @@ export const Topbar: React.FC = () => {
         monthsSet.add(t.date.substring(0, 7));
       }
     });
-    return Array.from(monthsSet).sort().reverse();
+
+    const allMonths = Array.from(monthsSet);
+    
+    // Meses passados e mês atual: do mês atual para trás (ex: 2026-08, 2026-07...)
+    const recentMonths = allMonths.filter((m) => m <= currentMonthKey).sort().reverse();
+    
+    // Meses futuros (parcelamentos em 2027, 2028, 2029): cronológico para frente
+    const futureMonths = allMonths.filter((m) => m > currentMonthKey).sort();
+
+    return {
+      recentMonths,
+      futureMonths,
+    };
   }, [transactions, currentMonthKey]);
 
   const handlePrevMonth = () => {
@@ -178,11 +190,24 @@ export const Topbar: React.FC = () => {
               <option value="all" className="bg-[#121929] text-[#F8FAFC]">
                 🌐 Todos os Períodos
               </option>
-              {availableMonths.map((m) => (
-                <option key={m} value={m} className="bg-[#121929] text-[#F8FAFC]">
-                  {formatMonthLabel(m)}
-                </option>
-              ))}
+
+              <optgroup label="📅 Meses Recentes & Atual" className="bg-[#121929] text-[#00FF88] font-bold">
+                {monthGroups.recentMonths.map((m) => (
+                  <option key={m} value={m} className="bg-[#121929] text-[#F8FAFC]">
+                    {m === currentMonthKey ? `⭐ ${formatMonthLabel(m)} (Mês Atual)` : formatMonthLabel(m)}
+                  </option>
+                ))}
+              </optgroup>
+
+              {monthGroups.futureMonths.length > 0 && (
+                <optgroup label="🔮 Parcelas Futuras & Financiamentos" className="bg-[#121929] text-[#F59E0B] font-bold">
+                  {monthGroups.futureMonths.map((m) => (
+                    <option key={m} value={m} className="bg-[#121929] text-[#F8FAFC]">
+                      {formatMonthLabel(m)}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </div>
 

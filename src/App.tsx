@@ -92,8 +92,20 @@ export const App: React.FC = () => {
   } = useAppStore();
 
   useEffect(() => {
-    seedInitialData().then(() => {
+    seedInitialData().then(async () => {
       processRecurringTransactions();
+      // Sincronizar o saldo da carteira principal com as transações reais acumuladas
+      const allWallets = await db.wallets.toArray();
+      const allTxs = await db.transactions.toArray();
+      if (allWallets.length > 0 && allTxs.length > 0) {
+        const w1 = allWallets.find((w) => w.id === 'w1') || allWallets[0];
+        const calcIncome = allTxs.filter((t) => t.type === 'income' && (t.walletId === w1.id || !t.walletId)).reduce((acc, t) => acc + t.amount, 0);
+        const calcExpense = allTxs.filter((t) => t.type === 'expense' && new Date(t.date) <= new Date() && (t.walletId === w1.id || !t.walletId)).reduce((acc, t) => acc + t.amount, 0);
+        const realCalcBalance = calcIncome - calcExpense;
+        if (realCalcBalance > 0 && Math.abs(w1.balance - realCalcBalance) > 0.01) {
+          await db.wallets.update(w1.id, { balance: realCalcBalance });
+        }
+      }
     });
   }, []);
 
@@ -155,19 +167,6 @@ export const App: React.FC = () => {
   const wallets = useLiveQuery(() => db.wallets.toArray(), []) || [];
   const goals = useLiveQuery(() => db.goals.toArray(), []) || [];
   const debtContracts = useLiveQuery(() => db.debtContracts.toArray(), []) || [];
-
-  // Auto-switch selectedMonth if current selected month has no transactions but other transactions exist
-  useEffect(() => {
-    if (transactions.length > 0 && selectedMonth !== 'all') {
-      const hasTxInSelected = transactions.some((t) => t.date.startsWith(selectedMonth));
-      if (!hasTxInSelected) {
-        const latestTx = [...transactions].sort((a, b) => b.date.localeCompare(a.date))[0];
-        if (latestTx && latestTx.date) {
-          setSelectedMonth(latestTx.date.substring(0, 7));
-        }
-      }
-    }
-  }, [transactions, selectedMonth, setSelectedMonth]);
 
   // Total Balances & Debt Calculations (sem dupla contagem de despesas já pagas)
   const totalBalance = wallets.reduce((acc, w) => acc + (w.balance > 0 ? w.balance : 0), 0);

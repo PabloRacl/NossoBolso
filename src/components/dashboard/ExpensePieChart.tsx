@@ -192,6 +192,11 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
               onClick={() => {
                 setTxType('income');
                 setActiveIndex(undefined);
+                // Se não houver entradas no mês selecionado, mudar para histórico geral automaticamente
+                const monthHasIncome = transactions.some((t) => t.type === 'income' && selectedMonth && t.date.startsWith(selectedMonth));
+                if (!monthHasIncome) {
+                  setPeriodFilter('all');
+                }
               }}
               className={`px-2.5 py-1 rounded-lg font-extrabold text-[11px] flex items-center gap-1 transition-all ${
                 txType === 'income'
@@ -236,12 +241,28 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
 
       {/* Conteúdo Principal do Gráfico de Rosca */}
       {processedData.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-8 flex-1">
+        <div className="flex flex-col items-center justify-center p-8 flex-1 text-center">
           <div className="w-14 h-14 rounded-2xl bg-[#1E2330]/50 border border-[#2A3042] flex items-center justify-center mb-2 text-2xl text-[#64748B]">
             📊
           </div>
-          <p className="text-xs font-bold text-[#F8FAFC]">Nenhum lançamento registrado</p>
-          <p className="text-[11px] text-[#64748B] mt-0.5">Adicione transações nesta categoria para visualizar a rosca</p>
+          <p className="text-xs font-bold text-[#F8FAFC]">
+            Nenhum lançamento de {txType === 'income' ? 'entrada' : 'saída'} registrado {periodFilter === 'month' ? 'neste mês' : ''}
+          </p>
+          <p className="text-[11px] text-[#64748B] mt-0.5 mb-3">
+            {periodFilter === 'month'
+              ? 'Você pode visualizar os lançamentos acumulados de todo o histórico alternando para Geral'
+              : 'Adicione transações nesta categoria para visualizar a rosca'}
+          </p>
+
+          {periodFilter === 'month' && (
+            <button
+              type="button"
+              onClick={() => setPeriodFilter('all')}
+              className="px-3.5 py-1.5 bg-[#00FF88]/15 border border-[#00FF88]/40 text-[#00FF88] hover:bg-[#00FF88]/25 font-extrabold text-xs rounded-xl transition-all shadow-md"
+            >
+              🌐 Ver Entradas em Todo Histórico (Geral)
+            </button>
+          )}
         </div>
       ) : (
         <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 items-center mt-1">
