@@ -11,7 +11,8 @@ import {
   ShieldCheck,
   Sparkles,
   Sliders,
-  Smartphone
+  Smartphone,
+  Activity
 } from 'lucide-react';
 
 export const SettingsView: React.FC = () => {
@@ -22,9 +23,20 @@ export const SettingsView: React.FC = () => {
     setReceiptModalOpen,
     setBackupModalOpen,
     setPwaModalOpen,
+    setScoreModalOpen,
   } = useAppStore();
 
   const settingsCards = [
+    {
+      id: 'score',
+      title: 'Score de Saúde Financeira & Crédito',
+      subtitle: 'Diagnóstico Patrimonial',
+      description: 'Pontuação calculada de 0 a 1000 pontos com análise em tempo real dos 4 pilares: reserva de emergência, saúde de dívidas, retenção e organização bancária.',
+      icon: Activity,
+      color: '#00FF88',
+      actionLabel: 'Ver Diagnóstico',
+      onAction: () => setScoreModalOpen(true),
+    },
     {
       id: 'whatIf',
       title: 'Simulador de Cenários ("E Se?")',

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { LayoutDashboard, ArrowLeftRight, Wallet, CreditCard, Target, ShoppingCart, Car, FileSpreadsheet, Calculator, Sparkles, PanelLeftClose, PanelLeftOpen, Calendar, Search, Smartphone, Sliders, Compass, Palette, Keyboard, FileText, Database, ChevronDown, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, CreditCard, Target, ShoppingCart, Car, FileSpreadsheet, Calculator, Sparkles, PanelLeftClose, PanelLeftOpen, Calendar, Search, Smartphone, Sliders, Compass, Palette, Keyboard, FileText, Database, ChevronDown, ChevronRight, Activity } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const Sidebar: React.FC = () => {
@@ -22,6 +22,7 @@ export const Sidebar: React.FC = () => {
   ] as const;
 
   const subSettings = [
+    { id: 'score', label: 'Score de Saúde', icon: Activity, action: () => useAppStore.getState().setScoreModalOpen(true) },
     { id: 'whatIf', label: 'Simulador "E Se?"', icon: Compass, action: () => useAppStore.getState().setWhatIfModalOpen(true) },
     { id: 'theme', label: 'Central de Temas', icon: Palette, action: () => useAppStore.getState().setThemeModalOpen(true) },
     { id: 'shortcuts', label: 'Teclas de Atalho', icon: Keyboard, action: () => useAppStore.getState().setShortcutsModalOpen(true) },

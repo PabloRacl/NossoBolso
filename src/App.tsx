@@ -39,7 +39,7 @@ import { VoiceCommandModal } from './components/voice/VoiceCommandModal';
 import { QrCodeScannerModal } from './components/scanner/QrCodeScannerModal';
 import { WhatIfSimulatorModal } from './components/simulator/WhatIfSimulatorModal';
 import { IndependenceSimulatorModal } from './components/calculator/IndependenceSimulatorModal';
-import { FinancialHealthScoreWidget } from './components/dashboard/FinancialHealthScoreWidget';
+import { ScoreModal } from './components/score/ScoreModal';
 import { ThemeSelectorModal } from './components/theme/ThemeSelectorModal';
 import { ReceiptGeneratorModal } from './components/receipts/ReceiptGeneratorModal';
 import { ShortcutsModal } from './components/layout/ShortcutsModal';
@@ -87,6 +87,8 @@ export const App: React.FC = () => {
     setPmpeConsignadoModalOpen,
     isPwaModalOpen,
     setPwaModalOpen,
+    isScoreModalOpen,
+    setScoreModalOpen,
   } = useAppStore();
 
   useEffect(() => {
@@ -277,6 +279,7 @@ export const App: React.FC = () => {
         >
           {activePage === 'dashboard' && (
             <>
+              {/* 1. Deck Central de Métricas de Saldos & Fluxos */}
               <StatCards
                 totalBalance={totalBalance}
                 totalDebt={totalDebt}
@@ -289,21 +292,22 @@ export const App: React.FC = () => {
                 expenseCount={expenseCount}
               />
 
+              {/* 2. Análise Visual Gráfica (Entradas vs Saídas & Distribuição por Categoria) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <IncomeVsExpenseChart transactions={transactions} data={sixMonthsData} />
+                <ExpensePieChart transactions={transactions} selectedMonth={selectedMonth} data={pieChartData} />
+              </div>
+
+              {/* 3. Telemetria de IA & Tetos de Orçamento por Categoria */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <AiInsightsWidget selectedMonth={selectedMonth} />
                 <BudgetProgressWidget selectedMonth={selectedMonth} />
               </div>
 
-              <FinancialHealthScoreWidget />
-
+              {/* 4. Badges de Conquistas & Indicadores de Mercado Financeiro */}
               <FinancialBadgesWidget />
 
               <CurrencyMarketWidget />
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <IncomeVsExpenseChart transactions={transactions} data={sixMonthsData} />
-                <ExpensePieChart transactions={transactions} selectedMonth={selectedMonth} data={pieChartData} />
-              </div>
             </>
           )}
 
@@ -354,6 +358,7 @@ export const App: React.FC = () => {
       <AlertsModal />
       <BudgetModal />
       <ContrachequeModal />
+      <ScoreModal isOpen={isScoreModalOpen} onClose={() => setScoreModalOpen(false)} />
       <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
     </AppLayout>
   );

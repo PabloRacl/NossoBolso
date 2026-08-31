@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useAppStore, getCurrentMonthKey } from '../../store/useAppStore';
 import { Button } from '../ui/Button';
-import { Plus, Upload, Calendar, Tag, ChevronLeft, ChevronRight, Sparkles, Eye, EyeOff, Bell, Target, FileCheck, Search, Menu, History, Database, Mic, QrCode, Compass, Palette, FileText, Keyboard, Smartphone } from 'lucide-react';
+import { Plus, Upload, Calendar, Tag, ChevronLeft, ChevronRight, Sparkles, Eye, EyeOff, Bell, Target, FileCheck, Search, Menu, History, Database, Mic, QrCode, Compass, Palette, FileText, Keyboard, Smartphone, Activity } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../services/db';
 import { BioCyberLogo } from './BioCyberLogo';
@@ -25,8 +25,34 @@ export const Topbar: React.FC = () => {
   } = useAppStore();
 
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
+  const wallets = useLiveQuery(() => db.wallets.toArray(), []) || [];
+  const debtContracts = useLiveQuery(() => db.debtContracts.toArray(), []) || [];
 
   const currentMonthKey = getCurrentMonthKey();
+
+  // Score de Saúde Financeira ao vivo com pulsing icon
+  const liveScore = useMemo(() => {
+    const savingsBalance = wallets.reduce((acc, w) => acc + (w.balance || 0), 0);
+    const totalExpenses = transactions.filter((t) => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+    const monthlyExpensesEst = Math.max(totalExpenses, 3000);
+    const monthsOfReserve = savingsBalance / monthlyExpensesEst;
+    const reserveScore = Math.min(Math.round((monthsOfReserve / 6) * 300), 300);
+
+    const totalDebt = debtContracts.reduce((acc, d) => acc + (d.totalAmount || d.installmentAmount * d.totalInstallments), 0);
+    const debtRatio = savingsBalance > 0 ? (totalDebt / savingsBalance) : 1;
+    let debtScore = 300;
+    if (debtRatio > 2) debtScore = 50;
+    else if (debtRatio > 1) debtScore = 150;
+    else if (debtRatio > 0.5) debtScore = 220;
+
+    const income = transactions.filter((t) => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+    const savingsRate = income > 0 ? Math.max((income - totalExpenses) / income, 0) : 0.15;
+    const savingsScore = Math.min(Math.round((savingsRate / 0.3) * 200), 200);
+
+    const walletScore = Math.min(wallets.length * 66, 200);
+
+    return Math.min(reserveScore + debtScore + savingsScore + walletScore, 1000);
+  }, [transactions, wallets, debtContracts]);
 
   // Quantidade de contas vencendo nos próximos 7 dias para o badge do Sino
   const upcomingAlertCount = useMemo(() => {
@@ -191,6 +217,17 @@ export const Topbar: React.FC = () => {
           title={isPrivacyMode ? 'Desativar Modo Privacidade' : 'Ativar Modo Privacidade (Ocultar Valores)'}
         >
           {isPrivacyMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
+
+        {/* Botão Vivo e Pulsante do Score de Saúde Financeira */}
+        <button
+          onClick={() => useAppStore.getState().setScoreModalOpen(true)}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#162032] border border-[#00FF88]/40 hover:border-[#00FF88] rounded-xl text-xs font-black text-[#00FF88] transition-all cursor-pointer shadow-md shadow-[#00FF88]/10 group"
+          title="Score de Saúde Financeira & Crédito (Clique para ver o diagnóstico completo)"
+        >
+          <Activity className="w-4 h-4 text-[#00FF88] animate-pulse shrink-0" />
+          <span className="hidden sm:inline font-mono">{liveScore}</span>
+          <span className="text-[10px] uppercase tracking-wider font-extrabold bg-[#00FF88]/20 px-1 py-0.5 rounded text-[#00FF88]">PTS</span>
         </button>
 
         {/* Botão de Comando por Voz (IA) */}

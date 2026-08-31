@@ -57,6 +57,8 @@ interface AppStore {
   setPmpeConsignadoModalOpen: (open: boolean) => void;
   isPwaModalOpen: boolean;
   setPwaModalOpen: (open: boolean) => void;
+  isScoreModalOpen: boolean;
+  setScoreModalOpen: (open: boolean) => void;
 
   // Privacy & Layout
   isPrivacyMode: boolean;
@@ -148,6 +150,8 @@ export const useAppStore = create<AppStore>((set) => ({
   setPmpeConsignadoModalOpen: (open) => set({ isPmpeConsignadoModalOpen: open }),
   isPwaModalOpen: false,
   setPwaModalOpen: (open) => set({ isPwaModalOpen: open }),
+  isScoreModalOpen: false,
+  setScoreModalOpen: (open) => set({ isScoreModalOpen: open }),
 
   isPrivacyMode: false,
   togglePrivacyMode: () => set((state) => ({ isPrivacyMode: !state.isPrivacyMode })),
