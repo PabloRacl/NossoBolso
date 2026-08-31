@@ -129,10 +129,10 @@ export const IncomeVsExpenseChart: React.FC<IncomeVsExpenseChartProps> = ({ tran
       const dateObj = new Date(y, m - 1, 1);
       const monthName = dateObj.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
 
-      // Filtrar transações reais do mês (despesas com date <= hoje ou para o mês)
+      // Filtrar transações do mês
       const monthTxs = transactions.filter((t) => t.date && t.date.startsWith(mKey));
       const inc = monthTxs.filter((t) => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-      const exp = monthTxs.filter((t) => t.type === 'expense' && t.date <= todayStr).reduce((acc, t) => acc + t.amount, 0);
+      const exp = monthTxs.filter((t) => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
 
       return {
         monthKey: mKey,

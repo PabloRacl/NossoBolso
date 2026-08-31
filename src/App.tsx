@@ -181,9 +181,9 @@ export const App: React.FC = () => {
 
   const totalDebt = walletDebts + currentMonthContractDebt;
 
-  // Historic Totals (All Time - Apenas Transações Realizadas)
+  // Historic Totals (All Time)
   const totalIncome = transactions.filter((t) => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-  const totalExpense = transactions.filter((t) => t.type === 'expense' && t.date <= todayStr).reduce((acc, t) => acc + t.amount, 0);
+  const totalExpense = transactions.filter((t) => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
 
   // Period Calculations (based on selectedMonth)
   const periodTxs = selectedMonth === 'all'
@@ -195,7 +195,7 @@ export const App: React.FC = () => {
     .reduce((acc, t) => acc + t.amount, 0);
 
   const periodExpense = periodTxs
-    .filter((t) => t.type === 'expense' && t.date <= todayStr)
+    .filter((t) => t.type === 'expense')
     .reduce((acc, t) => acc + t.amount, 0);
 
   const incomeCount = periodTxs.filter((t) => t.type === 'income').length;
