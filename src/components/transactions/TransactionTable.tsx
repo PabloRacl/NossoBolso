@@ -6,19 +6,34 @@ import { Button } from '../ui/Button';
 import { formatBRL } from '../../utils/formatters';
 import { formatDate } from '../../utils/dateUtils';
 import { useAppStore } from '../../store/useAppStore';
-import { Search, Trash2, Edit3, ArrowUpRight, ArrowDownRight, Download } from 'lucide-react';
+import { Search, Trash2, Edit3, ArrowUpRight, ArrowDownRight, Download, Calendar, Filter } from 'lucide-react';
 
 interface TransactionTableProps {
   transactions: Transaction[];
+  selectedMonth?: string;
   onDelete: (id: string) => void;
 }
 
-export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, onDelete }) => {
+export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, selectedMonth, onDelete }) => {
   const { searchQuery, setSearchQuery, setEditingTransactionId, setTransactionModalOpen, isPrivacyMode } = useAppStore();
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
+  const [filterByMonth, setFilterByMonth] = useState<boolean>(true);
+
+  // Formatar nome amigável do mês selecionado
+  const getSelectedMonthName = () => {
+    if (!selectedMonth || selectedMonth === 'all') return 'Todas as Datas';
+    const [y, m] = selectedMonth.split('-');
+    if (!y || !m) return selectedMonth;
+    const d = new Date(parseInt(y), parseInt(m) - 1, 1);
+    const monthName = d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+    return monthName.charAt(0).toUpperCase() + monthName.slice(1);
+  };
 
   const filtered = transactions.filter((tx) => {
     if (filterType !== 'all' && tx.type !== filterType) return false;
+    if (filterByMonth && selectedMonth && selectedMonth !== 'all') {
+      if (!tx.date.startsWith(selectedMonth)) return false;
+    }
     if (searchQuery.trim() !== '') {
       const q = searchQuery.toLowerCase();
       return (
@@ -98,6 +113,29 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
             }`}
           >
             Despesas
+          </button>
+
+          <div className="w-[1px] h-4 bg-[#2E3B52] mx-0.5" />
+
+          <button
+            onClick={() => setFilterByMonth(!filterByMonth)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border ${
+              filterByMonth && selectedMonth && selectedMonth !== 'all'
+                ? 'bg-[#00FF88]/15 text-[#00FF88] border-[#00FF88]/40 shadow-[0_0_10px_rgba(0,255,136,0.15)]'
+                : 'bg-[#1E293B]/50 text-[#94A3B8] border-[#334155] hover:text-[#F8FAFC]'
+            }`}
+            title={
+              filterByMonth && selectedMonth && selectedMonth !== 'all'
+                ? `Exibindo apenas lançamentos de ${getSelectedMonthName()}. Clique para ver todas as datas.`
+                : 'Exibindo lançamentos de todas as datas. Clique para filtrar pelo mês ativo.'
+            }
+          >
+            <Calendar className="w-3.5 h-3.5 text-[#00FF88]" />
+            <span>
+              {filterByMonth && selectedMonth && selectedMonth !== 'all'
+                ? `Mês Selecionado (${getSelectedMonthName()})`
+                : '🌐 Ver Todos os Lançamentos'}
+            </span>
           </button>
         </div>
 

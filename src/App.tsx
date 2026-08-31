@@ -310,7 +310,11 @@ export const App: React.FC = () => {
           )}
 
           {activePage === 'transactions' && (
-            <TransactionTable transactions={transactions} onDelete={handleDeleteTransaction} />
+            <TransactionTable
+              transactions={transactions}
+              selectedMonth={selectedMonth}
+              onDelete={handleDeleteTransaction}
+            />
           )}
 
           {activePage === 'calendar' && <CashFlowCalendarView />}
