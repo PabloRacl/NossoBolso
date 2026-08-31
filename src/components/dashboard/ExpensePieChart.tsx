@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Sector } from 'recharts';
 import { formatBRL, formatPercent } from '../../utils/formatters';
-import { PieChart as PieIcon, Activity, ArrowDownRight, ArrowUpRight, Filter } from 'lucide-react';
+import { PieChart as PieIcon, ArrowDownRight, ArrowUpRight, Sparkles } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { Transaction } from '../../types';
 
@@ -11,20 +11,73 @@ interface ExpensePieChartProps {
   data?: { name: string; value: number }[];
 }
 
-const VIBRANT_PALETTE = [
-  '#FF3B30', // Crimson Red
-  '#00F5D4', // Neon Mint
-  '#7B2CBF', // Vivid Violet
-  '#FFB703', // Golden Amber
-  '#3A86FF', // Royal Blue
-  '#FF007F', // Hot Pink
-  '#00BBF9', // Bright Cyan
-  '#9D4EDD', // Purple
-  '#F15BB5', // Soft Magenta
-  '#52B788', // Emerald Green
-  '#F59E0B', // Amber
-  '#EC4899', // Pink
+// Paletas Suaves e Confortáveis para a Visão (Anti-Fadiga Visual)
+const INCOME_PALETTE = [
+  '#00FF88', // Cyber Emerald (Salário / Renda Principal)
+  '#06B6D4', // Cyan
+  '#10B981', // Soft Emerald
+  '#34D399', // Mint Green
+  '#00F5D4', // Aqua
+  '#2DD4BF', // Turquoise
+  '#3B82F6', // Royal Blue
+  '#A7F3D0', // Pale Mint
 ];
+
+const EXPENSE_PALETTE = [
+  '#3B82F6', // Royal Blue (Transporte / Geral)
+  '#F59E0B', // Amber (Alimentação / Mercado)
+  '#8B5CF6', // Soft Violet (Moradia / Contas)
+  '#EC4899', // Soft Rose (Saúde)
+  '#06B6D4', // Soft Cyan (Lazer)
+  '#6366F1', // Indigo (Educação)
+  '#F43F5E', // Soft Crimson (Impostos / Dívidas)
+  '#10B981', // Emerald
+  '#D97706', // Warm Amber
+  '#A855F7', // Purple
+];
+
+// Mapeamento Inteligente por Nome de Categoria para Garantir Cores Semânticas
+const getCategoryColor = (name: string, type: 'income' | 'expense', index: number): string => {
+  const normalizedName = name.toLowerCase();
+
+  if (type === 'income') {
+    if (normalizedName.includes('salário') || normalizedName.includes('salario') || normalizedName.includes('holerite')) {
+      return '#00FF88'; // Verde Esmeralda Vibrante para Salário
+    }
+    if (normalizedName.includes('investimento') || normalizedName.includes('rendimento')) {
+      return '#06B6D4'; // Ciano para Investimentos
+    }
+    if (normalizedName.includes('extra') || normalizedName.includes('freelance')) {
+      return '#10B981'; // Esmeralda Suave
+    }
+    if (normalizedName.includes('venda') || normalizedName.includes('restituição')) {
+      return '#34D399'; // Menta
+    }
+    return INCOME_PALETTE[index % INCOME_PALETTE.length];
+  }
+
+  // Saídas (Expenses)
+  if (normalizedName.includes('alimentação') || normalizedName.includes('mercado') || normalizedName.includes('feira')) {
+    return '#F59E0B'; // Âmbar Suave
+  }
+  if (normalizedName.includes('transporte') || normalizedName.includes('veículo') || normalizedName.includes('combustível')) {
+    return '#3B82F6'; // Azul Real
+  }
+  if (normalizedName.includes('moradia') || normalizedName.includes('contas') || normalizedName.includes('aluguel')) {
+    return '#8B5CF6'; // Violeta Suave
+  }
+  if (normalizedName.includes('saúde') || normalizedName.includes('farmácia')) {
+    return '#EC4899'; // Rosa Suave
+  }
+  if (normalizedName.includes('lazer') || normalizedName.includes('viagem')) {
+    return '#06B6D4'; // Ciano
+  }
+  if (normalizedName.includes('imposto') || normalizedName.includes('dívida') || normalizedName.includes('financiamento')) {
+    return '#F43F5E'; // Carmim Suave
+  }
+
+  return EXPENSE_PALETTE[index % EXPENSE_PALETTE.length];
+};
 
 interface PieSectorProps {
   cx: number;
@@ -44,11 +97,11 @@ const renderActiveShape = (props: PieSectorProps) => {
         cx={cx}
         cy={cy}
         innerRadius={innerRadius - 2}
-        outerRadius={outerRadius + 8}
+        outerRadius={outerRadius + 6}
         startAngle={startAngle}
         endAngle={endAngle}
         fill={fill}
-        style={{ filter: `drop-shadow(0px 0px 15px ${fill})` }}
+        style={{ filter: `drop-shadow(0px 0px 8px ${fill}A0)` }}
       />
     </g>
   );
@@ -91,17 +144,17 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
 
   const activeItem = activeIndex !== undefined ? processedData[activeIndex] : null;
   const activePercent = activeItem && totalAmount > 0 ? (activeItem.value / totalAmount) * 100 : 0;
-  const activeColor = activeIndex !== undefined ? VIBRANT_PALETTE[activeIndex % VIBRANT_PALETTE.length] : '#00FF88';
+  const activeColor = activeItem && activeIndex !== undefined ? getCategoryColor(activeItem.name, txType, activeIndex) : (txType === 'income' ? '#00FF88' : '#3B82F6');
 
   return (
-    <div className="cyber-hud-card hud-corner p-5 flex flex-col min-h-[420px] border border-[#00FF88]/30 shadow-[0_0_25px_rgba(0,255,136,0.1)]">
+    <div className="cyber-hud-card hud-corner p-5 flex flex-col min-h-[420px] border border-[#00FF88]/30 shadow-[0_0_20px_rgba(0,255,136,0.08)]">
       {/* Cabeçalho do Gráfico */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3 border-b border-[#2E3B52]/80 pb-3">
         <div className="flex items-center gap-2.5">
           <div
-            className={`p-2.5 rounded-xl border ${
+            className={`p-2.5 rounded-xl border transition-all ${
               txType === 'expense'
-                ? 'bg-[#FF4D6D]/15 text-[#FF4D6D] border-[#FF4D6D]/30'
+                ? 'bg-[#3B82F6]/15 text-[#3B82F6] border-[#3B82F6]/30'
                 : 'bg-[#00FF88]/15 text-[#00FF88] border-[#00FF88]/30'
             }`}
           >
@@ -121,10 +174,13 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
           <div className="flex items-center p-1 bg-[#0A0B0E] border border-[#2E3B52] rounded-xl text-xs">
             <button
               type="button"
-              onClick={() => setTxType('expense')}
+              onClick={() => {
+                setTxType('expense');
+                setActiveIndex(undefined);
+              }}
               className={`px-2.5 py-1 rounded-lg font-extrabold text-[11px] flex items-center gap-1 transition-all ${
                 txType === 'expense'
-                  ? 'bg-[#FF4D6D]/20 text-[#FF4D6D] border border-[#FF4D6D]/40'
+                  ? 'bg-[#3B82F6]/20 text-[#3B82F6] border border-[#3B82F6]/40 shadow-sm'
                   : 'text-[#94A3B8] hover:text-[#F8FAFC]'
               }`}
             >
@@ -133,10 +189,13 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setTxType('income')}
+              onClick={() => {
+                setTxType('income');
+                setActiveIndex(undefined);
+              }}
               className={`px-2.5 py-1 rounded-lg font-extrabold text-[11px] flex items-center gap-1 transition-all ${
                 txType === 'income'
-                  ? 'bg-[#00FF88]/20 text-[#00FF88] border border-[#00FF88]/40'
+                  ? 'bg-[#00FF88]/20 text-[#00FF88] border border-[#00FF88]/40 shadow-sm'
                   : 'text-[#94A3B8] hover:text-[#F8FAFC]'
               }`}
             >
@@ -203,13 +262,16 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                   onMouseEnter={(_, index) => setActiveIndex(index)}
                   onMouseLeave={() => setActiveIndex(undefined)}
                 >
-                  {processedData.map((_, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={VIBRANT_PALETTE[index % VIBRANT_PALETTE.length]}
-                      className="transition-all duration-300 cursor-pointer"
-                    />
-                  ))}
+                  {processedData.map((entry, index) => {
+                    const cellColor = getCategoryColor(entry.name, txType, index);
+                    return (
+                      <Cell
+                        key={`cell-${entry.name}-${index}`}
+                        fill={cellColor}
+                        className="transition-all duration-300 cursor-pointer"
+                      />
+                    );
+                  })}
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
@@ -222,7 +284,7 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                     {activeItem.name}
                   </span>
                   <span
-                    className="text-base font-black tracking-tight mt-0.5 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)]"
+                    className="text-base font-black tracking-tight mt-0.5 drop-shadow-md"
                     style={{ color: activeColor }}
                   >
                     {formatBRL(activeItem.value, isPrivacyMode)}
@@ -238,7 +300,7 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                   </span>
                   <span
                     className={`text-base font-black tracking-tight mt-0.5 ${
-                      txType === 'expense' ? 'text-[#FF4D6D]' : 'text-[#00FF88]'
+                      txType === 'expense' ? 'text-[#3B82F6]' : 'text-[#00FF88]'
                     }`}
                   >
                     {formatBRL(totalAmount, isPrivacyMode)}
@@ -254,7 +316,7 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
           {/* Legenda Interativa com Ranking */}
           <div className="flex flex-col gap-2 max-h-[250px] overflow-y-auto pr-1">
             {processedData.map((item, index) => {
-              const color = VIBRANT_PALETTE[index % VIBRANT_PALETTE.length];
+              const color = getCategoryColor(item.name, txType, index);
               const pct = totalAmount > 0 ? (item.value / totalAmount) * 100 : 0;
               const isHovered = activeIndex === index;
 
@@ -265,14 +327,14 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                   onMouseLeave={() => setActiveIndex(undefined)}
                   className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
                     isHovered
-                      ? 'bg-[#162238] border-[#00FF88] scale-[1.02] shadow-[0_0_15px_rgba(0,255,136,0.2)]'
+                      ? 'bg-[#162238] border-[#00FF88] scale-[1.01] shadow-[0_0_12px_rgba(0,255,136,0.15)]'
                       : 'bg-[#090D18]/90 border-[#1E293B] hover:bg-[#121929] hover:border-[#06B6D4]/40'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="text-[10px] font-mono font-black text-[#64748B]">#{index + 1}</span>
                     <span
-                      className="w-3.5 h-3.5 rounded-full shrink-0 shadow-[0_0_8px_rgba(255,255,255,0.3)]"
+                      className="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm"
                       style={{ backgroundColor: color }}
                     />
                     <span className="text-xs font-black text-[#F8FAFC] truncate tracking-wide">{item.name}</span>
