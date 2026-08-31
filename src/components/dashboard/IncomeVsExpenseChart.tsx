@@ -9,11 +9,11 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
-  Legend
 } from 'recharts';
 import { formatBRL, formatPercent } from '../../utils/formatters';
-import { useAppStore } from '../../store/useAppStore';
-import { BarChart3, TrendingUp, Calendar, Layers, Activity } from 'lucide-react';
+import { useAppStore, getCurrentMonthKey } from '../../store/useAppStore';
+import { getTodayStr } from '../../utils/dateUtils';
+import { BarChart3, TrendingUp, Activity } from 'lucide-react';
 import { Transaction } from '../../types';
 
 interface IncomeVsExpenseChartProps {
@@ -22,7 +22,7 @@ interface IncomeVsExpenseChartProps {
 }
 
 type TimeframeType = '6m' | '12m' | 'all';
-type ViewModeType = 'bar' | 'area' | 'stacked';
+type ViewModeType = 'bar' | 'area';
 
 interface TooltipItem {
   dataKey: string;
@@ -61,7 +61,7 @@ const CustomChartTooltip: React.FC<CustomTooltipProps> = ({ active, payload, lab
         <div className="flex items-center justify-between gap-4 text-xs font-bold">
           <span className="flex items-center gap-1.5 text-[#FF4D6D]">
             <span className="w-2.5 h-2.5 rounded-full bg-[#FF4D6D] shadow-[0_0_8px_#FF4D6D]" />
-            Saídas:
+            Saídas Realizadas:
           </span>
           <span className="font-black text-[#F8FAFC]">{formatBRL(expense, isPrivacyMode)}</span>
         </div>
@@ -86,50 +86,53 @@ const CustomChartTooltip: React.FC<CustomTooltipProps> = ({ active, payload, lab
 };
 
 export const IncomeVsExpenseChart: React.FC<IncomeVsExpenseChartProps> = ({ transactions = [], data }) => {
-  const { isPrivacyMode } = useAppStore();
+  const { isPrivacyMode, selectedMonth } = useAppStore();
   const [timeframe, setTimeframe] = useState<TimeframeType>('6m');
   const [viewMode, setViewMode] = useState<ViewModeType>('bar');
 
-  // Processamento Dinâmico por Período Escolhido
+  const todayStr = getTodayStr();
+
+  // Processamento Dinâmico Centrado no Mês Selecionado / Atual (Sem saltar para 2029)
   const chartData = useMemo(() => {
     if (!transactions || transactions.length === 0) {
       return data || [];
     }
 
-    // Identificar todas as chaves YYYY-MM disponíveis
-    const monthKeysSet = new Set<string>();
-    transactions.forEach((t) => {
-      if (t.date && t.date.length >= 7) {
-        monthKeysSet.add(t.date.substring(0, 7));
-      }
-    });
+    const targetMonthKey = (selectedMonth && selectedMonth !== 'all') ? selectedMonth : getCurrentMonthKey();
+    const [targetY, targetM] = targetMonthKey.split('-').map(Number);
+    const monthsCount = timeframe === '6m' ? 6 : timeframe === '12m' ? 12 : 12;
 
-    // Se não houver chaves, criar últimos 12 meses padrão
-    const now = new Date();
-    if (monthKeysSet.size === 0) {
-      for (let i = 11; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        monthKeysSet.add(d.toISOString().substring(0, 7));
+    const monthKeys: string[] = [];
+
+    if (timeframe === 'all') {
+      // Coletar meses até a data atual / selecionada
+      const monthsSet = new Set<string>();
+      transactions.forEach((t) => {
+        if (t.date && t.date <= todayStr && t.date.length >= 7) {
+          monthsSet.add(t.date.substring(0, 7));
+        }
+      });
+      monthsSet.add(targetMonthKey);
+      monthKeys.push(...Array.from(monthsSet).sort());
+    } else {
+      // Gerar N meses anteriores terminando no targetMonthKey
+      for (let i = monthsCount - 1; i >= 0; i--) {
+        const d = new Date(targetY, targetM - 1 - i, 1);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        monthKeys.push(`${y}-${m}`);
       }
     }
 
-    let sortedMonthKeys = Array.from(monthKeysSet).sort();
-
-    // Filtrar de acordo com a aba selecionada (6m, 12m ou all)
-    if (timeframe === '6m') {
-      sortedMonthKeys = sortedMonthKeys.slice(-6);
-    } else if (timeframe === '12m') {
-      sortedMonthKeys = sortedMonthKeys.slice(-12);
-    }
-
-    return sortedMonthKeys.map((mKey) => {
+    return monthKeys.map((mKey) => {
       const [y, m] = mKey.split('-').map(Number);
       const dateObj = new Date(y, m - 1, 1);
       const monthName = dateObj.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
 
+      // Filtrar transações reais do mês (despesas com date <= hoje ou para o mês)
       const monthTxs = transactions.filter((t) => t.date && t.date.startsWith(mKey));
       const inc = monthTxs.filter((t) => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-      const exp = monthTxs.filter((t) => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+      const exp = monthTxs.filter((t) => t.type === 'expense' && t.date <= todayStr).reduce((acc, t) => acc + t.amount, 0);
 
       return {
         monthKey: mKey,
@@ -139,23 +142,19 @@ export const IncomeVsExpenseChart: React.FC<IncomeVsExpenseChartProps> = ({ tran
         balance: inc - exp,
       };
     });
-  }, [transactions, data, timeframe]);
+  }, [transactions, data, timeframe, selectedMonth, todayStr]);
 
   // Totais do Período para a Telemetria Superior
   const periodTotals = useMemo(() => {
     const totalInc = chartData.reduce((acc, d) => acc + d.income, 0);
     const totalExp = chartData.reduce((acc, d) => acc + d.expense, 0);
     const netBalance = totalInc - totalExp;
-    const avgIncome = chartData.length > 0 ? totalInc / chartData.length : 0;
-    const avgExpense = chartData.length > 0 ? totalExp / chartData.length : 0;
     const savingsRate = totalInc > 0 ? ((totalInc - totalExp) / totalInc) * 100 : 0;
 
     return {
       totalInc,
       totalExp,
       netBalance,
-      avgIncome,
-      avgExpense,
       savingsRate,
     };
   }, [chartData]);
@@ -171,11 +170,11 @@ export const IncomeVsExpenseChart: React.FC<IncomeVsExpenseChartProps> = ({ tran
             </div>
             <div>
               <h3 className="text-sm font-black text-[#F8FAFC] tracking-tight">HISTOGRAMA DE FLUXO & VELOCIDADE</h3>
-              <p className="text-[11px] text-[#94A3B8] font-semibold">Análise dinâmica de entradas e saídas no tempo</p>
+              <p className="text-[11px] text-[#94A3B8] font-semibold">Análise de entradas e saídas realizadas</p>
             </div>
           </div>
 
-          {/* Controles de Filtro de Período (6M / 12M / Tudo) */}
+          {/* Controles de Filtro de Período (6M / 12M / Todo Histórico) */}
           <div className="flex items-center gap-2">
             <div className="flex items-center p-1 bg-[#0A0B0E] border border-[#2E3B52] rounded-xl text-xs">
               <button
@@ -231,7 +230,7 @@ export const IncomeVsExpenseChart: React.FC<IncomeVsExpenseChartProps> = ({ tran
                 className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
                   viewMode === 'area' ? 'bg-[#162032] text-[#00FF88]' : 'text-[#64748B]'
                 }`}
-                title="Visão por Área de Saldo"
+                title="Visão por Área"
               >
                 <TrendingUp className="w-4 h-4" />
               </button>
