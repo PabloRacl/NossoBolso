@@ -53,6 +53,20 @@ interface LightningFlash {
   timer: number;
 }
 
+interface UmbrellaFlyer {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  rotation: number;
+  rotationSpeed: number;
+  swayPhase: number;
+  swayFreq: number;
+  umbrellaColor: string;
+  coatColor: string;
+}
+
 export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'leaves' }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -95,8 +109,8 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
 
     window.addEventListener('mousemove', handleMouseMove);
 
-    // PARTICLES (Adjusted per weather mode)
-    const PARTICLE_COUNT = mode === 'gold_rain' ? 35 : mode === 'storm' ? 30 : 20;
+    // 1. PARTICLES (Adjusted per weather mode)
+    const PARTICLE_COUNT = mode === 'gold_rain' ? 35 : mode === 'storm' ? 25 : 20;
     const particles: Particle[] = [];
 
     const createParticle = (resetAtTop = false): Particle => {
@@ -111,11 +125,11 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       if (mode === 'gold_rain') {
         size = 14 + Math.random() * 16;
         opacity = 0.7 + Math.random() * 0.3;
-        vy = 2.5 + Math.random() * 2.5; // Fast gold rain fall
+        vy = 2.5 + Math.random() * 2.5;
       } else if (mode === 'storm') {
         size = 12 + Math.random() * 18;
         opacity = 0.6 + Math.random() * 0.4;
-        vy = 3.0 + Math.random() * 3.0; // Fast storm fall
+        vy = 3.0 + Math.random() * 3.0;
       } else {
         if (depthRand < 0.35) {
           depth = 'bg';
@@ -135,7 +149,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
         }
       }
 
-      const initialVx = mode === 'storm' ? 2.5 + Math.random() * 3.5 : (Math.random() - 0.5) * 0.6;
+      const initialVx = mode === 'storm' ? 3.0 + Math.random() * 4.0 : (Math.random() - 0.5) * 0.6;
 
       return {
         x: Math.random() * width,
@@ -152,7 +166,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
         swayAmp: 0.5 + Math.random() * 0.9,
         swayPhase: Math.random() * Math.PI * 2,
         leafType: types[Math.floor(Math.random() * types.length)],
-        isMorphed: mode === 'gold_rain', // In gold rain mode, all particles are gold/money from the start!
+        isMorphed: mode === 'gold_rain',
         morphProgress: mode === 'gold_rain' ? 1 : 0,
         opacity,
       };
@@ -162,7 +176,40 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       particles.push(createParticle());
     }
 
-    // TRAP LEAF / PRISON CELL STATE
+    // 2. FLYING PEOPLE WITH UMBRELLAS FOR STORM MODE (Pessoas Voando com Guarda-chuva)
+    const umbrellaFlyers: UmbrellaFlyer[] = [];
+    if (mode === 'storm') {
+      const flyerColors = [
+        { umbrella: '#EF4444', coat: '#3B82F6' },
+        { umbrella: '#F59E0B', coat: '#10B981' },
+        { umbrella: '#A855F7', coat: '#EC4899' },
+        { umbrella: '#06B6D4', coat: '#F97316' },
+        { umbrella: '#10B981', coat: '#6366F1' },
+      ];
+
+      const createFlyer = (reset = false): UmbrellaFlyer => {
+        const col = flyerColors[Math.floor(Math.random() * flyerColors.length)];
+        return {
+          x: reset ? -100 - Math.random() * 200 : Math.random() * width,
+          y: reset ? Math.random() * (height * 0.7) : Math.random() * height,
+          vx: 4.0 + Math.random() * 3.5, // Strong wind carrying person sideways
+          vy: 1.5 + Math.random() * 2.0,
+          size: 26 + Math.random() * 12,
+          rotation: -0.3 + (Math.random() - 0.5) * 0.4,
+          rotationSpeed: (Math.random() - 0.5) * 0.03,
+          swayPhase: Math.random() * Math.PI * 2,
+          swayFreq: 0.02 + Math.random() * 0.03,
+          umbrellaColor: col.umbrella,
+          coatColor: col.coat,
+        };
+      };
+
+      for (let f = 0; f < 5; f++) {
+        umbrellaFlyers.push(createFlyer());
+      }
+    }
+
+    // 3. TRAP LEAF / PRISON CELL STATE
     const trapLeaf: TrapLeafState = {
       active: false,
       x: -100,
@@ -198,7 +245,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       trapLeaf.prisonerSway = 0;
     };
 
-    // LIGHTNING FLASH STATE FOR STORM MODE
+    // 4. LIGHTNING FLASH STATE FOR STORM MODE
     const lightning: LightningFlash = {
       active: false,
       x: 0,
@@ -206,7 +253,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       timer: 0,
     };
 
-    let nextLightningTime = Date.now() + 3000;
+    let nextLightningTime = Date.now() + 2500;
 
     // DRAW LEAF
     const drawPremiumLeaf = (
@@ -266,7 +313,6 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       c.scale(flipScale, 1);
 
       if (isGoldCoinMode) {
-        // GOLD COIN (🪙)
         c.shadowColor = '#F59E0B';
         c.shadowBlur = 14;
 
@@ -292,7 +338,6 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
         c.textBaseline = 'middle';
         c.fillText('$', 0, 1);
       } else {
-        // BANKNOTE CARD (💵)
         const w = size * 1.9;
         const h = size * 1.15;
 
@@ -327,6 +372,117 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
         c.textBaseline = 'middle';
         c.fillText('$', 0, 1);
       }
+
+      c.restore();
+    };
+
+    // DRAW FLYING PERSON WITH UMBRELLA (PESSOA VOANDO COM GUARDA-CHUVA)
+    const drawFlyingPersonWithUmbrella = (
+      c: CanvasRenderingContext2D,
+      flyer: UmbrellaFlyer
+    ) => {
+      const s = flyer.size;
+
+      c.save();
+      c.translate(flyer.x, flyer.y);
+      c.rotate(flyer.rotation);
+
+      // Glow effect around flying umbrella
+      c.shadowColor = flyer.umbrellaColor;
+      c.shadowBlur = 12;
+
+      // 1. UMBRELLA CANOPY (Cúpula do Guarda-chuva)
+      c.fillStyle = flyer.umbrellaColor;
+      c.strokeStyle = '#FFFFFF';
+      c.lineWidth = 2;
+
+      c.beginPath();
+      c.arc(0, -s * 0.5, s * 0.9, Math.PI * 1.1, Math.PI * 1.9);
+      c.quadraticCurveTo(0, -s * 0.8, -s * 0.85, -s * 0.22);
+      c.fill();
+      c.stroke();
+
+      // Umbrella Ribs (Linhas do Guarda-chuva)
+      c.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      c.lineWidth = 1.5;
+      c.beginPath();
+      c.moveTo(0, -s * 1.4);
+      c.lineTo(0, -s * 0.5);
+      c.moveTo(0, -s * 1.4);
+      c.lineTo(-s * 0.45, -s * 0.45);
+      c.moveTo(0, -s * 1.4);
+      c.lineTo(s * 0.45, -s * 0.45);
+      c.stroke();
+
+      // Top Spike
+      c.fillStyle = '#FFFFFF';
+      c.beginPath();
+      c.arc(0, -s * 1.42, 3, 0, Math.PI * 2);
+      c.fill();
+
+      // Umbrella Shaft / Metal Rod
+      c.strokeStyle = '#CBD5E1';
+      c.lineWidth = 3;
+      c.beginPath();
+      c.moveTo(0, -s * 0.5);
+      c.lineTo(-s * 0.2, s * 0.6);
+      c.stroke();
+
+      // Hooked Handle
+      c.beginPath();
+      c.arc(-s * 0.25, s * 0.6, 5, 0, Math.PI);
+      c.stroke();
+
+      c.shadowBlur = 0;
+
+      // 2. FLYING PERSON DANGLING IN WIND (Pessoa Se Segurando e Voando em Diagonal)
+      const px = -s * 0.2;
+      const py = s * 0.65;
+
+      // Flying Coat/Scarf Tail Flapping in Wind (Casaco Voando para Trás)
+      c.fillStyle = flyer.coatColor;
+      c.beginPath();
+      c.moveTo(px - 6, py + 12);
+      c.lineTo(px - s * 1.1, py + 8 + Math.sin(flyer.swayPhase * 3) * 6);
+      c.lineTo(px - s * 0.9, py + 22 + Math.cos(flyer.swayPhase * 3) * 6);
+      c.closePath();
+      c.fill();
+
+      // Person Head & Hat (Cabeça e Chapéu Voando)
+      c.fillStyle = '#FCA5A5';
+      c.beginPath();
+      c.arc(px, py - 4, s * 0.22, 0, Math.PI * 2);
+      c.fill();
+
+      // Flying Hat
+      c.fillStyle = '#1E293B';
+      c.beginPath();
+      c.ellipse(px - 2, py - 9, s * 0.28, 5, -0.3, 0, Math.PI * 2);
+      c.fill();
+
+      // Person Torso (Corpo da Pessoa)
+      c.fillStyle = flyer.coatColor;
+      c.beginPath();
+      c.roundRect(px - s * 0.2, py + 2, s * 0.4, s * 0.7, 5);
+      c.fill();
+
+      // Hands Gripping Handle
+      c.fillStyle = '#FCA5A5';
+      c.beginPath();
+      c.arc(px - 2, py, 4, 0, Math.PI * 2);
+      c.fill();
+
+      // Legs Swept Horizontally by Wind (Pernas Levantadas pelo Vento)
+      c.strokeStyle = '#1E293B';
+      c.lineWidth = 4;
+      c.beginPath();
+      // Left leg
+      c.moveTo(px - 4, py + s * 0.7);
+      c.lineTo(px - s * 0.7, py + s * 0.9 + Math.sin(flyer.swayPhase) * 4);
+      // Right leg
+      c.moveTo(px + 4, py + s * 0.7);
+      c.lineTo(px - s * 0.6, py + s * 1.1 + Math.cos(flyer.swayPhase) * 4);
+      c.stroke();
 
       c.restore();
     };
@@ -471,12 +627,10 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
           lightning.timer++;
           lightning.opacity -= 0.04;
 
-          // Lightning Background Ambient Glow
           ctx.save();
           ctx.fillStyle = `rgba(168, 85, 247, ${Math.max(lightning.opacity * 0.2, 0)})`;
           ctx.fillRect(0, 0, width, height);
 
-          // Lightning Bolt Line
           ctx.strokeStyle = `rgba(56, 189, 248, ${Math.max(lightning.opacity, 0)})`;
           ctx.lineWidth = 3;
           ctx.shadowColor = '#38BDF8';
@@ -571,6 +725,35 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
 
         ctx.restore();
       });
+
+      // RENDER FLYING PEOPLE WITH UMBRELLAS IN STORM MODE
+      if (mode === 'storm') {
+        umbrellaFlyers.forEach((flyer) => {
+          flyer.swayPhase += flyer.swayFreq;
+          flyer.x += flyer.vx;
+          flyer.y += flyer.vy + Math.sin(flyer.swayPhase) * 1.2;
+          flyer.rotation += flyer.rotationSpeed;
+
+          // Mouse wind interaction for flying umbrellas
+          const udx = flyer.x - mouseX;
+          const udy = flyer.y - mouseY;
+          const udist = Math.sqrt(udx * udx + udy * udy);
+          if (udist < 220) {
+            const uforce = (1 - udist / 220) * 12;
+            const uangle = Math.atan2(udy, udx);
+            flyer.x += Math.cos(uangle) * uforce + mouseVx * 0.5;
+            flyer.y += Math.sin(uangle) * uforce + mouseVy * 0.5;
+          }
+
+          drawFlyingPersonWithUmbrella(ctx, flyer);
+
+          // Reset when blown offscreen
+          if (flyer.x > width + 120 || flyer.y > height + 120) {
+            flyer.x = -100 - Math.random() * 150;
+            flyer.y = Math.random() * (height * 0.6);
+          }
+        });
+      }
 
       // RENDER FINANCIAL TRAP LEAF / PRISON CELL (leaves mode only)
       if (mode === 'leaves' && trapLeaf.active) {
