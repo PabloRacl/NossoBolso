@@ -129,7 +129,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       } else if (mode === 'storm') {
         size = 12 + Math.random() * 18;
         opacity = 0.6 + Math.random() * 0.4;
-        vy = 3.0 + Math.random() * 3.0;
+        vy = 1.8 + Math.random() * 1.5; // Velocidade de queda mais suave na tempestade
       } else {
         if (depthRand < 0.35) {
           depth = 'bg';
@@ -149,7 +149,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
         }
       }
 
-      const initialVx = mode === 'storm' ? 3.0 + Math.random() * 4.0 : (Math.random() - 0.5) * 0.6;
+      const initialVx = mode === 'storm' ? 1.8 + Math.random() * 1.8 : (Math.random() - 0.5) * 0.6;
 
       return {
         x: Math.random() * width,
@@ -159,7 +159,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
         size,
         depth,
         rotation: Math.random() * Math.PI * 2,
-        rotationSpeed: (Math.random() - 0.5) * (mode === 'storm' ? 0.12 : 0.04),
+        rotationSpeed: (Math.random() - 0.5) * (mode === 'storm' ? 0.06 : 0.04),
         flipAngle: Math.random() * Math.PI * 2,
         flipSpeed: 0.02 + Math.random() * 0.03,
         swayFreq: 0.008 + Math.random() * 0.015,
@@ -192,13 +192,13 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
         return {
           x: reset ? -100 - Math.random() * 200 : Math.random() * width,
           y: reset ? Math.random() * (height * 0.7) : Math.random() * height,
-          vx: 4.0 + Math.random() * 3.5, // Strong wind carrying person sideways
-          vy: 1.5 + Math.random() * 2.0,
+          vx: 2.0 + Math.random() * 1.8, // Velocidade reduzida do voo dos guarda-chuvas
+          vy: 0.8 + Math.random() * 1.0,
           size: 26 + Math.random() * 12,
-          rotation: -0.3 + (Math.random() - 0.5) * 0.4,
-          rotationSpeed: (Math.random() - 0.5) * 0.03,
+          rotation: -0.2 + (Math.random() - 0.5) * 0.3,
+          rotationSpeed: (Math.random() - 0.5) * 0.02,
           swayPhase: Math.random() * Math.PI * 2,
-          swayFreq: 0.02 + Math.random() * 0.03,
+          swayFreq: 0.012 + Math.random() * 0.015,
           umbrellaColor: col.umbrella,
           coatColor: col.coat,
         };
