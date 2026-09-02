@@ -29,6 +29,8 @@ import {
   Target,
   Sparkles,
   ShieldCheck,
+  Send,
+  Sparkle,
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { authService } from '../../services/authService';
@@ -46,6 +48,9 @@ export const AuthScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [simulatedToken, setSimulatedToken] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<'google' | 'facebook' | 'linkedin' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -79,15 +84,65 @@ export const AuthScreen: React.FC = () => {
 
     setLoading(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
       const user = await authService.register({ name, email, password });
-      setUser(user);
+      setSimulatedToken(user.verificationToken || '849201');
+      setSuccessMessage(`🎉 Cadastro efetuado com sucesso! Enviamos o código de validação para ${email}`);
+      setAuthMode('verify');
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
         setError('Erro ao realizar cadastro.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !verificationCode) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const verifiedUser = await authService.verifyEmailCode({
+        email,
+        code: verificationCode,
+      });
+      setSuccessMessage('✅ E-mail verificado com sucesso! Acessando seu painel...');
+      setTimeout(() => {
+        setUser(verifiedUser);
+      }, 1000);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Código inválido.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!email) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const newCode = await authService.resendVerificationCode(email);
+      setSimulatedToken(newCode);
+      setSuccessMessage(`Um novo código foi enviado para ${email}`);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Erro ao reenviar código.');
       }
     } finally {
       setLoading(false);
@@ -137,6 +192,7 @@ export const AuthScreen: React.FC = () => {
       avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=guest',
       provider: 'credentials',
       role: 'user',
+      isEmailVerified: true,
       createdAt: new Date().toISOString(),
     });
   };
@@ -511,9 +567,9 @@ export const AuthScreen: React.FC = () => {
                   initial={{ opacity: 0, y: -10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  className="mb-4 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3 text-emerald-400 text-xs font-semibold backdrop-blur-md"
+                  className="mb-4 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3 text-emerald-400 text-xs font-semibold backdrop-blur-md"
                 >
-                  <CheckCircle2 className="w-4 h-4 shrink-0 animate-bounce" />
+                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{successMessage}</span>
                 </motion.div>
               )}
@@ -678,11 +734,95 @@ export const AuthScreen: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <span>Criar Conta e Acessar</span>
+                        <span>Criar Conta e Gerar Código</span>
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}
                   </motion.button>
+                </motion.form>
+              )}
+
+              {/* EMAIL VERIFICATION TOKEN FORM */}
+              {authMode === 'verify' && (
+                <motion.form
+                  key="verify-form"
+                  initial={{ opacity: 0, x: 25, filter: 'blur(4px)' }}
+                  animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, x: -25, filter: 'blur(4px)' }}
+                  transition={{ duration: 0.25, ease: 'easeInOut' }}
+                  onSubmit={handleVerifySubmit}
+                  className="space-y-4"
+                >
+                  {/* Banner de Simulação do E-mail Recebido */}
+                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs space-y-1 backdrop-blur-md">
+                    <div className="flex items-center gap-2 font-bold text-amber-400">
+                      <Mail className="w-4 h-4 shrink-0" />
+                      <span>Simulação de E-mail Enviado para {email}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300">
+                      Seu código de verificação de 6 dígitos é:{' '}
+                      <strong className="text-emerald-400 text-sm font-black tracking-widest bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30">
+                        {simulatedToken || '849201'}
+                      </strong>
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                      Código de Verificação (6 dígitos)
+                    </label>
+                    <div className="relative group">
+                      <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value)}
+                        required
+                        placeholder="Ex: 849201"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-950/80 border border-slate-800 rounded-2xl text-center text-lg font-black tracking-widest text-emerald-400 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all uppercase"
+                      />
+                    </div>
+                  </div>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white text-sm font-bold rounded-2xl shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Validando E-mail...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Validar E-mail e Acessar</span>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      </>
+                    )}
+                  </motion.button>
+
+                  <div className="flex items-center justify-between text-xs pt-1">
+                    <button
+                      type="button"
+                      onClick={handleResendCode}
+                      disabled={loading}
+                      className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors flex items-center gap-1 disabled:opacity-50"
+                    >
+                      <Send className="w-3 h-3" />
+                      <span>Reenviar Código</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuthMode('register')}
+                      className="text-slate-400 hover:text-slate-200 transition-colors"
+                    >
+                      Alterar E-mail
+                    </button>
+                  </div>
                 </motion.form>
               )}
 

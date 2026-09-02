@@ -180,6 +180,8 @@ export interface UserProfile {
   avatarUrl?: string;
   provider?: 'credentials' | 'google' | 'facebook' | 'linkedin';
   role?: 'user' | 'admin';
+  isEmailVerified?: boolean;
+  verificationToken?: string;
   createdAt?: string;
 }
 

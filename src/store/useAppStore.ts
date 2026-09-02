@@ -10,8 +10,8 @@ interface AppStore {
   setUser: (user: UserProfile | null) => void;
   isAuthModalOpen: boolean;
   setAuthModalOpen: (open: boolean) => void;
-  authMode: 'login' | 'register' | 'forgot';
-  setAuthMode: (mode: 'login' | 'register' | 'forgot') => void;
+  authMode: 'login' | 'register' | 'forgot' | 'verify';
+  setAuthMode: (mode: 'login' | 'register' | 'forgot' | 'verify') => void;
   isUserProfileModalOpen: boolean;
   setUserProfileModalOpen: (open: boolean) => void;
 
