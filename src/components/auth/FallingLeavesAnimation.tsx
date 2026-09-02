@@ -592,7 +592,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       c.restore();
     };
 
-    // DRAW LEFT LATERAL TREE — LINE ART MINIMALISTA (Fiel à foto de referência: tronco com fibras e galhos orgânicos)
+    // DRAW LEFT LATERAL TREE — ÁRVORE BOTÂNICA REALISTA (Tronco com casca natural, raízes e ramificação hierárquica fluida)
     const drawLeftLateralTree = (
       c: CanvasRenderingContext2D,
       w: number,
@@ -603,186 +603,327 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       // Posição centralizada no meio da área livre à esquerda da tela
       const cx = Math.max(Math.min(w * 0.16, 220), 130);
 
-      c.strokeStyle = 'rgba(226, 232, 240, 0.65)';
+      // Estilo de traço orgânico
+      c.strokeStyle = 'rgba(241, 245, 249, 0.75)';
       c.lineCap = 'round';
       c.lineJoin = 'round';
-      c.shadowColor = 'rgba(255, 255, 255, 0.15)';
-      c.shadowBlur = 3;
+      c.shadowColor = 'rgba(255, 255, 255, 0.12)';
+      c.shadowBlur = 4;
 
-      interface TrunkFibre {
+      // 1. BASE E SILHUETA SÓLIDA DO TRONCO (Com afunilamento e raízes no solo)
+      const trunkGrad = c.createLinearGradient(cx - 30, h, cx + 30, h * 0.58);
+      trunkGrad.addColorStop(0, 'rgba(15, 23, 42, 0.65)');
+      trunkGrad.addColorStop(0.6, 'rgba(30, 41, 59, 0.45)');
+      trunkGrad.addColorStop(1, 'rgba(15, 23, 42, 0.20)');
+
+      c.fillStyle = trunkGrad;
+      c.beginPath();
+      // Raiz esquerda no solo
+      c.moveTo(cx - 32, h + 15);
+      c.quadraticCurveTo(cx - 24, h * 0.90, cx - 18, h * 0.78);
+      c.bezierCurveTo(cx - 14, h * 0.68, cx - 12, h * 0.62, cx - 9, h * 0.58);
+      // Ponto de bifurcação do topo do tronco
+      c.lineTo(cx + 9, h * 0.58);
+      // Lado direito do tronco descendo até a raiz direita
+      c.bezierCurveTo(cx + 12, h * 0.62, cx + 14, h * 0.68, cx + 18, h * 0.78);
+      c.quadraticCurveTo(cx + 24, h * 0.90, cx + 34, h + 15);
+      c.closePath();
+      c.fill();
+
+      // 2. CONTORNOS E SULCOS NATURAIS DE CASCA DE MADEIRA (Fibras orgânicas que acompanham a anatomia)
+      const barkLines = [
+        // Contorno exterior esquerdo
+        {
+          start: { x: cx - 32, y: h + 15 },
+          cp1: { x: cx - 24, y: h * 0.90 },
+          cp2: { x: cx - 18, y: h * 0.78 },
+          end: { x: cx - 9, y: h * 0.58 },
+          width: 2.2,
+          opacity: 0.80
+        },
+        // Sulco interno 1 (curvado com nó de madeira)
+        {
+          start: { x: cx - 18, y: h + 15 },
+          cp1: { x: cx - 14, y: h * 0.88 },
+          cp2: { x: cx - 11, y: h * 0.75 },
+          end: { x: cx - 4, y: h * 0.60 },
+          width: 1.4,
+          opacity: 0.60
+        },
+        // Sulco central
+        {
+          start: { x: cx - 4, y: h + 15 },
+          cp1: { x: cx - 3, y: h * 0.86 },
+          cp2: { x: cx - 1, y: h * 0.72 },
+          end: { x: cx + 1, y: h * 0.58 },
+          width: 1.5,
+          opacity: 0.65
+        },
+        // Sulco interno 2
+        {
+          start: { x: cx + 12, y: h + 15 },
+          cp1: { x: cx + 8, y: h * 0.88 },
+          cp2: { x: cx + 7, y: h * 0.75 },
+          end: { x: cx + 5, y: h * 0.60 },
+          width: 1.4,
+          opacity: 0.60
+        },
+        // Contorno exterior direito
+        {
+          start: { x: cx + 34, y: h + 15 },
+          cp1: { x: cx + 24, y: h * 0.90 },
+          cp2: { x: cx + 18, y: h * 0.78 },
+          end: { x: cx + 9, y: h * 0.58 },
+          width: 2.2,
+          opacity: 0.80
+        },
+      ];
+
+      barkLines.forEach((bl) => {
+        c.strokeStyle = `rgba(226, 232, 240, ${bl.opacity})`;
+        c.lineWidth = bl.width;
+        c.beginPath();
+        c.moveTo(bl.start.x, bl.start.y);
+        c.bezierCurveTo(bl.cp1.x, bl.cp1.y, bl.cp2.x, bl.cp2.y, bl.end.x, bl.end.y);
+        c.stroke();
+      });
+
+      // 3. ESTRUTURA BOTÂNICA HIERÁRQUICA DE GALHOS (Com espessura decrescente, curvatura viva e ramificação em Y)
+      interface Limb {
         sx: number;
         sy: number;
-        segments: Array<{ cx1: number; cy1: number; cx2: number; cy2: number; ex: number; ey: number }>;
+        cp1x: number;
+        cp1y: number;
+        cp2x: number;
+        cp2y: number;
+        ex: number;
+        ey: number;
         w: number;
+        children?: Limb[];
+        leaf?: { angle: number; size: number; isGold?: boolean };
       }
 
-      const trunkFibres: TrunkFibre[] = [
-        // Fibra mais à esquerda
+      const realisticBranches: Limb[] = [
+        // ================= RAMO MESTRE ESQUERDO =================
         {
-          sx: cx - 24, sy: h + 20,
-          segments: [
-            { cx1: cx - 22, cy1: h * 0.88, cx2: cx - 25, cy2: h * 0.74, ex: cx - 20, ey: h * 0.62 },
-            { cx1: cx - 18, cy1: h * 0.58, cx2: cx - 22, cy2: h * 0.54, ex: cx - 35, ey: h * 0.48 }
-          ],
-          w: 2.2
+          sx: cx - 7, sy: h * 0.58,
+          cp1x: cx - 18, cp1y: h * 0.52, cp2x: cx - 32, cp2y: h * 0.46,
+          ex: cx - 44, ey: h * 0.40,
+          w: 4.2,
+          children: [
+            // Sub-ramo esquerdo inferior
+            {
+              sx: cx - 44, sy: h * 0.40,
+              cp1x: cx - 62, cp1y: h * 0.38, cp2x: cx - 82, cp2y: h * 0.36,
+              ex: cx - 98, ey: h * 0.35,
+              w: 2.6,
+              children: [
+                {
+                  sx: cx - 98, sy: h * 0.35,
+                  cp1x: cx - 110, cp1y: h * 0.34, cp2x: cx - 120, cp2y: h * 0.31,
+                  ex: cx - 130, ey: h * 0.28,
+                  w: 1.4,
+                  leaf: { angle: -0.9, size: 12 }
+                },
+                {
+                  sx: cx - 98, sy: h * 0.35,
+                  cp1x: cx - 108, cp1y: h * 0.37, cp2x: cx - 116, cp2y: h * 0.41,
+                  ex: cx - 124, ey: h * 0.44,
+                  w: 1.2,
+                  leaf: { angle: -1.3, size: 10, isGold: true }
+                },
+                {
+                  sx: cx - 75, sy: h * 0.37,
+                  cp1x: cx - 85, cp1y: h * 0.32, cp2x: cx - 92, cp2y: h * 0.26,
+                  ex: cx - 96, ey: h * 0.22,
+                  w: 1.3,
+                  leaf: { angle: -0.6, size: 11 }
+                }
+              ]
+            },
+            // Sub-ramo esquerdo alto
+            {
+              sx: cx - 44, sy: h * 0.40,
+              cp1x: cx - 48, cp1y: h * 0.32, cp2x: cx - 58, cp2y: h * 0.25,
+              ex: cx - 68, ey: h * 0.18,
+              w: 2.8,
+              children: [
+                {
+                  sx: cx - 68, sy: h * 0.18,
+                  cp1x: cx - 78, cp1y: h * 0.14, cp2x: cx - 88, cp2y: h * 0.10,
+                  ex: cx - 98, ey: h * 0.07,
+                  w: 1.4,
+                  leaf: { angle: -0.8, size: 12, isGold: true }
+                },
+                {
+                  sx: cx - 68, sy: h * 0.18,
+                  cp1x: cx - 65, cp1y: h * 0.12, cp2x: cx - 68, cp2y: h * 0.08,
+                  ex: cx - 70, ey: h * 0.04,
+                  w: 1.2,
+                  leaf: { angle: -0.3, size: 11 }
+                },
+                {
+                  sx: cx - 54, sy: h * 0.28,
+                  cp1x: cx - 42, cp1y: h * 0.24, cp2x: cx - 38, cp2y: h * 0.18,
+                  ex: cx - 36, ey: h * 0.13,
+                  w: 1.3,
+                  leaf: { angle: 0.1, size: 10 }
+                }
+              ]
+            }
+          ]
         },
-        // Fibra central-esquerda
+
+        // ================= RAMO MESTRE CENTRAL / TOPO =================
         {
-          sx: cx - 10, sy: h + 20,
-          segments: [
-            { cx1: cx - 12, cy1: h * 0.88, cx2: cx - 14, cy2: h * 0.74, ex: cx - 8, ey: h * 0.60 },
-            { cx1: cx - 6, cy1: h * 0.54, cx2: cx - 10, cy2: h * 0.48, ex: cx - 18, ey: h * 0.42 }
-          ],
-          w: 1.8
+          sx: cx, sy: h * 0.58,
+          cp1x: cx - 2, cp1y: h * 0.50, cp2x: cx + 2, cp2y: h * 0.42,
+          ex: cx + 2, ey: h * 0.34,
+          w: 4.8,
+          children: [
+            // Galho central esquerdo
+            {
+              sx: cx + 2, sy: h * 0.34,
+              cp1x: cx - 8, cp1y: h * 0.26, cp2x: cx - 14, cp2y: h * 0.18,
+              ex: cx - 18, ey: h * 0.10,
+              w: 2.6,
+              children: [
+                {
+                  sx: cx - 18, sy: h * 0.10,
+                  cp1x: cx - 24, cp1y: h * 0.06, cp2x: cx - 28, cp2y: h * 0.03,
+                  ex: cx - 30, ey: h * 0.01,
+                  w: 1.3,
+                  leaf: { angle: -0.4, size: 12 }
+                },
+                {
+                  sx: cx - 18, sy: h * 0.10,
+                  cp1x: cx - 14, cp1y: h * 0.06, cp2x: cx - 12, cp2y: h * 0.03,
+                  ex: cx - 10, ey: h * 0.01,
+                  w: 1.2,
+                  leaf: { angle: 0.2, size: 11, isGold: true }
+                }
+              ]
+            },
+            // Galho central direito rumo ao zênite
+            {
+              sx: cx + 2, sy: h * 0.34,
+              cp1x: cx + 12, cp1y: h * 0.26, cp2x: cx + 18, cp2y: h * 0.18,
+              ex: cx + 22, ey: h * 0.10,
+              w: 2.8,
+              children: [
+                {
+                  sx: cx + 22, sy: h * 0.10,
+                  cp1x: cx + 22, cp1y: h * 0.06, cp2x: cx + 18, cp2y: h * 0.03,
+                  ex: cx + 16, ey: h * 0.01,
+                  w: 1.4,
+                  leaf: { angle: 0.1, size: 12 }
+                },
+                {
+                  sx: cx + 22, sy: h * 0.10,
+                  cp1x: cx + 32, cp1y: h * 0.06, cp2x: cx + 40, cp2y: h * 0.03,
+                  ex: cx + 44, ey: h * 0.01,
+                  w: 1.2,
+                  leaf: { angle: 0.6, size: 11 }
+                }
+              ]
+            },
+            // Galho lateral intermediário
+            {
+              sx: cx + 1, sy: h * 0.42,
+              cp1x: cx - 14, cp1y: h * 0.36, cp2x: cx - 24, cp2y: h * 0.32,
+              ex: cx - 34, ey: h * 0.28,
+              w: 1.8,
+              leaf: { angle: -0.7, size: 10 }
+            }
+          ]
         },
-        // Fibra central
+
+        // ================= RAMO MESTRE DIREITO =================
         {
-          sx: cx + 2, sy: h + 20,
-          segments: [
-            { cx1: cx - 2, cy1: h * 0.88, cx2: cx, cy2: h * 0.74, ex: cx + 2, ey: h * 0.58 },
-            { cx1: cx + 4, cy1: h * 0.50, cx2: cx - 2, cy2: h * 0.42, ex: cx, ey: h * 0.35 }
-          ],
-          w: 2.0
-        },
-        // Fibra central-direita
-        {
-          sx: cx + 14, sy: h + 20,
-          segments: [
-            { cx1: cx + 10, cy1: h * 0.88, cx2: cx + 12, cy2: h * 0.74, ex: cx + 14, ey: h * 0.59 },
-            { cx1: cx + 16, cy1: h * 0.52, cx2: cx + 24, cy2: h * 0.46, ex: cx + 32, ey: h * 0.42 }
-          ],
-          w: 1.8
-        },
-        // Fibra mais à direita
-        {
-          sx: cx + 26, sy: h + 20,
-          segments: [
-            { cx1: cx + 22, cy1: h * 0.88, cx2: cx + 24, cy2: h * 0.74, ex: cx + 22, ey: h * 0.62 },
-            { cx1: cx + 24, cy1: h * 0.58, cx2: cx + 38, cy2: h * 0.54, ex: cx + 55, ey: h * 0.49 }
-          ],
-          w: 2.2
-        },
+          sx: cx + 7, sy: h * 0.58,
+          cp1x: cx + 18, cp1y: h * 0.52, cp2x: cx + 32, cp2y: h * 0.48,
+          ex: cx + 46, ey: h * 0.42,
+          w: 4.2,
+          children: [
+            // Sub-ramo direito alto
+            {
+              sx: cx + 46, sy: h * 0.42,
+              cp1x: cx + 55, cp1y: h * 0.34, cp2x: cx + 68, cp2y: h * 0.26,
+              ex: cx + 80, ey: h * 0.18,
+              w: 2.8,
+              children: [
+                // Galho com a folha de destaque (conforme a foto de referência!)
+                {
+                  sx: cx + 80, sy: h * 0.18,
+                  cp1x: cx + 92, cp1y: h * 0.14, cp2x: cx + 104, cp2y: h * 0.09,
+                  ex: cx + 112, ey: h * 0.05,
+                  w: 1.4,
+                  leaf: { angle: 0.6, size: 14 } // Folha em destaque no topo direito!
+                },
+                {
+                  sx: cx + 80, sy: h * 0.18,
+                  cp1x: cx + 76, cp1y: h * 0.12, cp2x: cx + 78, cp2y: h * 0.08,
+                  ex: cx + 82, ey: h * 0.04,
+                  w: 1.2,
+                  leaf: { angle: 0.2, size: 11, isGold: true }
+                },
+                {
+                  sx: cx + 60, sy: h * 0.28,
+                  cp1x: cx + 48, cp1y: h * 0.22, cp2x: cx + 46, cp2y: h * 0.16,
+                  ex: cx + 48, ey: h * 0.10,
+                  w: 1.3,
+                  leaf: { angle: 0.1, size: 10 }
+                }
+              ]
+            },
+            // Sub-ramo direito inferior arqueado
+            {
+              sx: cx + 46, sy: h * 0.42,
+              cp1x: cx + 66, cp1y: h * 0.42, cp2x: cx + 88, cp2y: h * 0.44,
+              ex: cx + 108, ey: h * 0.43,
+              w: 2.5,
+              children: [
+                {
+                  sx: cx + 108, sy: h * 0.43,
+                  cp1x: cx + 120, cp1y: h * 0.41, cp2x: cx + 134, cp2y: h * 0.38,
+                  ex: cx + 145, ey: h * 0.36,
+                  w: 1.3,
+                  leaf: { angle: 0.4, size: 12 }
+                },
+                {
+                  sx: cx + 108, sy: h * 0.43,
+                  cp1x: cx + 118, cp1y: h * 0.46, cp2x: cx + 128, cp2y: h * 0.50,
+                  ex: cx + 136, ey: h * 0.53,
+                  w: 1.2,
+                  leaf: { angle: 1.1, size: 10, isGold: true }
+                },
+                {
+                  sx: cx + 82, sy: h * 0.43,
+                  cp1x: cx + 90, cp1y: h * 0.38, cp2x: cx + 98, cp2y: h * 0.32,
+                  ex: cx + 104, ey: h * 0.27,
+                  w: 1.3,
+                  leaf: { angle: 0.5, size: 11 }
+                }
+              ]
+            }
+          ]
+        }
       ];
 
-      trunkFibres.forEach((tf) => {
-        c.lineWidth = tf.w;
-        c.beginPath();
-        c.moveTo(tf.sx, tf.sy);
-        tf.segments.forEach((seg) => {
-          c.bezierCurveTo(seg.cx1, seg.cy1, seg.cx2, seg.cy2, seg.ex, seg.ey);
-        });
-        c.stroke();
-      });
-
-      // 2. RAMOS E GALHOS ORGÂNICOS (Idênticos à foto de referência enviada pelo usuário)
-      const branches = [
-        // --- GRUPO ESQUERDO INFERIOR ---
-        {
-          sx: cx - 35, sy: h * 0.48,
-          c1x: cx - 55, c1y: h * 0.46, c2x: cx - 75, c2y: h * 0.42,
-          ex: cx - 95, ey: h * 0.40,
-          w: 1.8,
-          twigs: [
-            { c1x: cx - 105, c1y: h * 0.38, c2x: cx - 118, c2y: h * 0.34, ex: cx - 128, ey: h * 0.30, w: 1.2 },
-            { c1x: cx - 102, c1y: h * 0.42, c2x: cx - 115, c2y: h * 0.45, ex: cx - 125, ey: h * 0.48, w: 1.1 },
-            { c1x: cx - 85, c1y: h * 0.36, c2x: cx - 95, c2y: h * 0.30, ex: cx - 100, ey: h * 0.25, w: 1.2 },
-          ]
-        },
-
-        // --- GRUPO ESQUERDO MÉDIO ---
-        {
-          sx: cx - 18, sy: h * 0.42,
-          c1x: cx - 38, c1y: h * 0.38, c2x: cx - 55, c2y: h * 0.32,
-          ex: cx - 72, ey: h * 0.26,
-          w: 1.8,
-          twigs: [
-            { c1x: cx - 82, c1y: h * 0.22, c2x: cx - 95, c2y: h * 0.17, ex: cx - 105, ey: h * 0.12, w: 1.2 },
-            { c1x: cx - 68, c1y: h * 0.20, c2x: cx - 75, c2y: h * 0.14, ex: cx - 78, ey: h * 0.08, w: 1.0 },
-            { c1x: cx - 58, c1y: h * 0.28, c2x: cx - 62, c2y: h * 0.22, ex: cx - 65, ey: h * 0.17, w: 1.1 },
-          ]
-        },
-
-        // --- GRUPO CENTRAL / TOPO (Tronco central que sobe) ---
-        {
-          sx: cx, sy: h * 0.35,
-          c1x: cx - 2, c1y: h * 0.28, c2x: cx + 4, c2y: h * 0.22,
-          ex: cx + 2, ey: h * 0.15,
-          w: 1.9,
-          twigs: [
-            { c1x: cx + 2, c1y: h * 0.11, c2x: cx - 5, c2y: h * 0.07, ex: cx - 8, ey: h * 0.03, w: 1.2 },
-            { c1x: cx + 6, c1y: h * 0.11, c2x: cx + 14, c2y: h * 0.07, ex: cx + 20, ey: h * 0.03, w: 1.2 },
-            { c1x: cx - 10, c1y: h * 0.20, c2x: cx - 22, c2y: h * 0.15, ex: cx - 30, ey: h * 0.10, w: 1.1 },
-            { c1x: cx + 12, c1y: h * 0.22, c2x: cx + 24, c2y: h * 0.16, ex: cx + 32, ey: h * 0.12, w: 1.1 },
-          ]
-        },
-
-        // --- GRUPO DIREITO SUPERIOR ---
-        {
-          sx: cx + 32, sy: h * 0.42,
-          c1x: cx + 48, c1y: h * 0.36, c2x: cx + 68, c2y: h * 0.30,
-          ex: cx + 88, ey: h * 0.24,
-          w: 1.8,
-          twigs: [
-            { c1x: cx + 98, c1y: h * 0.20, c2x: cx + 112, c2y: h * 0.16, ex: cx + 125, ey: h * 0.12, w: 1.2 },
-            { c1x: cx + 85, c1y: h * 0.18, c2x: cx + 90, c2y: h * 0.12, ex: cx + 92, ey: h * 0.06, w: 1.0 },
-            { c1x: cx + 78, c1y: h * 0.27, c2x: cx + 86, c2y: h * 0.22, ex: cx + 92, ey: h * 0.18, w: 1.1 },
-          ]
-        },
-
-        // --- GRUPO DIREITO INFERIOR ---
-        {
-          sx: cx + 55, sy: h * 0.49,
-          c1x: cx + 75, c1y: h * 0.48, c2x: cx + 98, c2y: h * 0.46,
-          ex: cx + 118, ey: h * 0.45,
-          w: 1.8,
-          twigs: [
-            { c1x: cx + 128, c1y: h * 0.43, c2x: cx + 140, c2y: h * 0.40, ex: cx + 152, ey: h * 0.38, w: 1.2 },
-            { c1x: cx + 125, c1y: h * 0.48, c2x: cx + 138, c2y: h * 0.52, ex: cx + 148, ey: h * 0.55, w: 1.1 },
-            { c1x: cx + 105, c1y: h * 0.42, c2x: cx + 115, c2y: h * 0.36, ex: cx + 122, ey: h * 0.32, w: 1.1 },
-          ]
-        },
-      ];
-
-      // Desenhar ramos e galhos finos com pontas duplas (Forquilha Y)
-      branches.forEach((b) => {
-        c.lineWidth = b.w;
-        c.beginPath();
-        c.moveTo(b.sx, b.sy);
-        c.bezierCurveTo(b.c1x, b.c1y, b.c2x, b.c2y, b.ex, b.ey);
-        c.stroke();
-
-        b.twigs.forEach((tw) => {
-          c.lineWidth = tw.w;
-          c.beginPath();
-          c.moveTo(b.ex, b.ey);
-          c.bezierCurveTo(tw.c1x, tw.c1y, tw.c2x, tw.c2y, tw.ex, tw.ey);
-          c.stroke();
-
-          // Ramificação fina dupla na ponta (Y fino característico da foto)
-          c.lineWidth = Math.max(tw.w * 0.7, 0.7);
-          c.beginPath();
-          c.moveTo(tw.ex, tw.ey);
-          c.lineTo(tw.ex + (tw.ex > cx ? 8 : -8), tw.ey - 10);
-          c.moveTo(tw.ex, tw.ey);
-          c.lineTo(tw.ex + (tw.ex > cx ? 12 : -12), tw.ey - 4);
-          c.stroke();
-        });
-      });
-
-      // 3. FOLHAS DELICADAS NOS GALHOS (Conforme a folha da foto de referência)
-      const drawBranchLeaf = (
+      // 4. FUNÇÃO PARA DESENHAR FOLHA BOTÂNICA DELICADA
+      const drawRealisticLeaf = (
         lx: number,
         ly: number,
         angle: number,
-        size = 11,
+        size = 12,
         isGolden = false
       ) => {
         c.save();
         c.translate(lx, ly);
         c.rotate(angle);
 
-        c.shadowColor = isGolden ? 'rgba(245, 158, 11, 0.55)' : 'rgba(16, 185, 129, 0.65)';
-        c.shadowBlur = 6;
+        c.shadowColor = isGolden ? 'rgba(245, 158, 11, 0.65)' : 'rgba(16, 185, 129, 0.75)';
+        c.shadowBlur = 8;
 
         c.beginPath();
         c.moveTo(0, -size);
@@ -791,50 +932,44 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
         c.closePath();
 
         c.fillStyle = isGolden
-          ? 'rgba(245, 158, 11, 0.75)'
-          : 'rgba(16, 185, 129, 0.80)';
+          ? 'rgba(245, 158, 11, 0.85)'
+          : 'rgba(16, 185, 129, 0.88)';
         c.fill();
 
         c.strokeStyle = isGolden ? '#FEF08A' : '#6EE7B7';
         c.lineWidth = 1;
         c.stroke();
 
-        // Nervura sutil
+        // Nervura central delicada
         c.beginPath();
         c.moveTo(0, -size * 0.75);
         c.lineTo(0, size * 0.85);
-        c.strokeStyle = isGolden ? 'rgba(254, 240, 138, 0.6)' : 'rgba(209, 250, 229, 0.6)';
+        c.strokeStyle = isGolden ? 'rgba(254, 240, 138, 0.7)' : 'rgba(209, 250, 229, 0.7)';
         c.lineWidth = 0.8;
         c.stroke();
 
         c.restore();
       };
 
-      // Folhas brotando nas pontas e galhos (destaque para a folha no topo como na foto)
-      const treeLeaves = [
-        // Topo alto (idêntico à folha de destaque da foto de referência)
-        { x: cx + 92, y: h * 0.06, angle: 0.5, size: 13, isGold: false },
-        { x: cx - 8, y: h * 0.03, angle: -0.4, size: 12, isGold: false },
-        { x: cx + 20, y: h * 0.03, angle: 0.6, size: 11, isGold: true },
+      // 5. FUNÇÃO RECURSIVA PARA DESENHAR GALHOS HIERÁRQUICOS COM ESPESSURA E FOLHAS
+      const renderLimb = (l: Limb) => {
+        c.strokeStyle = 'rgba(241, 245, 249, 0.75)';
+        c.lineWidth = l.w;
+        c.beginPath();
+        c.moveTo(l.sx, l.sy);
+        c.bezierCurveTo(l.cp1x, l.cp1y, l.cp2x, l.cp2y, l.ex, l.ey);
+        c.stroke();
 
-        // Ramo direito superior e médio
-        { x: cx + 125, y: h * 0.12, angle: 0.8, size: 12, isGold: false },
-        { x: cx + 32, y: h * 0.12, angle: 0.4, size: 10, isGold: false },
-        { x: cx + 152, y: h * 0.38, angle: 0.3, size: 11, isGold: false },
-        { x: cx + 122, y: h * 0.32, angle: 0.6, size: 10, isGold: true },
+        if (l.leaf) {
+          drawRealisticLeaf(l.ex, l.ey, l.leaf.angle, l.leaf.size, l.leaf.isGold);
+        }
 
-        // Ramo esquerdo alto e médio
-        { x: cx - 105, y: h * 0.12, angle: -0.7, size: 12, isGold: false },
-        { x: cx - 78, y: h * 0.08, angle: -0.3, size: 11, isGold: true },
-        { x: cx - 30, y: h * 0.10, angle: -0.4, size: 10, isGold: false },
-        { x: cx - 128, y: h * 0.30, angle: -0.9, size: 12, isGold: false },
-        { x: cx - 100, y: h * 0.25, angle: -0.5, size: 10, isGold: false },
-        { x: cx - 65, y: h * 0.17, angle: -0.6, size: 11, isGold: false },
-      ];
+        if (l.children) {
+          l.children.forEach(renderLimb);
+        }
+      };
 
-      treeLeaves.forEach((tl) => {
-        drawBranchLeaf(tl.x, tl.y, tl.angle, tl.size, tl.isGold);
-      });
+      realisticBranches.forEach(renderLimb);
 
       c.restore();
     };
