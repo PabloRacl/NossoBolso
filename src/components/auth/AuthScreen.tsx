@@ -555,10 +555,37 @@ export const AuthScreen: React.FC = () => {
                   initial={{ opacity: 0, y: -10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  className="mb-4 p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center gap-3 text-rose-400 text-xs font-medium backdrop-blur-md"
+                  className="mb-4 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium backdrop-blur-md space-y-2"
                 >
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{error}</span>
+                  <div className="flex items-center gap-2 font-bold text-rose-400">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                  {error.includes('Já existe uma conta') && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMode('login');
+                          setError(null);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 font-bold transition-all flex items-center gap-1.5"
+                      >
+                        <LogIn className="w-3.5 h-3.5" />
+                        <span>Fazer Login</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMode('forgot');
+                          setError(null);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-slate-800/80 text-slate-300 hover:text-white font-semibold transition-colors"
+                      >
+                        Recuperar Senha
+                      </button>
+                    </div>
+                  )}
                 </motion.div>
               )}
 

@@ -85,15 +85,26 @@ export const authService = {
     return newUser;
   },
 
-  // Cadastro de novo usuário com Token de Validação por Email
+  // Cadastro de novo usuário com suporte a verificação e e-mail duplicado
   async register({ name, email }: RegisterPayload): Promise<UserProfile> {
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     const users = getSavedUsers();
-    const existing = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    const existingIndex = users.findIndex((u) => u.email.toLowerCase() === email.toLowerCase());
 
-    if (existing) {
-      throw new Error('Já existe uma conta cadastrada com este e-mail.');
+    if (existingIndex !== -1) {
+      const existing = users[existingIndex];
+      // Se a conta já existe e o e-mail está verificado: lança erro de duplicidade
+      if (existing.isEmailVerified) {
+        throw new Error('Já existe uma conta ativa cadastrada com este e-mail.');
+      }
+
+      // Se a conta já existe mas o e-mail AINDA NÃO foi verificado: renova o token e envia o usuário para validação
+      const newVerificationToken = Math.floor(100000 + Math.random() * 900000).toString();
+      users[existingIndex].verificationToken = newVerificationToken;
+      users[existingIndex].name = name;
+      localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
+      return users[existingIndex];
     }
 
     // Gera um Token de Verificação de 6 Dígitos (ex: 849201)
@@ -114,7 +125,6 @@ export const authService = {
     users.push(newUser);
     localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
 
-    // Retorna o usuário com o token gerado para o formulário exibir a etapa de validação
     return newUser;
   },
 
