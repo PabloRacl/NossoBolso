@@ -596,67 +596,6 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       c.restore();
     };
 
-    // DRAW GOLD VAULT CHEST COLLECTOR (MODO CHUVA DE OURO)
-    const drawGoldVaultChest = (
-      c: CanvasRenderingContext2D,
-      cx: number,
-      cy: number,
-      collectedAmount: number,
-      glowActive: boolean
-    ) => {
-      const w = 180;
-      const h = 75;
-
-      c.save();
-
-      // Golden Aura Glow
-      c.shadowColor = glowActive ? '#FEF08A' : '#F59E0B';
-      c.shadowBlur = glowActive ? 30 : 18;
-
-      // Vault Box Body
-      c.fillStyle = '#1E1B4B';
-      c.strokeStyle = '#F59E0B';
-      c.lineWidth = 3;
-
-      c.beginPath();
-      c.roundRect(cx - w / 2, cy - h / 2, w, h, 14);
-      c.fill();
-      c.stroke();
-
-      c.shadowBlur = 0;
-
-      // Golden Trim Bar
-      c.fillStyle = '#D97706';
-      c.fillRect(cx - w / 2 + 6, cy - h / 2 + 6, w - 12, 10);
-
-      // Gold Coin Emblem in Center
-      c.fillStyle = '#F59E0B';
-      c.strokeStyle = '#FEF08A';
-      c.lineWidth = 2;
-      c.beginPath();
-      c.arc(cx - 55, cy + 8, 16, 0, Math.PI * 2);
-      c.fill();
-      c.stroke();
-
-      c.fillStyle = '#78350F';
-      c.font = 'bold 16px sans-serif';
-      c.textAlign = 'center';
-      c.textBaseline = 'middle';
-      c.fillText('$', cx - 55, cy + 9);
-
-      // Total Collected Amount Text
-      c.fillStyle = '#FEF08A';
-      c.font = 'black 14px sans-serif';
-      c.textAlign = 'left';
-      c.fillText('COFRE NOSSOBOLSO', cx - 30, cy - 2);
-
-      c.fillStyle = '#10B981';
-      c.font = 'bold 15px sans-serif';
-      c.fillText(`R$ ${collectedAmount.toLocaleString('pt-BR')},00`, cx - 30, cy + 18);
-
-      c.restore();
-    };
-
     // Main Render Loop
     const render = () => {
       ctx.clearRect(0, 0, width, height);
@@ -746,18 +685,6 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
           p.rotation += (Math.random() - 0.5) * 0.15;
         }
 
-        // Gold Rain Mode Vault Collection Collision Check
-        if (mode === 'gold_rain' && p.y > height - 85) {
-          const vdx = p.x - vaultX;
-          const vdy = p.y - vaultY;
-          const vdist = Math.sqrt(vdx * vdx + vdy * vdy);
-          if (vdist < 120) {
-            totalGoldCollected += 50;
-            vaultGlowTimer = 15;
-            Object.assign(p, createParticle(true));
-          }
-        }
-
         if (mode === 'leaves') {
           const morphThreshold = height * 0.55;
           if (p.y > morphThreshold && !p.isMorphed) {
@@ -790,12 +717,6 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
 
         ctx.restore();
       });
-
-      // RENDER GOLD VAULT CHEST (MODO CHUVA DE OURO)
-      if (mode === 'gold_rain') {
-        if (vaultGlowTimer > 0) vaultGlowTimer--;
-        drawGoldVaultChest(ctx, vaultX, vaultY, totalGoldCollected, vaultGlowTimer > 0);
-      }
 
       // RENDER FLYING PEOPLE WITH UMBRELLAS IN STORM MODE
       if (mode === 'storm') {
