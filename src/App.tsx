@@ -40,6 +40,9 @@ import { QrCodeScannerModal } from './components/scanner/QrCodeScannerModal';
 import { WhatIfSimulatorModal } from './components/simulator/WhatIfSimulatorModal';
 import { IndependenceSimulatorModal } from './components/calculator/IndependenceSimulatorModal';
 import { ScoreModal } from './components/score/ScoreModal';
+import { AuthModal } from './components/auth/AuthModal';
+import { UserProfileModal } from './components/auth/UserProfileModal';
+import { AuthScreen } from './components/auth/AuthScreen';
 import { ThemeSelectorModal } from './components/theme/ThemeSelectorModal';
 import { ReceiptGeneratorModal } from './components/receipts/ReceiptGeneratorModal';
 import { ShortcutsModal } from './components/layout/ShortcutsModal';
@@ -64,6 +67,7 @@ const pageTransitionVariants = {
 
 export const App: React.FC = () => {
   const {
+    user,
     activePage,
     selectedMonth,
     setSelectedMonth,
@@ -264,6 +268,10 @@ export const App: React.FC = () => {
     await db.transactions.delete(id);
   };
 
+  if (!user) {
+    return <AuthScreen />;
+  }
+
   return (
     <AppLayout>
       <AnimatePresence mode="wait">
@@ -362,6 +370,8 @@ export const App: React.FC = () => {
       <ContrachequeModal />
       <ScoreModal isOpen={isScoreModalOpen} onClose={() => setScoreModalOpen(false)} />
       <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
+      <AuthModal />
+      <UserProfileModal />
     </AppLayout>
   );
 };

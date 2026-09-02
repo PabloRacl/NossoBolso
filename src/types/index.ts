@@ -173,3 +173,13 @@ export interface VehicleRecord {
   createdAt: string;
 }
 
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl?: string;
+  provider?: 'credentials' | 'google' | 'facebook' | 'linkedin';
+  role?: 'user' | 'admin';
+  createdAt?: string;
+}
+

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { LayoutDashboard, ArrowLeftRight, Wallet, CreditCard, Target, ShoppingCart, Car, FileSpreadsheet, Calculator, Sparkles, PanelLeftClose, PanelLeftOpen, Calendar, Search, Smartphone, Sliders, Compass, Palette, Keyboard, FileText, Database, ChevronDown, ChevronRight, Activity } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, CreditCard, Target, ShoppingCart, Car, FileSpreadsheet, Calculator, Sparkles, PanelLeftClose, PanelLeftOpen, Calendar, Search, Smartphone, Sliders, Compass, Palette, Keyboard, FileText, Database, ChevronDown, ChevronRight, Activity, LogIn, User as UserIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const Sidebar: React.FC = () => {
-  const { activePage, setActivePage, isSidebarCollapsed, toggleSidebarCollapsed, isMobileMenuOpen, toggleMobileMenu, setCommandPaletteOpen } = useAppStore();
+  const { user, setUserProfileModalOpen, setAuthModalOpen, setAuthMode, activePage, setActivePage, isSidebarCollapsed, toggleSidebarCollapsed, isMobileMenuOpen, toggleMobileMenu, setCommandPaletteOpen } = useAppStore();
   const [isSettingsOpen, setIsSettingsOpen] = useState(true);
 
   const navItems = [
@@ -194,12 +194,62 @@ export const Sidebar: React.FC = () => {
             {(!isSidebarCollapsed || isMobileMenuOpen) && <span className="text-[10px] uppercase tracking-wider font-extrabold bg-[#00FF88]/20 px-1.5 py-0.5 rounded text-[#00FF88]">PWA</span>}
           </button>
 
-          {(!isSidebarCollapsed || isMobileMenuOpen) && (
-            <div className="p-2.5 bg-[#162032]/80 border border-[#2E3B52] rounded-xl flex items-center justify-between text-xs text-[#94A3B8] w-full">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#00FF88] shrink-0" />
-                <span className="font-extrabold text-[#F8FAFC] text-[11px]">Finance OS v2.0</span>
+          {/* User Profile / Login Card na base da Sidebar */}
+          {user ? (
+            <button
+              onClick={() => {
+                setUserProfileModalOpen(true);
+                if (isMobileMenuOpen) toggleMobileMenu();
+              }}
+              title={`Perfil de ${user.name}`}
+              className={clsx(
+                'p-2 bg-[#162032]/90 border border-[#2E3B52] hover:border-[#00FF88]/50 rounded-xl flex items-center gap-2.5 transition-all text-left group w-full',
+                isSidebarCollapsed && !isMobileMenuOpen ? 'justify-center px-0' : 'justify-between'
+              )}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <img
+                  src={user.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user'}
+                  alt={user.name}
+                  className="w-7 h-7 rounded-full object-cover border border-[#00FF88]/40 shrink-0"
+                />
+                {(!isSidebarCollapsed || isMobileMenuOpen) && (
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-white truncate group-hover:text-[#00FF88] transition-colors">
+                      {user.name}
+                    </span>
+                    <span className="text-[10px] text-[#94A3B8] truncate">{user.email}</span>
+                  </div>
+                )}
               </div>
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setAuthMode('login');
+                setAuthModalOpen(true);
+                if (isMobileMenuOpen) toggleMobileMenu();
+              }}
+              title="Entrar na sua Conta NossoBolso"
+              className={clsx(
+                'p-2 bg-[#162032]/80 border border-[#2E3B52] hover:border-[#00FF88] rounded-xl flex items-center gap-2 text-xs font-bold text-[#F8FAFC] transition-all group w-full',
+                isSidebarCollapsed && !isMobileMenuOpen ? 'justify-center' : 'justify-between'
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <LogIn className="w-4 h-4 text-[#00FF88] group-hover:scale-110 transition-transform shrink-0" />
+                {(!isSidebarCollapsed || isMobileMenuOpen) && <span>Entrar / Cadastrar</span>}
+              </div>
+            </button>
+          )}
+
+          {(!isSidebarCollapsed || isMobileMenuOpen) && (
+            <div className="px-2 py-1 flex items-center justify-between text-[10px] text-[#64748B] w-full">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="w-3 h-3 text-[#00FF88] shrink-0" />
+                <span className="font-extrabold text-[#F8FAFC]">NossoBolso OS v2.0</span>
+              </div>
+              <span className="text-[#00FF88] font-semibold">Online</span>
             </div>
           )}
         </div>

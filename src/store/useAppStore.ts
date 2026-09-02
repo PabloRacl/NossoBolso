@@ -1,8 +1,20 @@
 import { create } from 'zustand';
+import { UserProfile } from '../types';
+import { authService } from '../services/authService';
 
 export type PageType = 'dashboard' | 'transactions' | 'wallets' | 'debts' | 'goals' | 'pantry' | 'vehicles' | 'reports' | 'calculator' | 'calendar' | 'settings';
 
 interface AppStore {
+  // Auth & User State
+  user: UserProfile | null;
+  setUser: (user: UserProfile | null) => void;
+  isAuthModalOpen: boolean;
+  setAuthModalOpen: (open: boolean) => void;
+  authMode: 'login' | 'register' | 'forgot';
+  setAuthMode: (mode: 'login' | 'register' | 'forgot') => void;
+  isUserProfileModalOpen: boolean;
+  setUserProfileModalOpen: (open: boolean) => void;
+
   activePage: PageType;
   setActivePage: (page: PageType) => void;
   selectedMonth: string; // YYYY-MM
@@ -97,6 +109,15 @@ export const getCurrentMonthKey = () => {
 };
 
 export const useAppStore = create<AppStore>((set) => ({
+  user: authService.getCurrentUser(),
+  setUser: (user) => set({ user }),
+  isAuthModalOpen: false,
+  setAuthModalOpen: (open) => set({ isAuthModalOpen: open }),
+  authMode: 'login',
+  setAuthMode: (mode) => set({ authMode: mode }),
+  isUserProfileModalOpen: false,
+  setUserProfileModalOpen: (open) => set({ isUserProfileModalOpen: open }),
+
   activePage: 'dashboard',
   setActivePage: (page) => set({ activePage: page }),
   selectedMonth: getCurrentMonthKey(),

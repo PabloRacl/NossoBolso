@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useAppStore, getCurrentMonthKey } from '../../store/useAppStore';
 import { Button } from '../ui/Button';
-import { Plus, Upload, Calendar, Tag, ChevronLeft, ChevronRight, Sparkles, Eye, EyeOff, Bell, Target, FileCheck, Search, Menu, History, Database, Mic, QrCode, Compass, Palette, FileText, Keyboard, Smartphone, Activity } from 'lucide-react';
+import { Plus, Upload, Calendar, Tag, ChevronLeft, ChevronRight, Sparkles, Eye, EyeOff, Bell, Target, FileCheck, Search, Menu, History, Database, Mic, QrCode, Compass, Palette, FileText, Keyboard, Smartphone, Activity, User as UserIcon, LogIn } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../services/db';
 import { BioCyberLogo } from './BioCyberLogo';
@@ -9,6 +9,10 @@ import { requestNotificationPermission } from '../../services/notificationServic
 
 export const Topbar: React.FC = () => {
   const {
+    user,
+    setAuthModalOpen,
+    setUserProfileModalOpen,
+    setAuthMode,
     activePage,
     setTransactionModalOpen,
     setOfxModalOpen,
@@ -357,6 +361,38 @@ export const Topbar: React.FC = () => {
           <Plus className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Transação</span>
         </Button>
+
+        {/* User Account / Profile Button */}
+        {user ? (
+          <button
+            onClick={() => setUserProfileModalOpen(true)}
+            className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full bg-[#162032] border border-[#2E3B52] hover:border-[#00FF88]/50 transition-all group"
+            title={`Perfil de ${user.name}`}
+          >
+            <img
+              src={user.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user'}
+              alt={user.name}
+              className="w-6 h-6 rounded-full object-cover border border-[#00FF88]/40"
+            />
+            <span className="text-xs font-medium text-white truncate max-w-[100px] hidden md:inline group-hover:text-[#00FF88] transition-colors">
+              {user.name.split(' ')[0]}
+            </span>
+          </button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setAuthMode('login');
+              setAuthModalOpen(true);
+            }}
+            className="bg-[#162032] border-[#2E3B52] hover:border-[#00FF88] text-xs px-2.5 sm:px-3"
+            title="Entrar na sua Conta"
+          >
+            <LogIn className="w-3.5 h-3.5 text-[#00FF88]" />
+            <span className="hidden sm:inline">Entrar</span>
+          </Button>
+        )}
       </div>
     </header>
   );
