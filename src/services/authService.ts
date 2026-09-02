@@ -1,4 +1,5 @@
 import { UserProfile } from '../types';
+import { emailService } from './emailService';
 
 const STORAGE_KEY_USER = 'nossobolso_auth_user';
 const STORAGE_KEY_USERS_DB = 'nossobolso_registered_users';
@@ -99,11 +100,19 @@ export const authService = {
         throw new Error('Já existe uma conta ativa cadastrada com este e-mail.');
       }
 
-      // Se a conta já existe mas o e-mail AINDA NÃO foi verificado: renova o token e envia o usuário para validação
+      // Se a conta já existe mas o e-mail AINDA NÃO foi verificado: renova o token e envia o e-mail
       const newVerificationToken = Math.floor(100000 + Math.random() * 900000).toString();
       users[existingIndex].verificationToken = newVerificationToken;
       users[existingIndex].name = name;
       localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
+
+      // Dispara envio de e-mail real ou simulação
+      await emailService.sendVerificationCode({
+        toName: name,
+        toEmail: email,
+        code: newVerificationToken,
+      });
+
       return users[existingIndex];
     }
 
@@ -124,6 +133,13 @@ export const authService = {
 
     users.push(newUser);
     localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
+
+    // Dispara envio de e-mail real ou simulação
+    await emailService.sendVerificationCode({
+      toName: name,
+      toEmail: email,
+      code: verificationToken,
+    });
 
     return newUser;
   },
@@ -173,8 +189,15 @@ export const authService = {
 
     const newCode = Math.floor(100000 + Math.random() * 900000).toString();
     users[userIndex].verificationToken = newCode;
-
     localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
+
+    // Dispara envio de e-mail real ou simulação
+    await emailService.sendVerificationCode({
+      toName: users[userIndex].name,
+      toEmail: email,
+      code: newCode,
+    });
+
     return newCode;
   },
 
