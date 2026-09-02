@@ -28,11 +28,13 @@ import {
   Car,
   Target,
   Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { authService } from '../../services/authService';
 import { BioCyberLogo } from '../layout/BioCyberLogo';
 import { FallingLeavesAnimation, WeatherMode } from './FallingLeavesAnimation';
+import { HolographicSecurityBadge } from './HolographicSecurityBadge';
 
 export const AuthScreen: React.FC = () => {
   const { setUser, authMode, setAuthMode } = useAppStore();
@@ -153,6 +155,19 @@ export const AuthScreen: React.FC = () => {
       {/* Ambient Glows & Cyber Grids */}
       <div className="absolute top-1/4 -left-20 w-[450px] h-[450px] bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none animate-pulse" />
       <div className="absolute bottom-1/4 -right-20 w-[450px] h-[450px] bg-teal-500/15 rounded-full blur-[120px] pointer-events-none animate-pulse" />
+
+      {/* Top Active Economy Ticker Bar (Topo Esquerdo) */}
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-30 hidden md:flex items-center gap-3 px-3.5 py-1.5 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl shadow-2xl text-xs font-semibold text-slate-300">
+        <span className="flex items-center gap-1.5 text-emerald-400">
+          <TrendingUp className="w-3.5 h-3.5" />
+          <span className="font-bold">Economia Gerada: R$ 1.482.950,00</span>
+        </span>
+        <span className="w-1 h-1 rounded-full bg-slate-700" />
+        <span className="flex items-center gap-1.5 text-cyan-400">
+          <ShieldCheck className="w-3.5 h-3.5" />
+          <span>100% Offline & Privado</span>
+        </span>
+      </div>
 
       {/* Weather Mode Switcher Floating Bar (Topo Direito) */}
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-30 flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl shadow-2xl">
@@ -433,6 +448,9 @@ export const AuthScreen: React.FC = () => {
               Importação OFX
             </span>
           </div>
+
+          {/* 3D Holographic Security Badge */}
+          <HolographicSecurityBadge />
         </div>
 
         {/* Right Side: Futuristic Auth Card */}

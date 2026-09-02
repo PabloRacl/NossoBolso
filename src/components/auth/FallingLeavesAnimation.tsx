@@ -109,7 +109,11 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
 
     window.addEventListener('mousemove', handleMouseMove);
 
-    // 1. PARTICLES (Adjusted per weather mode)
+    // GOLD VAULT CHEST COLLECTOR STATE (MODO CHUVA DE OURO)
+    let totalGoldCollected = 4500;
+    let vaultGlowTimer = 0;
+
+    // PARTICLES (Adjusted per weather mode)
     const PARTICLE_COUNT = mode === 'gold_rain' ? 35 : mode === 'storm' ? 25 : 20;
     const particles: Particle[] = [];
 
@@ -125,11 +129,11 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       if (mode === 'gold_rain') {
         size = 14 + Math.random() * 16;
         opacity = 0.7 + Math.random() * 0.3;
-        vy = 2.5 + Math.random() * 2.5;
+        vy = 1.3 + Math.random() * 1.2; // Smooth gold rain speed
       } else if (mode === 'storm') {
         size = 12 + Math.random() * 18;
         opacity = 0.6 + Math.random() * 0.4;
-        vy = 1.8 + Math.random() * 1.5; // Velocidade de queda mais suave na tempestade
+        vy = 1.8 + Math.random() * 1.5;
       } else {
         if (depthRand < 0.35) {
           depth = 'bg';
@@ -176,7 +180,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       particles.push(createParticle());
     }
 
-    // 2. FLYING PEOPLE WITH UMBRELLAS FOR STORM MODE (Pessoas Voando com Guarda-chuva)
+    // FLYING PEOPLE WITH UMBRELLAS FOR STORM MODE
     const umbrellaFlyers: UmbrellaFlyer[] = [];
     if (mode === 'storm') {
       const flyerColors = [
@@ -192,7 +196,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
         return {
           x: reset ? -100 - Math.random() * 200 : Math.random() * width,
           y: reset ? Math.random() * (height * 0.7) : Math.random() * height,
-          vx: 2.0 + Math.random() * 1.8, // Velocidade reduzida do voo dos guarda-chuvas
+          vx: 2.0 + Math.random() * 1.8,
           vy: 0.8 + Math.random() * 1.0,
           size: 26 + Math.random() * 12,
           rotation: -0.2 + (Math.random() - 0.5) * 0.3,
@@ -209,7 +213,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       }
     }
 
-    // 3. TRAP LEAF / PRISON CELL STATE
+    // TRAP LEAF / PRISON CELL STATE
     const trapLeaf: TrapLeafState = {
       active: false,
       x: -100,
@@ -245,7 +249,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       trapLeaf.prisonerSway = 0;
     };
 
-    // 4. LIGHTNING FLASH STATE FOR STORM MODE
+    // LIGHTNING FLASH STATE FOR STORM MODE
     const lightning: LightningFlash = {
       active: false,
       x: 0,
@@ -376,7 +380,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       c.restore();
     };
 
-    // DRAW FLYING PERSON WITH UMBRELLA (PESSOA VOANDO COM GUARDA-CHUVA)
+    // DRAW FLYING PERSON WITH UMBRELLA
     const drawFlyingPersonWithUmbrella = (
       c: CanvasRenderingContext2D,
       flyer: UmbrellaFlyer
@@ -387,11 +391,9 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       c.translate(flyer.x, flyer.y);
       c.rotate(flyer.rotation);
 
-      // Glow effect around flying umbrella
       c.shadowColor = flyer.umbrellaColor;
       c.shadowBlur = 12;
 
-      // 1. UMBRELLA CANOPY (Cúpula do Guarda-chuva)
       c.fillStyle = flyer.umbrellaColor;
       c.strokeStyle = '#FFFFFF';
       c.lineWidth = 2;
@@ -402,7 +404,6 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       c.fill();
       c.stroke();
 
-      // Umbrella Ribs (Linhas do Guarda-chuva)
       c.strokeStyle = 'rgba(255, 255, 255, 0.5)';
       c.lineWidth = 1.5;
       c.beginPath();
@@ -414,13 +415,11 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       c.lineTo(s * 0.45, -s * 0.45);
       c.stroke();
 
-      // Top Spike
       c.fillStyle = '#FFFFFF';
       c.beginPath();
       c.arc(0, -s * 1.42, 3, 0, Math.PI * 2);
       c.fill();
 
-      // Umbrella Shaft / Metal Rod
       c.strokeStyle = '#CBD5E1';
       c.lineWidth = 3;
       c.beginPath();
@@ -428,18 +427,15 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       c.lineTo(-s * 0.2, s * 0.6);
       c.stroke();
 
-      // Hooked Handle
       c.beginPath();
       c.arc(-s * 0.25, s * 0.6, 5, 0, Math.PI);
       c.stroke();
 
       c.shadowBlur = 0;
 
-      // 2. FLYING PERSON DANGLING IN WIND (Pessoa Se Segurando e Voando em Diagonal)
       const px = -s * 0.2;
       const py = s * 0.65;
 
-      // Flying Coat/Scarf Tail Flapping in Wind (Casaco Voando para Trás)
       c.fillStyle = flyer.coatColor;
       c.beginPath();
       c.moveTo(px - 6, py + 12);
@@ -448,38 +444,31 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       c.closePath();
       c.fill();
 
-      // Person Head & Hat (Cabeça e Chapéu Voando)
       c.fillStyle = '#FCA5A5';
       c.beginPath();
       c.arc(px, py - 4, s * 0.22, 0, Math.PI * 2);
       c.fill();
 
-      // Flying Hat
       c.fillStyle = '#1E293B';
       c.beginPath();
       c.ellipse(px - 2, py - 9, s * 0.28, 5, -0.3, 0, Math.PI * 2);
       c.fill();
 
-      // Person Torso (Corpo da Pessoa)
       c.fillStyle = flyer.coatColor;
       c.beginPath();
       c.roundRect(px - s * 0.2, py + 2, s * 0.4, s * 0.7, 5);
       c.fill();
 
-      // Hands Gripping Handle
       c.fillStyle = '#FCA5A5';
       c.beginPath();
       c.arc(px - 2, py, 4, 0, Math.PI * 2);
       c.fill();
 
-      // Legs Swept Horizontally by Wind (Pernas Levantadas pelo Vento)
       c.strokeStyle = '#1E293B';
       c.lineWidth = 4;
       c.beginPath();
-      // Left leg
       c.moveTo(px - 4, py + s * 0.7);
       c.lineTo(px - s * 0.7, py + s * 0.9 + Math.sin(flyer.swayPhase) * 4);
-      // Right leg
       c.moveTo(px + 4, py + s * 0.7);
       c.lineTo(px - s * 0.6, py + s * 1.1 + Math.cos(flyer.swayPhase) * 4);
       c.stroke();
@@ -607,6 +596,67 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       c.restore();
     };
 
+    // DRAW GOLD VAULT CHEST COLLECTOR (MODO CHUVA DE OURO)
+    const drawGoldVaultChest = (
+      c: CanvasRenderingContext2D,
+      cx: number,
+      cy: number,
+      collectedAmount: number,
+      glowActive: boolean
+    ) => {
+      const w = 180;
+      const h = 75;
+
+      c.save();
+
+      // Golden Aura Glow
+      c.shadowColor = glowActive ? '#FEF08A' : '#F59E0B';
+      c.shadowBlur = glowActive ? 30 : 18;
+
+      // Vault Box Body
+      c.fillStyle = '#1E1B4B';
+      c.strokeStyle = '#F59E0B';
+      c.lineWidth = 3;
+
+      c.beginPath();
+      c.roundRect(cx - w / 2, cy - h / 2, w, h, 14);
+      c.fill();
+      c.stroke();
+
+      c.shadowBlur = 0;
+
+      // Golden Trim Bar
+      c.fillStyle = '#D97706';
+      c.fillRect(cx - w / 2 + 6, cy - h / 2 + 6, w - 12, 10);
+
+      // Gold Coin Emblem in Center
+      c.fillStyle = '#F59E0B';
+      c.strokeStyle = '#FEF08A';
+      c.lineWidth = 2;
+      c.beginPath();
+      c.arc(cx - 55, cy + 8, 16, 0, Math.PI * 2);
+      c.fill();
+      c.stroke();
+
+      c.fillStyle = '#78350F';
+      c.font = 'bold 16px sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText('$', cx - 55, cy + 9);
+
+      // Total Collected Amount Text
+      c.fillStyle = '#FEF08A';
+      c.font = 'black 14px sans-serif';
+      c.textAlign = 'left';
+      c.fillText('COFRE NOSSOBOLSO', cx - 30, cy - 2);
+
+      c.fillStyle = '#10B981';
+      c.font = 'bold 15px sans-serif';
+      c.fillText(`R$ ${collectedAmount.toLocaleString('pt-BR')},00`, cx - 30, cy + 18);
+
+      c.restore();
+    };
+
     // Main Render Loop
     const render = () => {
       ctx.clearRect(0, 0, width, height);
@@ -670,6 +720,9 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
         return order[a.depth] - order[b.depth];
       });
 
+      const vaultX = width / 2;
+      const vaultY = height - 55;
+
       particles.forEach((p) => {
         p.swayPhase += p.swayFreq;
         const sway = Math.sin(p.swayPhase) * p.swayAmp;
@@ -691,6 +744,18 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
           p.x += Math.cos(angle) * force + mouseVx * force * 0.4;
           p.y += Math.sin(angle) * force + mouseVy * force * 0.4;
           p.rotation += (Math.random() - 0.5) * 0.15;
+        }
+
+        // Gold Rain Mode Vault Collection Collision Check
+        if (mode === 'gold_rain' && p.y > height - 85) {
+          const vdx = p.x - vaultX;
+          const vdy = p.y - vaultY;
+          const vdist = Math.sqrt(vdx * vdx + vdy * vdy);
+          if (vdist < 120) {
+            totalGoldCollected += 50;
+            vaultGlowTimer = 15;
+            Object.assign(p, createParticle(true));
+          }
         }
 
         if (mode === 'leaves') {
@@ -726,6 +791,12 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
         ctx.restore();
       });
 
+      // RENDER GOLD VAULT CHEST (MODO CHUVA DE OURO)
+      if (mode === 'gold_rain') {
+        if (vaultGlowTimer > 0) vaultGlowTimer--;
+        drawGoldVaultChest(ctx, vaultX, vaultY, totalGoldCollected, vaultGlowTimer > 0);
+      }
+
       // RENDER FLYING PEOPLE WITH UMBRELLAS IN STORM MODE
       if (mode === 'storm') {
         umbrellaFlyers.forEach((flyer) => {
@@ -734,7 +805,6 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
           flyer.y += flyer.vy + Math.sin(flyer.swayPhase) * 1.2;
           flyer.rotation += flyer.rotationSpeed;
 
-          // Mouse wind interaction for flying umbrellas
           const udx = flyer.x - mouseX;
           const udy = flyer.y - mouseY;
           const udist = Math.sqrt(udx * udx + udy * udy);
@@ -747,7 +817,6 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
 
           drawFlyingPersonWithUmbrella(ctx, flyer);
 
-          // Reset when blown offscreen
           if (flyer.x > width + 120 || flyer.y > height + 120) {
             flyer.x = -100 - Math.random() * 150;
             flyer.y = Math.random() * (height * 0.6);
