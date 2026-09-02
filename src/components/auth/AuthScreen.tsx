@@ -6,14 +6,12 @@ import {
   User,
   Eye,
   EyeOff,
-  Sparkles,
   ArrowRight,
   CheckCircle2,
   AlertCircle,
   Loader2,
   Facebook,
   Linkedin,
-  ShieldCheck,
   PieChart,
   Wallet,
   KeyRound,
@@ -21,16 +19,26 @@ import {
   LogIn,
   CreditCard,
   ShoppingCart,
-  Car,
   Check,
+  Zap,
+  CloudSun,
+  Coins,
+  TrendingUp,
+  Building2,
+  Car,
+  Target,
+  Sparkles,
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { authService } from '../../services/authService';
 import { BioCyberLogo } from '../layout/BioCyberLogo';
-import { FallingLeavesAnimation } from './FallingLeavesAnimation';
+import { FallingLeavesAnimation, WeatherMode } from './FallingLeavesAnimation';
 
 export const AuthScreen: React.FC = () => {
   const { setUser, authMode, setAuthMode } = useAppStore();
+
+  const [weatherMode, setWeatherMode] = useState<WeatherMode>('leaves');
+  const [activeHoverCard, setActiveHoverCard] = useState<number | null>(null);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -139,15 +147,56 @@ export const AuthScreen: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full bg-[#05070E] text-white flex items-center justify-center p-4 sm:p-8 relative overflow-hidden select-none">
-      {/* Interactive Falling Leaves & Money Canvas */}
-      <FallingLeavesAnimation />
+      {/* Interactive Canvas Background with Selected Weather Mode */}
+      <FallingLeavesAnimation mode={weatherMode} />
 
       {/* Ambient Glows & Cyber Grids */}
       <div className="absolute top-1/4 -left-20 w-[450px] h-[450px] bg-emerald-500/15 rounded-full blur-[120px] pointer-events-none animate-pulse" />
       <div className="absolute bottom-1/4 -right-20 w-[450px] h-[450px] bg-teal-500/15 rounded-full blur-[120px] pointer-events-none animate-pulse" />
 
-      {/* Subtle Grid Backdrop */}
-      <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-20 pointer-events-none" />
+      {/* Weather Mode Switcher Floating Bar (Topo Direito) */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-30 flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl shadow-2xl">
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 hidden sm:inline">Clima:</span>
+        
+        <button
+          onClick={() => setWeatherMode('leaves')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            weatherMode === 'leaves'
+              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-lg shadow-emerald-500/20'
+              : 'text-slate-400 hover:text-white'
+          }`}
+          title="Brisa de Folhas & Dinheiro"
+        >
+          <CloudSun className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Brisa</span>
+        </button>
+
+        <button
+          onClick={() => setWeatherMode('gold_rain')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            weatherMode === 'gold_rain'
+              ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-lg shadow-amber-500/20'
+              : 'text-slate-400 hover:text-white'
+          }`}
+          title="Chuva de Ouro & Moedas"
+        >
+          <Coins className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Chuva de Ouro</span>
+        </button>
+
+        <button
+          onClick={() => setWeatherMode('storm')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            weatherMode === 'storm'
+              ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40 shadow-lg shadow-purple-500/20'
+              : 'text-slate-400 hover:text-white'
+          }`}
+          title="Tempestade Cyber"
+        >
+          <Zap className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Tempestade</span>
+        </button>
+      </div>
 
       {/* Main Container Grid */}
       <div className="relative w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center z-10">
@@ -176,51 +225,196 @@ export const AuthScreen: React.FC = () => {
             Acompanhe saldos bancários, faturas de cartão, financiamentos, orçamentos mensais, compras de supermercado e revisões de veículos em um só lugar.
           </motion.p>
 
-          {/* Practical Features Grid (Demonstrações Reais do Sistema) */}
+          {/* Practical Features Grid com Previews Holográficos em Hover */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="grid grid-cols-2 gap-4 pt-2"
+            className="grid grid-cols-2 gap-4 pt-2 relative"
           >
-            <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-emerald-500/40 transition-all flex items-start gap-3 backdrop-blur-xl group">
+            {/* Card 1: Saldos & Cartões */}
+            <div
+              onMouseEnter={() => setActiveHoverCard(1)}
+              onMouseLeave={() => setActiveHoverCard(null)}
+              className="relative p-4 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-emerald-500/50 transition-all flex items-start gap-3 backdrop-blur-xl group cursor-pointer"
+            >
               <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 group-hover:scale-110 transition-transform shrink-0">
                 <Wallet className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-white">Saldos & Cartões</h4>
+                <h4 className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">Saldos & Cartões</h4>
                 <p className="text-[11px] text-slate-400 leading-tight">Monitore contas, faturas e rendimentos em tempo real.</p>
               </div>
+
+              {/* Holographic Preview Tooltip Popover 1 */}
+              <AnimatePresence>
+                {activeHoverCard === 1 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute -top-36 left-0 right-0 z-40 p-4 rounded-2xl bg-slate-950/95 border border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.25)] backdrop-blur-2xl space-y-2 pointer-events-none"
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                        <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                        Saldo Total Integrado
+                      </span>
+                      <span className="font-black text-emerald-400">R$ 18.420,50</span>
+                    </div>
+                    <div className="space-y-1 pt-1">
+                      <div className="flex justify-between text-[11px] text-slate-400 font-medium">
+                        <span>Cartão Nubank</span>
+                        <span className="text-white font-bold">R$ 1.840 / R$ 8.000</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 w-[23%]" />
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />
+                      Rendimento CDI: +R$ 145,20 este mês
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-teal-500/40 transition-all flex items-start gap-3 backdrop-blur-xl group">
+            {/* Card 2: Financiamentos */}
+            <div
+              onMouseEnter={() => setActiveHoverCard(2)}
+              onMouseLeave={() => setActiveHoverCard(null)}
+              className="relative p-4 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-teal-500/50 transition-all flex items-start gap-3 backdrop-blur-xl group cursor-pointer"
+            >
               <div className="p-2.5 rounded-xl bg-teal-500/10 text-teal-400 border border-teal-500/20 group-hover:scale-110 transition-transform shrink-0">
                 <CreditCard className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-white">Financiamentos</h4>
+                <h4 className="text-xs font-bold text-white group-hover:text-teal-400 transition-colors">Financiamentos</h4>
                 <p className="text-[11px] text-slate-400 leading-tight">Simule parcelas, amortização de dívidas e quitação.</p>
               </div>
+
+              {/* Holographic Preview Tooltip Popover 2 */}
+              <AnimatePresence>
+                {activeHoverCard === 2 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute -top-36 left-0 right-0 z-40 p-4 rounded-2xl bg-slate-950/95 border border-teal-500/40 shadow-[0_0_30px_rgba(20,184,166,0.25)] backdrop-blur-2xl space-y-2 pointer-events-none"
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-teal-400" />
+                        Financiamento Imobiliário
+                      </span>
+                      <span className="font-black text-teal-400">68% Quitado</span>
+                    </div>
+                    <div className="space-y-1 pt-1">
+                      <div className="flex justify-between text-[11px] text-slate-400 font-medium">
+                        <span>Parcelas (42 / 120)</span>
+                        <span className="text-white font-bold">R$ 1.850,00/mês</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-teal-500 to-cyan-400 w-[68%]" />
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-teal-400 font-semibold flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />
+                      Economia com Amortização: R$ 42.800 em juros
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-cyan-500/40 transition-all flex items-start gap-3 backdrop-blur-xl group">
+            {/* Card 3: Despensa & Veículos */}
+            <div
+              onMouseEnter={() => setActiveHoverCard(3)}
+              onMouseLeave={() => setActiveHoverCard(null)}
+              className="relative p-4 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-cyan-500/50 transition-all flex items-start gap-3 backdrop-blur-xl group cursor-pointer"
+            >
               <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 group-hover:scale-110 transition-transform shrink-0">
                 <ShoppingCart className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-white">Despensa & Veículos</h4>
+                <h4 className="text-xs font-bold text-white group-hover:text-cyan-400 transition-colors">Despensa & Veículos</h4>
                 <p className="text-[11px] text-slate-400 leading-tight">Controle de lista de compras e manutenção de veículos.</p>
               </div>
+
+              {/* Holographic Preview Tooltip Popover 3 */}
+              <AnimatePresence>
+                {activeHoverCard === 3 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute -top-36 left-0 right-0 z-40 p-4 rounded-2xl bg-slate-950/95 border border-cyan-500/40 shadow-[0_0_30px_rgba(6,182,212,0.25)] backdrop-blur-2xl space-y-2 pointer-events-none"
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                        <Car className="w-3.5 h-3.5 text-cyan-400" />
+                        Garagem & Despensa
+                      </span>
+                      <span className="font-bold text-cyan-400">Honda Civic 2022</span>
+                    </div>
+                    <div className="space-y-1.5 pt-1 text-[11px]">
+                      <div className="flex justify-between text-slate-300 font-medium">
+                        <span>Próxima Troca de Óleo:</span>
+                        <span className="text-emerald-400 font-bold">em 1.500 km</span>
+                      </div>
+                      <div className="flex justify-between text-slate-400">
+                        <span>Estoque Despensa:</span>
+                        <span className="text-white font-bold">14 itens com estoque OK</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-amber-500/40 transition-all flex items-start gap-3 backdrop-blur-xl group">
+            {/* Card 4: Orçamentos & Metas */}
+            <div
+              onMouseEnter={() => setActiveHoverCard(4)}
+              onMouseLeave={() => setActiveHoverCard(null)}
+              className="relative p-4 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-amber-500/50 transition-all flex items-start gap-3 backdrop-blur-xl group cursor-pointer"
+            >
               <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 group-hover:scale-110 transition-transform shrink-0">
                 <PieChart className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-white">Orçamentos & Metas</h4>
+                <h4 className="text-xs font-bold text-white group-hover:text-amber-400 transition-colors">Orçamentos & Metas</h4>
                 <p className="text-[11px] text-slate-400 leading-tight">Defina limites por categoria e acompanhe objetivos.</p>
               </div>
+
+              {/* Holographic Preview Tooltip Popover 4 */}
+              <AnimatePresence>
+                {activeHoverCard === 4 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute -top-36 left-0 right-0 z-40 p-4 rounded-2xl bg-slate-950/95 border border-amber-500/40 shadow-[0_0_30px_rgba(245,158,11,0.25)] backdrop-blur-2xl space-y-2 pointer-events-none"
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                        <Target className="w-3.5 h-3.5 text-amber-400" />
+                        Meta: Reserva de Emergência
+                      </span>
+                      <span className="font-black text-amber-400">85% Atingido</span>
+                    </div>
+                    <div className="space-y-1 pt-1">
+                      <div className="flex justify-between text-[11px] text-slate-400 font-medium">
+                        <span>Guardado / Meta</span>
+                        <span className="text-white font-bold">R$ 17.000 / R$ 20.000</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 w-[85%]" />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
 
