@@ -10,7 +10,7 @@ import { requestNotificationPermission } from '../../services/notificationServic
 export const Topbar: React.FC = () => {
   const {
     user,
-    setAuthModalOpen,
+    setUser,
     setUserProfileModalOpen,
     setAuthMode,
     activePage,
@@ -384,7 +384,7 @@ export const Topbar: React.FC = () => {
             size="sm"
             onClick={() => {
               setAuthMode('login');
-              setAuthModalOpen(true);
+              setUser(null);
             }}
             className="bg-[#162032] border-[#2E3B52] hover:border-[#00FF88] text-xs px-2.5 sm:px-3"
             title="Entrar na sua Conta"

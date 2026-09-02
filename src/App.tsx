@@ -40,9 +40,10 @@ import { QrCodeScannerModal } from './components/scanner/QrCodeScannerModal';
 import { WhatIfSimulatorModal } from './components/simulator/WhatIfSimulatorModal';
 import { IndependenceSimulatorModal } from './components/calculator/IndependenceSimulatorModal';
 import { ScoreModal } from './components/score/ScoreModal';
-import { AuthModal } from './components/auth/AuthModal';
 import { UserProfileModal } from './components/auth/UserProfileModal';
 import { AuthScreen } from './components/auth/AuthScreen';
+import { authService } from './services/authService';
+import { supabase } from './services/supabase';
 import { ThemeSelectorModal } from './components/theme/ThemeSelectorModal';
 import { ReceiptGeneratorModal } from './components/receipts/ReceiptGeneratorModal';
 import { ShortcutsModal } from './components/layout/ShortcutsModal';
@@ -111,6 +112,30 @@ export const App: React.FC = () => {
         }
       }
     });
+  }, []);
+
+  // Sincronizar sessão OAuth do Google retornada pelo Supabase
+  useEffect(() => {
+    authService.syncSupabaseSession().then((suUser) => {
+      if (suUser && !useAppStore.getState().user) {
+        useAppStore.getState().setUser(suUser);
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const suUser = await authService.syncSupabaseSession();
+        if (suUser) {
+          useAppStore.getState().setUser(suUser);
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Ouvinte global de teclas de atalho inteligentes
@@ -268,12 +293,34 @@ export const App: React.FC = () => {
     await db.transactions.delete(id);
   };
 
-  if (!user) {
-    return <AuthScreen />;
-  }
-
   return (
-    <AppLayout>
+    <AnimatePresence mode="wait">
+      {!user ? (
+        <motion.div
+          key="auth-screen-root"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{
+            opacity: 0,
+            scale: 0.98,
+            filter: 'blur(10px)',
+            transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+          }}
+          className="w-full min-h-screen"
+        >
+          <AuthScreen />
+        </motion.div>
+      ) : (
+        <motion.div
+          key="app-layout-root"
+          initial={{ opacity: 0 }}
+          animate={{
+            opacity: 1,
+            transition: { duration: 0.5, ease: 'easeOut' },
+          }}
+          className="w-full min-h-screen"
+        >
+          <AppLayout>
       <AnimatePresence mode="wait">
         <motion.div
           key={activePage}
@@ -370,8 +417,10 @@ export const App: React.FC = () => {
       <ContrachequeModal />
       <ScoreModal isOpen={isScoreModalOpen} onClose={() => setScoreModalOpen(false)} />
       <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
-      <AuthModal />
       <UserProfileModal />
     </AppLayout>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

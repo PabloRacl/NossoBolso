@@ -98,8 +98,8 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
 
     const handleMouseMove = (e: MouseEvent) => {
       if (prevMouseX !== -1000) {
-        mouseVx = (e.clientX - prevMouseX) * 0.4;
-        mouseVy = (e.clientY - prevMouseY) * 0.4;
+        mouseVx = (e.clientX - prevMouseX) * 0.2;
+        mouseVy = (e.clientY - prevMouseY) * 0.2;
       }
       mouseX = e.clientX;
       mouseY = e.clientY;
@@ -109,12 +109,8 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
 
     window.addEventListener('mousemove', handleMouseMove);
 
-    // GOLD VAULT CHEST COLLECTOR STATE (MODO CHUVA DE OURO)
-    let totalGoldCollected = 4500;
-    let vaultGlowTimer = 0;
-
-    // PARTICLES (Adjusted per weather mode)
-    const PARTICLE_COUNT = mode === 'gold_rain' ? 35 : mode === 'storm' ? 25 : 20;
+    // PARTICLES (Ajustados para queda ultra-suave sem cansar a vista)
+    const PARTICLE_COUNT = mode === 'gold_rain' ? 30 : mode === 'storm' ? 22 : 18;
     const particles: Particle[] = [];
 
     const createParticle = (resetAtTop = false): Particle => {
@@ -124,36 +120,36 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       let depth: 'bg' | 'md' | 'fg' = 'md';
       let size = 18;
       let opacity = 0.8;
-      let vy = 1.2;
+      let vy = 0.6;
 
       if (mode === 'gold_rain') {
         size = 14 + Math.random() * 16;
         opacity = 0.7 + Math.random() * 0.3;
-        vy = 1.3 + Math.random() * 1.2; // Smooth gold rain speed
+        vy = 0.5 + Math.random() * 0.45;
       } else if (mode === 'storm') {
         size = 12 + Math.random() * 18;
         opacity = 0.6 + Math.random() * 0.4;
-        vy = 1.8 + Math.random() * 1.5;
+        vy = 0.7 + Math.random() * 0.55;
       } else {
         if (depthRand < 0.35) {
           depth = 'bg';
           size = 10 + Math.random() * 5;
           opacity = 0.35 + Math.random() * 0.2;
-          vy = 0.7 + Math.random() * 0.5;
+          vy = 0.35 + Math.random() * 0.25;
         } else if (depthRand < 0.8) {
           depth = 'md';
           size = 18 + Math.random() * 6;
           opacity = 0.7 + Math.random() * 0.2;
-          vy = 1.2 + Math.random() * 0.8;
+          vy = 0.5 + Math.random() * 0.35;
         } else {
           depth = 'fg';
           size = 28 + Math.random() * 8;
           opacity = 0.9 + Math.random() * 0.1;
-          vy = 1.6 + Math.random() * 0.8;
+          vy = 0.7 + Math.random() * 0.4;
         }
       }
 
-      const initialVx = mode === 'storm' ? 1.8 + Math.random() * 1.8 : (Math.random() - 0.5) * 0.6;
+      const initialVx = mode === 'storm' ? 0.8 + Math.random() * 0.8 : (Math.random() - 0.5) * 0.4;
 
       return {
         x: Math.random() * width,
@@ -163,11 +159,11 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
         size,
         depth,
         rotation: Math.random() * Math.PI * 2,
-        rotationSpeed: (Math.random() - 0.5) * (mode === 'storm' ? 0.06 : 0.04),
+        rotationSpeed: (Math.random() - 0.5) * (mode === 'storm' ? 0.03 : 0.02),
         flipAngle: Math.random() * Math.PI * 2,
-        flipSpeed: 0.02 + Math.random() * 0.03,
-        swayFreq: 0.008 + Math.random() * 0.015,
-        swayAmp: 0.5 + Math.random() * 0.9,
+        flipSpeed: 0.01 + Math.random() * 0.015,
+        swayFreq: 0.005 + Math.random() * 0.008,
+        swayAmp: 0.4 + Math.random() * 0.6,
         swayPhase: Math.random() * Math.PI * 2,
         leafType: types[Math.floor(Math.random() * types.length)],
         isMorphed: mode === 'gold_rain',
@@ -196,13 +192,13 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
         return {
           x: reset ? -100 - Math.random() * 200 : Math.random() * width,
           y: reset ? Math.random() * (height * 0.7) : Math.random() * height,
-          vx: 2.0 + Math.random() * 1.8,
-          vy: 0.8 + Math.random() * 1.0,
+          vx: 0.9 + Math.random() * 0.7,
+          vy: 0.35 + Math.random() * 0.4,
           size: 26 + Math.random() * 12,
-          rotation: -0.2 + (Math.random() - 0.5) * 0.3,
-          rotationSpeed: (Math.random() - 0.5) * 0.02,
+          rotation: -0.2 + (Math.random() - 0.5) * 0.2,
+          rotationSpeed: (Math.random() - 0.5) * 0.01,
           swayPhase: Math.random() * Math.PI * 2,
-          swayFreq: 0.012 + Math.random() * 0.015,
+          swayFreq: 0.008 + Math.random() * 0.01,
           umbrellaColor: col.umbrella,
           coatColor: col.coat,
         };
@@ -218,14 +214,14 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       active: false,
       x: -100,
       y: -100,
-      vx: 0.5,
-      vy: 1.1,
+      vx: 0.3,
+      vy: 0.5,
       size: 26,
       rotation: 0,
-      rotationSpeed: 0.03,
+      rotationSpeed: 0.015,
       swayPhase: 0,
-      swayFreq: 0.01,
-      swayAmp: 0.8,
+      swayFreq: 0.006,
+      swayAmp: 0.5,
       isTrapped: false,
       trapTimer: 0,
       stolenText: null,
@@ -240,8 +236,8 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       trapLeaf.active = true;
       trapLeaf.x = Math.random() * width;
       trapLeaf.y = -30;
-      trapLeaf.vx = (Math.random() - 0.5) * 0.7;
-      trapLeaf.vy = 1.1 + Math.random() * 0.6;
+      trapLeaf.vx = (Math.random() - 0.5) * 0.4;
+      trapLeaf.vy = 0.5 + Math.random() * 0.3;
       trapLeaf.size = 26 + Math.random() * 6;
       trapLeaf.isTrapped = false;
       trapLeaf.trapTimer = 0;
@@ -257,7 +253,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       timer: 0,
     };
 
-    let nextLightningTime = Date.now() + 2500;
+    let nextLightningTime = Date.now() + 3500;
 
     // DRAW LEAF
     const drawPremiumLeaf = (
@@ -596,41 +592,562 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       c.restore();
     };
 
+    // DRAW LEFT LATERAL TREE — LINE ART MINIMALISTA (Fiel à foto de referência: tronco com fibras e galhos orgânicos)
+    const drawLeftLateralTree = (
+      c: CanvasRenderingContext2D,
+      w: number,
+      h: number
+    ) => {
+      c.save();
+
+      // Posição centralizada no meio da área livre à esquerda da tela
+      const cx = Math.max(Math.min(w * 0.16, 220), 130);
+
+      c.strokeStyle = 'rgba(226, 232, 240, 0.65)';
+      c.lineCap = 'round';
+      c.lineJoin = 'round';
+      c.shadowColor = 'rgba(255, 255, 255, 0.15)';
+      c.shadowBlur = 3;
+
+      interface TrunkFibre {
+        sx: number;
+        sy: number;
+        segments: Array<{ cx1: number; cy1: number; cx2: number; cy2: number; ex: number; ey: number }>;
+        w: number;
+      }
+
+      const trunkFibres: TrunkFibre[] = [
+        // Fibra mais à esquerda
+        {
+          sx: cx - 24, sy: h + 20,
+          segments: [
+            { cx1: cx - 22, cy1: h * 0.88, cx2: cx - 25, cy2: h * 0.74, ex: cx - 20, ey: h * 0.62 },
+            { cx1: cx - 18, cy1: h * 0.58, cx2: cx - 22, cy2: h * 0.54, ex: cx - 35, ey: h * 0.48 }
+          ],
+          w: 2.2
+        },
+        // Fibra central-esquerda
+        {
+          sx: cx - 10, sy: h + 20,
+          segments: [
+            { cx1: cx - 12, cy1: h * 0.88, cx2: cx - 14, cy2: h * 0.74, ex: cx - 8, ey: h * 0.60 },
+            { cx1: cx - 6, cy1: h * 0.54, cx2: cx - 10, cy2: h * 0.48, ex: cx - 18, ey: h * 0.42 }
+          ],
+          w: 1.8
+        },
+        // Fibra central
+        {
+          sx: cx + 2, sy: h + 20,
+          segments: [
+            { cx1: cx - 2, cy1: h * 0.88, cx2: cx, cy2: h * 0.74, ex: cx + 2, ey: h * 0.58 },
+            { cx1: cx + 4, cy1: h * 0.50, cx2: cx - 2, cy2: h * 0.42, ex: cx, ey: h * 0.35 }
+          ],
+          w: 2.0
+        },
+        // Fibra central-direita
+        {
+          sx: cx + 14, sy: h + 20,
+          segments: [
+            { cx1: cx + 10, cy1: h * 0.88, cx2: cx + 12, cy2: h * 0.74, ex: cx + 14, ey: h * 0.59 },
+            { cx1: cx + 16, cy1: h * 0.52, cx2: cx + 24, cy2: h * 0.46, ex: cx + 32, ey: h * 0.42 }
+          ],
+          w: 1.8
+        },
+        // Fibra mais à direita
+        {
+          sx: cx + 26, sy: h + 20,
+          segments: [
+            { cx1: cx + 22, cy1: h * 0.88, cx2: cx + 24, cy2: h * 0.74, ex: cx + 22, ey: h * 0.62 },
+            { cx1: cx + 24, cy1: h * 0.58, cx2: cx + 38, cy2: h * 0.54, ex: cx + 55, ey: h * 0.49 }
+          ],
+          w: 2.2
+        },
+      ];
+
+      trunkFibres.forEach((tf) => {
+        c.lineWidth = tf.w;
+        c.beginPath();
+        c.moveTo(tf.sx, tf.sy);
+        tf.segments.forEach((seg) => {
+          c.bezierCurveTo(seg.cx1, seg.cy1, seg.cx2, seg.cy2, seg.ex, seg.ey);
+        });
+        c.stroke();
+      });
+
+      // 2. RAMOS E GALHOS ORGÂNICOS (Idênticos à foto de referência enviada pelo usuário)
+      const branches = [
+        // --- GRUPO ESQUERDO INFERIOR ---
+        {
+          sx: cx - 35, sy: h * 0.48,
+          c1x: cx - 55, c1y: h * 0.46, c2x: cx - 75, c2y: h * 0.42,
+          ex: cx - 95, ey: h * 0.40,
+          w: 1.8,
+          twigs: [
+            { c1x: cx - 105, c1y: h * 0.38, c2x: cx - 118, c2y: h * 0.34, ex: cx - 128, ey: h * 0.30, w: 1.2 },
+            { c1x: cx - 102, c1y: h * 0.42, c2x: cx - 115, c2y: h * 0.45, ex: cx - 125, ey: h * 0.48, w: 1.1 },
+            { c1x: cx - 85, c1y: h * 0.36, c2x: cx - 95, c2y: h * 0.30, ex: cx - 100, ey: h * 0.25, w: 1.2 },
+          ]
+        },
+
+        // --- GRUPO ESQUERDO MÉDIO ---
+        {
+          sx: cx - 18, sy: h * 0.42,
+          c1x: cx - 38, c1y: h * 0.38, c2x: cx - 55, c2y: h * 0.32,
+          ex: cx - 72, ey: h * 0.26,
+          w: 1.8,
+          twigs: [
+            { c1x: cx - 82, c1y: h * 0.22, c2x: cx - 95, c2y: h * 0.17, ex: cx - 105, ey: h * 0.12, w: 1.2 },
+            { c1x: cx - 68, c1y: h * 0.20, c2x: cx - 75, c2y: h * 0.14, ex: cx - 78, ey: h * 0.08, w: 1.0 },
+            { c1x: cx - 58, c1y: h * 0.28, c2x: cx - 62, c2y: h * 0.22, ex: cx - 65, ey: h * 0.17, w: 1.1 },
+          ]
+        },
+
+        // --- GRUPO CENTRAL / TOPO (Tronco central que sobe) ---
+        {
+          sx: cx, sy: h * 0.35,
+          c1x: cx - 2, c1y: h * 0.28, c2x: cx + 4, c2y: h * 0.22,
+          ex: cx + 2, ey: h * 0.15,
+          w: 1.9,
+          twigs: [
+            { c1x: cx + 2, c1y: h * 0.11, c2x: cx - 5, c2y: h * 0.07, ex: cx - 8, ey: h * 0.03, w: 1.2 },
+            { c1x: cx + 6, c1y: h * 0.11, c2x: cx + 14, c2y: h * 0.07, ex: cx + 20, ey: h * 0.03, w: 1.2 },
+            { c1x: cx - 10, c1y: h * 0.20, c2x: cx - 22, c2y: h * 0.15, ex: cx - 30, ey: h * 0.10, w: 1.1 },
+            { c1x: cx + 12, c1y: h * 0.22, c2x: cx + 24, c2y: h * 0.16, ex: cx + 32, ey: h * 0.12, w: 1.1 },
+          ]
+        },
+
+        // --- GRUPO DIREITO SUPERIOR ---
+        {
+          sx: cx + 32, sy: h * 0.42,
+          c1x: cx + 48, c1y: h * 0.36, c2x: cx + 68, c2y: h * 0.30,
+          ex: cx + 88, ey: h * 0.24,
+          w: 1.8,
+          twigs: [
+            { c1x: cx + 98, c1y: h * 0.20, c2x: cx + 112, c2y: h * 0.16, ex: cx + 125, ey: h * 0.12, w: 1.2 },
+            { c1x: cx + 85, c1y: h * 0.18, c2x: cx + 90, c2y: h * 0.12, ex: cx + 92, ey: h * 0.06, w: 1.0 },
+            { c1x: cx + 78, c1y: h * 0.27, c2x: cx + 86, c2y: h * 0.22, ex: cx + 92, ey: h * 0.18, w: 1.1 },
+          ]
+        },
+
+        // --- GRUPO DIREITO INFERIOR ---
+        {
+          sx: cx + 55, sy: h * 0.49,
+          c1x: cx + 75, c1y: h * 0.48, c2x: cx + 98, c2y: h * 0.46,
+          ex: cx + 118, ey: h * 0.45,
+          w: 1.8,
+          twigs: [
+            { c1x: cx + 128, c1y: h * 0.43, c2x: cx + 140, c2y: h * 0.40, ex: cx + 152, ey: h * 0.38, w: 1.2 },
+            { c1x: cx + 125, c1y: h * 0.48, c2x: cx + 138, c2y: h * 0.52, ex: cx + 148, ey: h * 0.55, w: 1.1 },
+            { c1x: cx + 105, c1y: h * 0.42, c2x: cx + 115, c2y: h * 0.36, ex: cx + 122, ey: h * 0.32, w: 1.1 },
+          ]
+        },
+      ];
+
+      // Desenhar ramos e galhos finos com pontas duplas (Forquilha Y)
+      branches.forEach((b) => {
+        c.lineWidth = b.w;
+        c.beginPath();
+        c.moveTo(b.sx, b.sy);
+        c.bezierCurveTo(b.c1x, b.c1y, b.c2x, b.c2y, b.ex, b.ey);
+        c.stroke();
+
+        b.twigs.forEach((tw) => {
+          c.lineWidth = tw.w;
+          c.beginPath();
+          c.moveTo(b.ex, b.ey);
+          c.bezierCurveTo(tw.c1x, tw.c1y, tw.c2x, tw.c2y, tw.ex, tw.ey);
+          c.stroke();
+
+          // Ramificação fina dupla na ponta (Y fino característico da foto)
+          c.lineWidth = Math.max(tw.w * 0.7, 0.7);
+          c.beginPath();
+          c.moveTo(tw.ex, tw.ey);
+          c.lineTo(tw.ex + (tw.ex > cx ? 8 : -8), tw.ey - 10);
+          c.moveTo(tw.ex, tw.ey);
+          c.lineTo(tw.ex + (tw.ex > cx ? 12 : -12), tw.ey - 4);
+          c.stroke();
+        });
+      });
+
+      // 3. FOLHAS DELICADAS NOS GALHOS (Conforme a folha da foto de referência)
+      const drawBranchLeaf = (
+        lx: number,
+        ly: number,
+        angle: number,
+        size = 11,
+        isGolden = false
+      ) => {
+        c.save();
+        c.translate(lx, ly);
+        c.rotate(angle);
+
+        c.shadowColor = isGolden ? 'rgba(245, 158, 11, 0.55)' : 'rgba(16, 185, 129, 0.65)';
+        c.shadowBlur = 6;
+
+        c.beginPath();
+        c.moveTo(0, -size);
+        c.bezierCurveTo(-size * 0.55, -size * 0.35, -size * 0.5, size * 0.6, 0, size);
+        c.bezierCurveTo(size * 0.5, size * 0.6, size * 0.55, -size * 0.35, 0, -size);
+        c.closePath();
+
+        c.fillStyle = isGolden
+          ? 'rgba(245, 158, 11, 0.75)'
+          : 'rgba(16, 185, 129, 0.80)';
+        c.fill();
+
+        c.strokeStyle = isGolden ? '#FEF08A' : '#6EE7B7';
+        c.lineWidth = 1;
+        c.stroke();
+
+        // Nervura sutil
+        c.beginPath();
+        c.moveTo(0, -size * 0.75);
+        c.lineTo(0, size * 0.85);
+        c.strokeStyle = isGolden ? 'rgba(254, 240, 138, 0.6)' : 'rgba(209, 250, 229, 0.6)';
+        c.lineWidth = 0.8;
+        c.stroke();
+
+        c.restore();
+      };
+
+      // Folhas brotando nas pontas e galhos (destaque para a folha no topo como na foto)
+      const treeLeaves = [
+        // Topo alto (idêntico à folha de destaque da foto de referência)
+        { x: cx + 92, y: h * 0.06, angle: 0.5, size: 13, isGold: false },
+        { x: cx - 8, y: h * 0.03, angle: -0.4, size: 12, isGold: false },
+        { x: cx + 20, y: h * 0.03, angle: 0.6, size: 11, isGold: true },
+
+        // Ramo direito superior e médio
+        { x: cx + 125, y: h * 0.12, angle: 0.8, size: 12, isGold: false },
+        { x: cx + 32, y: h * 0.12, angle: 0.4, size: 10, isGold: false },
+        { x: cx + 152, y: h * 0.38, angle: 0.3, size: 11, isGold: false },
+        { x: cx + 122, y: h * 0.32, angle: 0.6, size: 10, isGold: true },
+
+        // Ramo esquerdo alto e médio
+        { x: cx - 105, y: h * 0.12, angle: -0.7, size: 12, isGold: false },
+        { x: cx - 78, y: h * 0.08, angle: -0.3, size: 11, isGold: true },
+        { x: cx - 30, y: h * 0.10, angle: -0.4, size: 10, isGold: false },
+        { x: cx - 128, y: h * 0.30, angle: -0.9, size: 12, isGold: false },
+        { x: cx - 100, y: h * 0.25, angle: -0.5, size: 10, isGold: false },
+        { x: cx - 65, y: h * 0.17, angle: -0.6, size: 11, isGold: false },
+      ];
+
+      treeLeaves.forEach((tl) => {
+        drawBranchLeaf(tl.x, tl.y, tl.angle, tl.size, tl.isGold);
+      });
+
+      c.restore();
+    };
+
+    // DRAW STAIRS & STICKMAN CLIMBING (Escada Conectada com Bordas da Tela + Boneco em Postura Real de Subida + Vitória)
+    const drawStairsStickmanAndVictory = (
+      c: CanvasRenderingContext2D,
+      w: number,
+      h: number,
+      now: number
+    ) => {
+      c.save();
+
+      // Configuração Geométrica Proporcional da Escada
+      const numSteps = 7;
+      const stepWidth = Math.min(w * 0.038, 48);
+      const stepHeight = Math.min(h * 0.048, 36);
+
+      // Posicionamento base da escada (Recuada 160px para cabeçalhos e bandeira total)
+      const startX = w - numSteps * stepWidth - 160;
+      const startY = h - 60;
+
+      // Desenhar Degraus da Escada e Conexão com as Bordas da Tela
+      c.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+      c.lineWidth = 2.0;
+      c.lineCap = 'square';
+      c.lineJoin = 'miter';
+
+      c.beginPath();
+
+      // 1. CONECTAR PONTA INFERIOR DA ESCADA COM O FINAL DA TELA (Linha vertical até o fundo y = h)
+      c.moveTo(startX, h + 10);
+      c.lineTo(startX, startY);
+
+      let currentX = startX;
+      let currentY = startY;
+
+      const stepTreads: Array<{ xStart: number; xEnd: number; y: number }> = [];
+
+      for (let i = 0; i < numSteps; i++) {
+        // Subida Vertical
+        currentY -= stepHeight;
+        c.lineTo(currentX, currentY);
+
+        const treadXStart = currentX;
+        // Caminho Horizontal (Superfície Plana do Degrau)
+        currentX += stepWidth;
+        const treadXEnd = currentX;
+        c.lineTo(currentX, currentY);
+
+        stepTreads.push({ xStart: treadXStart, xEnd: treadXEnd, y: currentY });
+      }
+
+      // 2. CONECTAR PONTA SUPERIOR DA ESCADA COM O FINAL DA TELA (Linha horizontal até o final da tela x = w)
+      c.lineTo(w + 10, currentY);
+
+      c.stroke();
+
+      // --- BONECO PALITO VETORIAL REALISTA SUBINDO A ESCADA ---
+      // Escala ampliada e proporções anatômicas naturais para harmonia com a escada
+      const targetStepIndex = 2; // Degrau 2
+      const targetStep = stepTreads[targetStepIndex];
+      const guyX = targetStep.xStart + stepWidth * 0.35;
+      const guyY = targetStep.y; // Superfície exata do degrau 2
+
+      // Parede vertical que sobe para o próximo degrau
+      const wallX = targetStep.xEnd - guyX;
+
+      // Respiração e impulso dinâmico sutil de escalada
+      const climbBreath = Math.sin(now * 0.0035) * 1.5;
+      const bagSway = Math.sin(now * 0.0035) * 0.08;
+
+      c.save();
+      c.translate(guyX, guyY);
+      c.strokeStyle = '#FFFFFF';
+      c.fillStyle = '#FFFFFF';
+      c.lineWidth = 3.0; // Traço mais firme, nítido e presente
+      c.lineCap = 'round';
+      c.lineJoin = 'round';
+
+      // Posicionamento biomecânico e proporções ampliadas:
+      // 1. Pé Traseiro (apoiado no degrau atual Y = 0 em linha reta de impulsão pura e firme)
+      const footBackX = -6;
+      const footBackY = 0;
+
+      // 3. Quadril (projetado para cima e para a frente, acima dos degraus)
+      const hipX = 10;
+      const hipY = -stepHeight - 16 + climbBreath;
+
+      // 2. Pé Dianteiro (plantado com firmeza no patamar do degrau superior Y = -stepHeight)
+      const footFrontX = wallX + 8;
+      const footFrontY = -stepHeight;
+      // Joelho dianteiro flexionado para a frente e ACIMA do degrau superior (geometria anatômica real)
+      const kneeFrontX = wallX + 13;
+      const kneeFrontY = -stepHeight - 14 + climbBreath * 0.3;
+
+      // 4. Tronco / Coluna (alongado e inclinado ~22° rumo ao topo da escada)
+      const neckX = hipX + 16;
+      const neckY = hipY - 34;
+
+      // 5. Cabeça (proporção ampliada harmônica: raio 10.5px)
+      const headX = neckX + 7;
+      const headY = neckY - 11;
+      const headRadius = 10.5;
+
+      // --- Desenho das Pernas e Pés ---
+      // Perna Traseira (Linha reta, firme e atlética de impulsão do quadril ao degrau inferior - sem joelho troncho)
+      c.beginPath();
+      c.moveTo(hipX, hipY);
+      c.lineTo(footBackX, footBackY);
+      // Sola do pé traseiro assentada no piso do degrau
+      c.lineTo(footBackX + 9, footBackY);
+      c.stroke();
+
+      // Perna Dianteira (Coxa do quadril ao joelho alto -> Canela descendo até o pé plantado no degrau superior)
+      c.beginPath();
+      c.moveTo(hipX, hipY);
+      c.lineTo(kneeFrontX, kneeFrontY);
+      c.lineTo(footFrontX, footFrontY);
+      // Sola do pé dianteiro plantada no degrau superior
+      c.lineTo(footFrontX + 9, footFrontY);
+      c.stroke();
+
+      // Sombra sutil de apoio sob os pés nos degraus
+      c.fillStyle = 'rgba(16, 185, 129, 0.3)';
+      c.beginPath();
+      c.ellipse(footBackX + 4, footBackY + 1, 8, 2.2, 0, 0, Math.PI * 2);
+      c.fill();
+      c.beginPath();
+      c.ellipse(footFrontX + 4, footFrontY + 1, 8, 2.2, 0, 0, Math.PI * 2);
+      c.fill();
+
+      // --- Tronco ---
+      c.strokeStyle = '#FFFFFF';
+      c.beginPath();
+      c.moveTo(hipX, hipY);
+      c.lineTo(neckX, neckY);
+      c.stroke();
+
+      // --- Cabeça ---
+      c.beginPath();
+      c.arc(headX, headY, headRadius, 0, Math.PI * 2);
+      c.stroke();
+
+      // Brilho sutil dos olhos / visão determinada rumo ao topo
+      c.fillStyle = '#34D399';
+      c.beginPath();
+      c.arc(headX + 5, headY - 1, 2.0, 0, Math.PI * 2);
+      c.fill();
+
+      // --- Braço Traseiro (balanço atlético para trás para contrapeso) ---
+      const elbowBackX = neckX - 13;
+      const elbowBackY = neckY + 16 - climbBreath * 0.5;
+      const handBackX = neckX - 22;
+      const handBackY = neckY + 10 - climbBreath * 0.5;
+
+      c.strokeStyle = '#FFFFFF';
+      c.beginPath();
+      c.moveTo(neckX - 2, neckY + 5);
+      c.lineTo(elbowBackX, elbowBackY);
+      c.lineTo(handBackX, handBackY);
+      c.stroke();
+
+      // --- Braço Dianteiro (erguendo a maleta com determinação) ---
+      const elbowFrontX = neckX + 15;
+      const elbowFrontY = neckY + 11 + climbBreath * 0.5;
+      const handFrontX = neckX + 26;
+      const handFrontY = neckY - 2 + climbBreath * 0.5;
+
+      c.beginPath();
+      c.moveTo(neckX + 3, neckY + 5);
+      c.lineTo(elbowFrontX, elbowFrontY);
+      c.lineTo(handFrontX, handFrontY);
+      c.stroke();
+
+      // --- Maleta de Sucesso / Bolsa de Dinheiro Esmeralda (ampliada proporcional) ---
+      c.save();
+      c.translate(handFrontX, handFrontY);
+      c.rotate(bagSway);
+
+      // Alça da maleta
+      c.strokeStyle = '#34D399';
+      c.lineWidth = 1.8;
+      c.beginPath();
+      c.arc(7, -3, 5, Math.PI, 0);
+      c.stroke();
+
+      // Corpo da maleta com brilho esmeralda
+      c.shadowColor = '#10B981';
+      c.shadowBlur = 16;
+      c.fillStyle = '#059669';
+      c.strokeStyle = '#6EE7B7';
+      c.lineWidth = 1.8;
+      c.beginPath();
+      c.roundRect(-3, 0, 20, 15, 3.5);
+      c.fill();
+      c.stroke();
+
+      // Cifrão de Ouro Central
+      c.fillStyle = '#FEF08A';
+      c.shadowColor = '#FBBF24';
+      c.shadowBlur = 10;
+      c.font = 'bold 11px sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText('$', 7, 8);
+
+      c.restore(); // Fecha contexto da maleta
+      c.restore(); // Fecha contexto do boneco
+
+      // --- SÍMBOLO DE VITÓRIA E BANDEIRA (100% VISÍVEL NO TOPO DA ESCADA) ---
+      const topTread = stepTreads[numSteps - 1];
+      const topX = topTread.xEnd - 10;
+      const topY = topTread.y;
+
+      c.save();
+      c.translate(topX, topY);
+
+      // Mastro Vetorial e Bandeira de Vitória
+      const flagX = 20;
+      const flagY = -45;
+
+      // Mastro Branco
+      c.strokeStyle = '#FFFFFF';
+      c.lineWidth = 2.2;
+      c.shadowColor = '#FFFFFF';
+      c.shadowBlur = 6;
+      c.beginPath();
+      c.moveTo(flagX, 0);
+      c.lineTo(flagX, flagY - 18);
+      c.stroke();
+
+      // Esfera Dourada no Topo do Mastro
+      c.fillStyle = '#F59E0B';
+      c.shadowColor = '#FBBF24';
+      c.shadowBlur = 10;
+      c.beginPath();
+      c.arc(flagX, flagY - 18, 4, 0, Math.PI * 2);
+      c.fill();
+
+      // Flâmula de Vitória Ondulante Verde Esmeralda & Ouro (Ondulação Dinâmica no Vento)
+      const flagWave = Math.sin(now * 0.005) * 3;
+      c.fillStyle = '#10B981';
+      c.strokeStyle = '#FEF08A';
+      c.lineWidth = 1.5;
+      c.shadowColor = '#10B981';
+      c.shadowBlur = 14;
+      c.beginPath();
+      c.moveTo(flagX, flagY - 16);
+      c.lineTo(flagX + 42, flagY - 8 + flagWave);
+      c.lineTo(flagX, flagY);
+      c.closePath();
+      c.fill();
+      c.stroke();
+
+      // Cifrão Dourado na Bandeira
+      c.fillStyle = '#FEF08A';
+      c.font = 'bold 10px sans-serif';
+      c.fillText('$', flagX + 14, flagY - 8 + flagWave * 0.5);
+
+      // Insígnia de Texto "🏁 VITÓRIA"
+      c.fillStyle = '#34D399';
+      c.shadowColor = '#10B981';
+      c.shadowBlur = 12;
+      c.font = 'bold 12px sans-serif';
+      c.textAlign = 'center';
+      c.fillText('🏁 VITÓRIA', flagX + 20, flagY - 28);
+
+      c.restore();
+      c.restore();
+    };
+
     // Main Render Loop
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
       const now = Date.now();
 
+      // 1. Desenha a Árvore Line-Art da Esquerda (Tronco com fibras e galhos orgânicos)
+      drawLeftLateralTree(ctx, width, height);
+
+      // 2. Desenha a Escada no Lado Direito, o Boneco Palito Fixo e a Flâmula de Vitória no Topo
+      drawStairsStickmanAndVictory(ctx, width, height, now);
+
       // Handle Storm Mode Lightning Flash
       if (mode === 'storm') {
         if (!lightning.active && now > nextLightningTime) {
           lightning.active = true;
           lightning.x = Math.random() * width;
-          lightning.opacity = 0.4 + Math.random() * 0.4;
+          lightning.opacity = 0.3 + Math.random() * 0.3;
           lightning.timer = 0;
-          nextLightningTime = now + 2500 + Math.random() * 4000;
+          nextLightningTime = now + 4000 + Math.random() * 5000;
         }
 
         if (lightning.active) {
           lightning.timer++;
-          lightning.opacity -= 0.04;
+          lightning.opacity -= 0.03;
 
           ctx.save();
-          ctx.fillStyle = `rgba(168, 85, 247, ${Math.max(lightning.opacity * 0.2, 0)})`;
+          ctx.fillStyle = `rgba(168, 85, 247, ${Math.max(lightning.opacity * 0.15, 0)})`;
           ctx.fillRect(0, 0, width, height);
 
           ctx.strokeStyle = `rgba(56, 189, 248, ${Math.max(lightning.opacity, 0)})`;
-          ctx.lineWidth = 3;
+          ctx.lineWidth = 2.5;
           ctx.shadowColor = '#38BDF8';
-          ctx.shadowBlur = 15;
+          ctx.shadowBlur = 12;
 
           ctx.beginPath();
           let lx = lightning.x;
           let ly = 0;
           ctx.moveTo(lx, ly);
           while (ly < height * 0.7) {
-            lx += (Math.random() - 0.5) * 40;
+            lx += (Math.random() - 0.5) * 35;
             ly += 20 + Math.random() * 30;
             ctx.lineTo(lx, ly);
           }
@@ -646,7 +1163,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       // Check Trap Leaf Spawn (only in leaves mode)
       if (mode === 'leaves' && !trapLeaf.active && now > nextTrapTime) {
         spawnTrapLeaf();
-        nextTrapTime = now + 10000 + Math.random() * 8000;
+        nextTrapTime = now + 12000 + Math.random() * 9000;
       }
 
       // Dampen mouse velocity
@@ -658,9 +1175,6 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
         const order = { bg: 1, md: 2, fg: 3 };
         return order[a.depth] - order[b.depth];
       });
-
-      const vaultX = width / 2;
-      const vaultY = height - 55;
 
       particles.forEach((p) => {
         p.swayPhase += p.swayFreq;
@@ -675,14 +1189,14 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
         const dx = p.x - mouseX;
         const dy = p.y - mouseY;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const maxWindDist = mode === 'storm' ? 260 : 200;
+        const maxWindDist = mode === 'storm' ? 220 : 180;
 
         if (dist < maxWindDist) {
-          const force = (1 - dist / maxWindDist) * (mode === 'storm' ? 14 : p.depth === 'fg' ? 10 : 6);
+          const force = (1 - dist / maxWindDist) * (mode === 'storm' ? 8 : p.depth === 'fg' ? 6 : 4);
           const angle = Math.atan2(dy, dx);
-          p.x += Math.cos(angle) * force + mouseVx * force * 0.4;
-          p.y += Math.sin(angle) * force + mouseVy * force * 0.4;
-          p.rotation += (Math.random() - 0.5) * 0.15;
+          p.x += Math.cos(angle) * force + mouseVx * force * 0.3;
+          p.y += Math.sin(angle) * force + mouseVy * force * 0.3;
+          p.rotation += (Math.random() - 0.5) * 0.08;
         }
 
         if (mode === 'leaves') {
@@ -692,7 +1206,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
           }
 
           if (p.isMorphed && p.morphProgress < 1) {
-            p.morphProgress = Math.min(p.morphProgress + 0.05, 1);
+            p.morphProgress = Math.min(p.morphProgress + 0.04, 1);
           }
         }
 
@@ -723,17 +1237,17 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
         umbrellaFlyers.forEach((flyer) => {
           flyer.swayPhase += flyer.swayFreq;
           flyer.x += flyer.vx;
-          flyer.y += flyer.vy + Math.sin(flyer.swayPhase) * 1.2;
+          flyer.y += flyer.vy + Math.sin(flyer.swayPhase) * 0.8;
           flyer.rotation += flyer.rotationSpeed;
 
           const udx = flyer.x - mouseX;
           const udy = flyer.y - mouseY;
           const udist = Math.sqrt(udx * udx + udy * udy);
-          if (udist < 220) {
-            const uforce = (1 - udist / 220) * 12;
+          if (udist < 200) {
+            const uforce = (1 - udist / 200) * 8;
             const uangle = Math.atan2(udy, udx);
-            flyer.x += Math.cos(uangle) * uforce + mouseVx * 0.5;
-            flyer.y += Math.sin(uangle) * uforce + mouseVy * 0.5;
+            flyer.x += Math.cos(uangle) * uforce + mouseVx * 0.3;
+            flyer.y += Math.sin(uangle) * uforce + mouseVy * 0.3;
           }
 
           drawFlyingPersonWithUmbrella(ctx, flyer);
@@ -745,14 +1259,14 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
         });
       }
 
-      // RENDER FINANCIAL TRAP LEAF / PRISON CELL (leaves mode only)
+      // RENDER FINANCIAL TRAP LEAF / PRISON CELL
       if (mode === 'leaves' && trapLeaf.active) {
         trapLeaf.swayPhase += trapLeaf.swayFreq;
         const sway = Math.sin(trapLeaf.swayPhase) * trapLeaf.swayAmp;
         trapLeaf.x += trapLeaf.vx + sway;
         trapLeaf.y += trapLeaf.vy;
         trapLeaf.rotation += trapLeaf.rotationSpeed;
-        trapLeaf.prisonerSway += 0.15;
+        trapLeaf.prisonerSway += 0.1;
 
         const tdx = mouseX - trapLeaf.x;
         const tdy = mouseY - trapLeaf.y;
@@ -779,31 +1293,27 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
 
         if (trapLeaf.isTrapped) {
           trapLeaf.trapTimer++;
-          trapLeaf.stolenTextY -= 1.6;
-          trapLeaf.stolenTextOpacity -= 0.02;
+          trapLeaf.stolenTextY -= 0.6;
+          trapLeaf.stolenTextOpacity -= 0.005;
 
           if (trapLeaf.stolenText && trapLeaf.stolenTextOpacity > 0) {
             ctx.save();
             ctx.fillStyle = '#EF4444';
             ctx.shadowColor = '#DC2626';
             ctx.shadowBlur = 14;
-            ctx.font = 'black 16px sans-serif';
+            ctx.font = 'bold 15px sans-serif';
             ctx.textAlign = 'center';
             ctx.globalAlpha = Math.max(trapLeaf.stolenTextOpacity, 0);
             ctx.fillText(`🔒 PRESO NA ARMADILHA: ${trapLeaf.stolenText}`, trapLeaf.x, trapLeaf.stolenTextY);
             ctx.restore();
           }
 
-          if (trapLeaf.trapTimer > 50) {
+          if (trapLeaf.trapTimer > 180) {
             trapLeaf.active = false;
           }
         }
 
-        if (
-          trapLeaf.y > height + 60 ||
-          trapLeaf.x < -80 ||
-          trapLeaf.x > width + 80
-        ) {
+        if (trapLeaf.y > height + 50) {
           trapLeaf.active = false;
         }
       }
@@ -823,7 +1333,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-[1]"
+      className="absolute inset-0 w-full h-full pointer-events-none z-0"
     />
   );
 };

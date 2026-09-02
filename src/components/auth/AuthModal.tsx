@@ -125,6 +125,15 @@ export const AuthModal: React.FC = () => {
     setSocialLoading(provider);
     setError(null);
 
+    if (provider === 'google') {
+      const result = await authService.loginWithGoogleReal();
+      if (result.error) {
+        setError(result.error);
+        setSocialLoading(null);
+      }
+      return;
+    }
+
     try {
       const user = await authService.loginSocial(provider);
       setUser(user);
@@ -228,10 +237,29 @@ export const AuthModal: React.FC = () => {
                   initial={{ opacity: 0, y: -10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center gap-3 text-rose-400 text-xs font-medium"
+                  className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 space-y-2 text-xs"
                 >
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{error}</span>
+                  <div className="flex items-center gap-3 text-rose-400 font-medium">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                  {error.includes('painel do Supabase') && (
+                    <div className="pt-2 border-t border-rose-500/20 text-[11px] text-slate-300 space-y-1">
+                      <p className="font-semibold text-rose-300">Como ativar a autenticação com Google:</p>
+                      <p className="text-slate-400">
+                        Ative o Google em{' '}
+                        <a
+                          href="https://supabase.com/dashboard/project/nhskpvlnbbhqqzxmxirh/auth/providers"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-emerald-400 underline font-bold"
+                        >
+                          Authentication &gt; Providers
+                        </a>{' '}
+                        no painel do Supabase.
+                      </p>
+                    </div>
+                  )}
                 </motion.div>
               )}
 

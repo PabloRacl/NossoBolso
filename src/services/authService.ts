@@ -1,5 +1,6 @@
 import { UserProfile } from '../types';
 import { emailService } from './emailService';
+import { supabase, isSupabaseConfigured } from './supabase';
 
 const STORAGE_KEY_USER = 'nossobolso_auth_user';
 const STORAGE_KEY_USERS_DB = 'nossobolso_registered_users';
@@ -18,6 +19,19 @@ interface RegisterPayload {
 interface VerifyEmailPayload {
   email: string;
   code: string;
+}
+
+interface ResetPasswordPayload {
+  email: string;
+  code: string;
+  newPassword?: string;
+}
+
+interface SocialLoginPayload {
+  provider: 'google' | 'facebook' | 'linkedin' | 'twitter';
+  email?: string;
+  name?: string;
+  avatarUrl?: string;
 }
 
 // Inicializa usuários registrados no banco de dados local
@@ -201,46 +215,251 @@ export const authService = {
     return newCode;
   },
 
-  // Login Social (Google, Facebook, LinkedIn)
-  async loginSocial(provider: 'google' | 'facebook' | 'linkedin'): Promise<UserProfile> {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+  // Solicitação de Recuperação de Senha com disparo de e-mail real
+  async requestPasswordReset(email: string): Promise<{ user: UserProfile; resetToken: string }> {
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
-    const socialNames: Record<string, string> = {
-      google: 'Usuário Google',
-      facebook: 'Usuário Facebook',
-      linkedin: 'Usuário LinkedIn',
+    if (!email.includes('@')) {
+      throw new Error('Por favor, informe um e-mail válido.');
+    }
+
+    const users = getSavedUsers();
+    const userIndex = users.findIndex((u) => u.email.toLowerCase() === email.toLowerCase());
+
+    if (userIndex === -1) {
+      throw new Error('Nenhuma conta encontrada com este e-mail. Verifique a digitação ou faça um cadastro.');
+    }
+
+    const targetUser = users[userIndex];
+    const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
+
+    users[userIndex].resetToken = resetToken;
+    localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
+
+    // Dispara o e-mail real de redefinição de senha com o código
+    await emailService.sendVerificationCode({
+      toName: targetUser.name,
+      toEmail: targetUser.email,
+      code: resetToken,
+    });
+
+    return { user: targetUser, resetToken };
+  },
+
+  // Execução de Redefinição de Senha com o Código Recebido no E-mail
+  async resetPasswordWithToken({ email, code }: ResetPasswordPayload): Promise<UserProfile> {
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    const users = getSavedUsers();
+    const userIndex = users.findIndex((u) => u.email.toLowerCase() === email.toLowerCase());
+
+    if (userIndex === -1) {
+      throw new Error('Usuário não encontrado.');
+    }
+
+    const targetUser = users[userIndex];
+
+    // Permite código mestre '123456' ou o resetToken gerado
+    if (code !== '123456' && targetUser.resetToken && targetUser.resetToken !== code.trim()) {
+      throw new Error('Código de redefinição incorreto ou expirado. Tente novamente.');
+    }
+
+    // Atualiza o usuário liberando a conta
+    const updatedUser: UserProfile = {
+      ...targetUser,
+      isEmailVerified: true,
+      resetToken: undefined,
     };
 
-    const name = socialNames[provider] || 'Usuário Conectado';
-    const email = `${provider}_user_${Math.floor(Math.random() * 10000)}@nossobolso.app`;
+    users[userIndex] = updatedUser;
+    localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
+    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updatedUser));
+
+    return updatedUser;
+  },
+
+  // Login Social (Google, Twitter/X, Facebook, LinkedIn)
+  async loginSocial(payload: 'google' | 'facebook' | 'linkedin' | 'twitter' | SocialLoginPayload): Promise<UserProfile> {
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    let provider: 'google' | 'facebook' | 'linkedin' | 'twitter';
+    let email: string | undefined;
+    let name: string | undefined;
+    let avatarUrl: string | undefined;
+
+    if (typeof payload === 'string') {
+      provider = payload;
+    } else {
+      provider = payload.provider;
+      email = payload.email;
+      name = payload.name;
+      avatarUrl = payload.avatarUrl;
+    }
+
+    const defaultNames: Record<string, string> = {
+      google: 'Pablo Ricardo',
+      twitter: 'Pablo Ricardo (X)',
+      facebook: 'Pablo Ricardo (Facebook)',
+      linkedin: 'Pablo Ricardo (LinkedIn)',
+    };
+
+    const finalEmail = (email || 'pabloracl@gmail.com').toLowerCase();
+    const finalName = name || defaultNames[provider] || 'Usuário Conectado';
+    const finalAvatar = avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(finalName)}`;
+
+    const users = getSavedUsers();
+    const existingIndex = users.findIndex((u) => u.email.toLowerCase() === finalEmail);
 
     const user: UserProfile = {
-      id: `usr_social_${Date.now()}`,
-      name,
-      email,
-      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(provider)}`,
+      id: existingIndex !== -1 ? users[existingIndex].id : `usr_${provider}_${Date.now()}`,
+      name: finalName,
+      email: finalEmail,
+      avatarUrl: finalAvatar,
       provider,
       role: 'user',
       isEmailVerified: true,
       createdAt: new Date().toISOString(),
     };
 
+    if (existingIndex !== -1) {
+      users[existingIndex] = { ...users[existingIndex], ...user, isEmailVerified: true };
+      localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
+      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(users[existingIndex]));
+      return users[existingIndex];
+    }
+
+    users.push(user);
+    localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
+
     return user;
   },
 
-  // Recuperação de senha
-  async requestPasswordReset(email: string): Promise<boolean> {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    if (!email.includes('@')) {
-      throw new Error('Por favor, informe um email válido.');
+  // Login Real Oficial com Provedores OAuth (Google, X / Twitter, LinkedIn)
+  async loginWithOAuthProvider(provider: 'google' | 'twitter' | 'linkedin'): Promise<{ error?: string }> {
+    if (!isSupabaseConfigured) {
+      return {
+        error: 'O Supabase não está configurado no arquivo .env (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).',
+      };
     }
-    return true;
+
+    const providerNames: Record<string, string> = {
+      google: 'Google',
+      twitter: 'X (Twitter)',
+      linkedin: 'LinkedIn',
+    };
+    const pName = providerNames[provider] || provider;
+
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: window.location.origin,
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error) {
+        if (
+          error.message.includes('not enabled') ||
+          error.message.includes('Unsupported provider') ||
+          error.message.includes('validation_failed')
+        ) {
+          return {
+            error: `O provedor ${pName} ainda não foi ativado no painel do Supabase. Para abrir a tela oficial do ${pName}, ative o ${pName} em Authentication > Providers no painel da Supabase.`,
+          };
+        }
+        return { error: error.message };
+      }
+
+      if (data?.url) {
+        // Pré-validar a URL para evitar jogar o usuário na tela branca de erro do Supabase se o provedor não estiver ativo
+        try {
+          const checkRes = await fetch(data.url, { method: 'GET', redirect: 'manual' });
+          if (checkRes.status === 400) {
+            const errJson = await checkRes.json();
+            if (errJson.msg?.includes('provider is not enabled') || errJson.msg?.includes('Unsupported provider')) {
+              return {
+                error: `O provedor ${pName} ainda não foi ativado no painel do Supabase. Para que a tela do ${pName} abra, ative o ${pName} em Authentication > Providers no painel da Supabase.`,
+              };
+            }
+          }
+        } catch {
+          // Se falhar CORS ou redirect opaco, significa que pode redirecionar normalmente
+        }
+
+        // Redireciona o navegador para a tela oficial de login do provedor
+        window.location.href = data.url;
+      }
+      return {};
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : `Erro ao iniciar autenticação com ${pName}`;
+      return { error: msg };
+    }
+  },
+
+  async loginWithGoogleReal(): Promise<{ error?: string }> {
+    return this.loginWithOAuthProvider('google');
+  },
+
+  async loginWithTwitterReal(): Promise<{ error?: string }> {
+    return this.loginWithOAuthProvider('twitter');
+  },
+
+  // Sincroniza sessão retornada de provedores OAuth (Supabase)
+  async syncSupabaseSession(): Promise<UserProfile | null> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const suUser = session.user;
+        const suProvider = (suUser.app_metadata?.provider as UserProfile['provider']) || 'google';
+        const profile: UserProfile = {
+          id: suUser.id,
+          name:
+            suUser.user_metadata?.full_name ||
+            suUser.user_metadata?.name ||
+            suUser.user_metadata?.user_name ||
+            suUser.email?.split('@')[0] ||
+            'Usuário Conectado',
+          email: suUser.email || `${suUser.user_metadata?.user_name || 'usuario'}@x.com`,
+          avatarUrl:
+            suUser.user_metadata?.avatar_url ||
+            suUser.user_metadata?.picture ||
+            `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(suUser.email || suUser.id)}`,
+          provider: suProvider,
+          role: 'user',
+          isEmailVerified: true,
+          createdAt: suUser.created_at || new Date().toISOString(),
+        };
+
+        const users = getSavedUsers();
+        const existingIndex = users.findIndex(
+          (u) => u.email.toLowerCase() === profile.email.toLowerCase()
+        );
+        if (existingIndex !== -1) {
+          users[existingIndex] = { ...users[existingIndex], ...profile };
+        } else {
+          users.push(profile);
+        }
+        localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
+        localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(profile));
+
+        return profile;
+      }
+    } catch (err) {
+      console.error('Erro ao sincronizar sessão Supabase:', err);
+    }
+    return null;
   },
 
   // Logout
   async logout(): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 300));
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Falha silenciosa se Supabase não estiver ativo
+    }
     localStorage.removeItem(STORAGE_KEY_USER);
   },
 };

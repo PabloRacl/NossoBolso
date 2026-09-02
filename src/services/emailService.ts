@@ -1,7 +1,9 @@
 /**
  * Email Service - NossoBolso Finance OS
- * Suporta envio real de e-mails via EmailJS ou Resend REST API com fallback gracioso.
+ * Utiliza @emailjs/browser para disparo oficial e garantido de e-mails em tempo real.
  */
+
+import emailjs from '@emailjs/browser';
 
 interface SendVerificationEmailParams {
   toName: string;
@@ -11,48 +13,66 @@ interface SendVerificationEmailParams {
 
 export const emailService = {
   /**
-   * Envia o e-mail real com o código de verificação de 6 dígitos.
+   * Verifica se as chaves do EmailJS estão configuradas no .env
    */
-  async sendVerificationCode({ toName, toEmail, code }: SendVerificationEmailParams): Promise<{ success: boolean; message: string }> {
+  isRealEmailConfigured(): boolean {
+    const env = typeof import.meta !== 'undefined' ? import.meta.env : (process.env as Record<string, string | undefined>);
+    return Boolean(env?.VITE_EMAILJS_SERVICE_ID && env?.VITE_EMAILJS_PUBLIC_KEY);
+  },
+
+  /**
+   * Envia o e-mail real em tempo real usando o SDK oficial do EmailJS.
+   */
+  async sendVerificationCode({ toName, toEmail, code }: SendVerificationEmailParams): Promise<{ success: boolean; message: string; isReal: boolean }> {
     const env = typeof import.meta !== 'undefined' ? import.meta.env : (process.env as Record<string, string | undefined>);
 
     const serviceId = env?.VITE_EMAILJS_SERVICE_ID;
-    const templateId = env?.VITE_EMAILJS_TEMPLATE_ID;
+    const templateId = env?.VITE_EMAILJS_TEMPLATE_ID || 'template_hxqruph';
     const publicKey = env?.VITE_EMAILJS_PUBLIC_KEY;
 
-    // Se as chaves do serviço de e-mail estiverem configuradas no .env
-    if (serviceId && templateId && publicKey) {
+    if (serviceId && publicKey) {
       try {
-        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            service_id: serviceId,
-            template_id: templateId,
-            user_id: publicKey,
-            template_params: {
-              to_name: toName,
-              to_email: toEmail,
-              code: code,
-              app_name: 'NossoBolso Finance OS',
-            },
-          }),
-        });
+        console.log(`[EmailJS] Enviando e-mail real para ${toEmail} com o código ${code}...`);
+        
+        const response = await emailjs.send(
+          serviceId,
+          templateId,
+          {
+            to_name: toName,
+            to_email: toEmail,
+            email: toEmail,
+            user_email: toEmail,
+            reply_to: toEmail,
+            code: code,
+            verification_code: code,
+            passcode: code,
+            app_name: 'NossoBolso Finance OS',
+          },
+          publicKey
+        );
 
-        if (response.ok) {
-          return { success: true, message: `E-mail real enviado com sucesso para ${toEmail}` };
-        } else {
-          console.warn('Falha no envio real do email via EmailJS:', await response.text());
-        }
-      } catch (err) {
-        console.error('Erro de conexão com serviço de e-mail:', err);
+        console.log('[EmailJS] Resposta de Sucesso:', response);
+
+        return {
+          success: true,
+          message: `E-mail enviado com sucesso em tempo real para ${toEmail}! Verifique sua caixa de entrada e Spam.`,
+          isReal: true,
+        };
+      } catch (err: unknown) {
+        const errorMsg = typeof err === 'object' && err !== null && 'text' in err ? String((err as { text: string }).text) : (err as Error).message;
+        console.error('[EmailJS Error]:', err);
+        return {
+          success: false,
+          message: `Falha no envio pelo EmailJS: ${errorMsg}`,
+          isReal: false,
+        };
       }
     }
 
-    // Se não houver chaves .env configuradas, retorna sucesso indicando modo de simulação
     return {
       success: true,
-      message: `[Modo Simulação/Desenvolvimento] O código de verificação é: ${code}`,
+      message: `[Modo Simulação] O código de verificação é: ${code}`,
+      isReal: false,
     };
   },
 };

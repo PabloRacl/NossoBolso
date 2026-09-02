@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User,
@@ -43,11 +44,9 @@ export const UserProfileModal: React.FC = () => {
   const handleLogout = async () => {
     setLoading(true);
     await authService.logout();
+    handleClose();
     setUser(null);
     setLoading(false);
-    handleClose();
-    setAuthMode('login');
-    setAuthModalOpen(true);
   };
 
   const handleChangePasswordSubmit = async (e: React.FormEvent) => {
@@ -73,9 +72,9 @@ export const UserProfileModal: React.FC = () => {
     }
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -87,11 +86,11 @@ export const UserProfileModal: React.FC = () => {
 
         {/* Modal Content */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ duration: 0.2 }}
-          className="relative w-full max-w-lg bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden z-10 backdrop-blur-xl"
+          className="relative w-full max-w-lg bg-slate-900/95 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden z-10 backdrop-blur-xl my-auto"
         >
           {/* Header Glow */}
           <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
@@ -161,7 +160,11 @@ export const UserProfileModal: React.FC = () => {
                 <div>
                   <span className="text-[11px] text-slate-400 font-medium">Método de Conexão</span>
                   <p className="text-xs font-semibold text-white capitalize">
-                    {user.provider === 'credentials' ? 'E-mail e Senha' : user.provider}
+                    {user.provider === 'credentials'
+                      ? 'E-mail e Senha'
+                      : user.provider === 'twitter'
+                      ? 'X (Twitter)'
+                      : user.provider}
                   </p>
                 </div>
               </div>
@@ -256,6 +259,7 @@ export const UserProfileModal: React.FC = () => {
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };

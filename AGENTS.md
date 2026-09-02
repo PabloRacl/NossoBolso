@@ -36,9 +36,12 @@ Este documento estabelece as diretrizes arquiteturais, de estilo e de comunicaç
 ### 5. ⚙️ Validação via Terminal
 - Após qualquer alteração ou implementação, o agente deve obrigatoriamente executar e validar a compilação do projeto no terminal utilizando `npm run build` (`tsc && vite build`).
 
-### 6. 🚀 Regra Estrita de Controle do Git (Push Somente sob Comando)
-- **Aprovação Obrigatória do Usuário:** É estritamente PROIBIDO ao agente executar `git push` ou `git commit` automaticamente após edições de código.
-- **Fluxo Obrigatório do Agente:** O agente DEVE compilar e validar o projeto via `npm run build`, mas O PUSH E O COMMIT NO GIT SÓ PODEM SER EXECUTADOS QUANDO O USUÁRIO ENVIAR O COMANDO EXPLÍCITO NO CHAT OU AUTORIZAR EXPRESSAMENTE.
+### 6. 🛑 REGRA ESTRITA DE CONTROLE DO GIT (NÃO SUBIR PRO GIT SEM AUTORIZAÇÃO PRÉVIA)
+> [!CAUTION]
+> **É ESTRITAMENTE PROIBIDO AO AGENTE EXECUTAR `git push` OU `git commit` SEM A AUTORIZAÇÃO PRÉVIA E EXPLICITA DO USUÁRIO NO CHAT.**
+
+- **Aprovação Obrigatória do Usuário:** O agente **NUNCA** deve enviar alterações para o Git (`git commit` ou `git push`) automaticamente após terminar uma edição.
+- **Fluxo Obrigatório do Agente:** O agente DEVE compilar e validar o projeto no terminal via `npm run build`, mas O PUSH E O COMMIT NO GIT SÓ PODEM SER EXECUTADOS QUANDO O USUÁRIO ENVIAR O COMANDO EXPLÍCITO NO CHAT (Exemplo: *"suba pro git"* ou *"pode fazer o commit/push"*).
 
 ---
 

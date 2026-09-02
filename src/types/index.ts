@@ -178,10 +178,11 @@ export interface UserProfile {
   name: string;
   email: string;
   avatarUrl?: string;
-  provider?: 'credentials' | 'google' | 'facebook' | 'linkedin';
+  provider?: 'credentials' | 'google' | 'facebook' | 'linkedin' | 'twitter';
   role?: 'user' | 'admin';
   isEmailVerified?: boolean;
   verificationToken?: string;
+  resetToken?: string;
   createdAt?: string;
 }
 

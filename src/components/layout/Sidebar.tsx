@@ -4,7 +4,7 @@ import { LayoutDashboard, ArrowLeftRight, Wallet, CreditCard, Target, ShoppingCa
 import { clsx } from 'clsx';
 
 export const Sidebar: React.FC = () => {
-  const { user, setUserProfileModalOpen, setAuthModalOpen, setAuthMode, activePage, setActivePage, isSidebarCollapsed, toggleSidebarCollapsed, isMobileMenuOpen, toggleMobileMenu, setCommandPaletteOpen } = useAppStore();
+  const { user, setUser, setUserProfileModalOpen, setAuthMode, activePage, setActivePage, isSidebarCollapsed, toggleSidebarCollapsed, isMobileMenuOpen, toggleMobileMenu, setCommandPaletteOpen } = useAppStore();
   const [isSettingsOpen, setIsSettingsOpen] = useState(true);
 
   const navItems = [
@@ -227,7 +227,7 @@ export const Sidebar: React.FC = () => {
             <button
               onClick={() => {
                 setAuthMode('login');
-                setAuthModalOpen(true);
+                setUser(null);
                 if (isMobileMenuOpen) toggleMobileMenu();
               }}
               title="Entrar na sua Conta NossoBolso"
