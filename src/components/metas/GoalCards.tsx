@@ -4,6 +4,7 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
+import { ProgressBar } from '../ui/ProgressBar';
 import { formatBRL, formatPercent } from '../../utils/formatters';
 import { formatDate } from '../../utils/dateUtils';
 import { useAppStore } from '../../store/useAppStore';
@@ -129,13 +130,13 @@ export const GoalCards: React.FC<GoalCardsProps> = ({ goals }) => {
                     <span className="text-xs text-[#94A3B8]">de {formatBRL(g.targetAmount)}</span>
                   </div>
 
-                  {/* Progress Bar */}
-                  <div className="w-full bg-[#1E2330] rounded-full h-2.5 overflow-hidden mb-3">
-                    <div
-                      className="bg-gradient-to-r from-[#00FF88] to-[#06B6D4] h-2.5 rounded-full transition-all duration-500"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
+                  {/* Progress Bar Padronizada */}
+                  <ProgressBar
+                    value={pct}
+                    variant="gradient"
+                    size="md"
+                    className="mb-3"
+                  />
 
                   <div className="flex justify-between text-xs text-[#94A3B8] font-medium">
                     <span>{formatPercent(pct)} concluído</span>

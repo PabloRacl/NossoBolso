@@ -4,6 +4,7 @@
  */
 
 import emailjs from '@emailjs/browser';
+import { getErrorMessage } from '../utils/errorUtils';
 
 interface SendVerificationEmailParams {
   toName: string;
@@ -59,7 +60,7 @@ export const emailService = {
           isReal: true,
         };
       } catch (err: unknown) {
-        const errorMsg = typeof err === 'object' && err !== null && 'text' in err ? String((err as { text: string }).text) : (err as Error).message;
+        const errorMsg = getErrorMessage(err);
         console.error('[EmailJS Error]:', err);
         return {
           success: false,

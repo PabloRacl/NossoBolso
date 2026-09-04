@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
+import { ProgressBar } from '../ui/ProgressBar';
 import { db } from '../../services/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { formatBRL, formatPercent } from '../../utils/formatters';
@@ -257,10 +259,10 @@ export const DebtsView: React.FC = () => {
                           {contract.amortizationSystem ? contract.amortizationSystem.toUpperCase() : 'PRICE'}
                         </span>
                         {amortizedCount > 0 && (
-                          <span className="text-[10px] font-black text-[#00FF88] bg-[#00FF88]/15 border border-[#00FF88]/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Badge variant="success" size="sm" className="flex items-center gap-1">
                             <Sparkles className="w-3 h-3 text-[#00FF88]" />
                             <span>{amortizedCount} AMORTIZADA(S)</span>
-                          </span>
+                          </Badge>
                         )}
                       </div>
                       <p className="text-xs text-[#94A3B8] font-medium mt-0.5">
@@ -305,12 +307,11 @@ export const DebtsView: React.FC = () => {
                     </span>
                     <span className="text-[#00FF88]">{formatPercent(progressPct)}</span>
                   </div>
-                  <div className="w-full h-3 bg-[#0A0B0E] border border-[#1E2330] rounded-full overflow-hidden p-0.5">
-                    <div
-                      className="h-full bg-gradient-to-r from-[#00FF88] to-[#06B6D4] rounded-full transition-all duration-500 shadow-[0_0_10px_#00FF88]"
-                      style={{ width: `${Math.min(progressPct, 100)}%` }}
-                    />
-                  </div>
+                  <ProgressBar
+                    value={progressPct}
+                    variant="gradient"
+                    size="md"
+                  />
                 </div>
 
                 {/* Toggle Details */}

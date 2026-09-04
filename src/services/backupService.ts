@@ -1,5 +1,6 @@
 import { db } from './db';
 import { Transaction, Wallet, Category, Goal, DebtContract, Budget, RecurringTransaction, PantryItem, VehicleRecord, Vehicle } from '../types';
+import { getErrorMessage } from '../utils/errorUtils';
 
 export interface BackupPayload {
   version: string;
@@ -124,7 +125,7 @@ export async function importDatabaseJSON(file: File): Promise<{ success: boolean
           count: totalItems,
         });
       } catch (err: unknown) {
-        const errorMsg = err instanceof Error ? err.message : 'Erro desconhecido';
+        const errorMsg = getErrorMessage(err);
         console.error('Erro na importação do backup:', err);
         resolve({ success: false, message: `Falha ao processar backup: ${errorMsg}`, count: 0 });
       }

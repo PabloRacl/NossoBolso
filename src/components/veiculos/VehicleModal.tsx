@@ -10,6 +10,10 @@ interface VehicleModalProps {
   editingVehicle?: Vehicle | null;
 }
 
+type VehicleFuelType = 'flex' | 'gasoline' | 'ethanol' | 'diesel' | 'electric';
+const isVehicleFuelType = (val: string): val is VehicleFuelType =>
+  ['flex', 'gasoline', 'ethanol', 'diesel', 'electric'].includes(val);
+
 export const VehicleModal: React.FC<VehicleModalProps> = ({
   isOpen,
   onClose,
@@ -23,7 +27,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
   const [engineSpecs, setEngineSpecs] = useState('');
   const [recommendedOil, setRecommendedOil] = useState('');
   const [tireSpecs, setTireSpecs] = useState('');
-  const [fuelType, setFuelType] = useState<'flex' | 'gasoline' | 'ethanol' | 'diesel' | 'electric'>('flex');
+  const [fuelType, setFuelType] = useState<VehicleFuelType>('flex');
 
   useEffect(() => {
     if (editingVehicle && isOpen) {
@@ -211,7 +215,11 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
           <label className="text-xs font-bold text-[#94A3B8] uppercase">Combustível Principal</label>
           <select
             value={fuelType}
-            onChange={(e) => setFuelType(e.target.value as any)}
+            onChange={(e) => {
+              if (isVehicleFuelType(e.target.value)) {
+                setFuelType(e.target.value);
+              }
+            }}
             className="w-full h-11 px-3 bg-[#0A0B0E] border border-[#2E3B52] rounded-xl text-xs text-[#F8FAFC] font-bold focus:outline-none cursor-pointer"
           >
             <option value="flex">🌽/⛽ Flex (Etanol e Gasolina)</option>

@@ -3,18 +3,22 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { ShoppingBag, Sparkles, CheckCircle2, Scale, ArrowRight } from 'lucide-react';
 
+type PriceCalcUnit = 'g' | 'kg' | 'ml' | 'L' | 'un';
+const isPriceCalcUnit = (val: string): val is PriceCalcUnit =>
+  ['g', 'kg', 'ml', 'L', 'un'].includes(val);
+
 export const UnitPriceCalculatorModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   // Produto A
   const [nameA, setNameA] = useState('Embalagem Menor (Ex: 800g)');
   const [priceA, setPriceA] = useState<number>(18.90);
   const [qtyA, setQtyA] = useState<number>(800);
-  const [unitA, setUnitA] = useState<'g' | 'kg' | 'ml' | 'L' | 'un'>('g');
+  const [unitA, setUnitA] = useState<PriceCalcUnit>('g');
 
   // Produto B
   const [nameB, setNameB] = useState('Embalagem Família (Ex: 1.2kg)');
   const [priceB, setPriceB] = useState<number>(26.50);
   const [qtyB, setQtyB] = useState<number>(1200);
-  const [unitB, setUnitB] = useState<'g' | 'kg' | 'ml' | 'L' | 'un'>('g');
+  const [unitB, setUnitB] = useState<PriceCalcUnit>('g');
 
   // Normalização de preço por 1kg ou 1L ou 1unidade
   const calcResults = useMemo(() => {
@@ -93,7 +97,11 @@ export const UnitPriceCalculatorModal: React.FC<{ isOpen: boolean; onClose: () =
                 <label className="text-[10px] font-bold text-[#94A3B8]">Unidade</label>
                 <select
                   value={unitA}
-                  onChange={(e) => setUnitA(e.target.value as any)}
+                  onChange={(e) => {
+                    if (isPriceCalcUnit(e.target.value)) {
+                      setUnitA(e.target.value);
+                    }
+                  }}
                   className="w-full h-9 px-2 bg-[#0A0B0E] border border-[#2E3B52] rounded-xl text-xs font-bold text-[#F8FAFC]"
                 >
                   <option value="g">Grama (g)</option>
@@ -143,7 +151,11 @@ export const UnitPriceCalculatorModal: React.FC<{ isOpen: boolean; onClose: () =
                 <label className="text-[10px] font-bold text-[#94A3B8]">Unidade</label>
                 <select
                   value={unitB}
-                  onChange={(e) => setUnitB(e.target.value as any)}
+                  onChange={(e) => {
+                    if (isPriceCalcUnit(e.target.value)) {
+                      setUnitB(e.target.value);
+                    }
+                  }}
                   className="w-full h-9 px-2 bg-[#0A0B0E] border border-[#2E3B52] rounded-xl text-xs font-bold text-[#F8FAFC]"
                 >
                   <option value="g">Grama (g)</option>

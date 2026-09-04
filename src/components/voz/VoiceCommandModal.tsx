@@ -5,6 +5,26 @@ import { useAppStore } from '../../store/useAppStore';
 import { db } from '../../services/db';
 import { Mic, MicOff, Sparkles, CheckCircle2, AlertCircle, Volume2, ArrowRight } from 'lucide-react';
 
+interface ISpeechRecognitionInstance {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onstart: (() => void) | null;
+  onresult: ((event: { resultIndex: number; results: { [key: number]: { [key: number]: { transcript: string } } } }) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop?: () => void;
+  abort?: () => void;
+}
+
+type SpeechRecognitionConstructor = new () => ISpeechRecognitionInstance;
+
+interface WindowWithSpeechRecognition extends Window {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+}
+
 export const VoiceCommandModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const { setActivePage, triggerTransactionAnimation, setTransactionModalOpen } = useAppStore();
   const [isListening, setIsListening] = useState(false);
@@ -20,14 +40,15 @@ export const VoiceCommandModal: React.FC<{ isOpen: boolean; onClose: () => void 
   }, [isOpen]);
 
   const handleStartListening = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const win = window as unknown as WindowWithSpeechRecognition;
+    const SpeechRecognitionClass = win.SpeechRecognition || win.webkitSpeechRecognition;
 
-    if (!SpeechRecognition) {
-      alert('Seu navegador não possui suporte para o microfone da Web Speech API. Recomendamos o Google Chrome ou Edge.');
+    if (!SpeechRecognitionClass) {
+      setFeedback('Seu navegador não possui suporte para a Web Speech API. Recomendamos o Google Chrome ou Edge.');
       return;
     }
 
-    const recognition = new SpeechRecognition();
+    const recognition = new SpeechRecognitionClass();
     recognition.lang = 'pt-BR';
     recognition.continuous = false;
     recognition.interimResults = true;

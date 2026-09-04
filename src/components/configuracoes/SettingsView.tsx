@@ -1,17 +1,18 @@
 import React from 'react';
 import { Card } from '../ui/Card';
+import { Badge, type BadgeProps } from '../ui/Badge';
 import { useAppStore } from '../../store/useAppStore';
 import {
-  Compass,
   Palette,
   Keyboard,
   FileText,
   Database,
+  Smartphone,
+  Sparkles,
   ArrowUpRight,
   ShieldCheck,
-  Sparkles,
   Sliders,
-  Smartphone,
+  Compass,
   Activity
 } from 'lucide-react';
 
@@ -26,14 +27,25 @@ export const SettingsView: React.FC = () => {
     setScoreModalOpen,
   } = useAppStore();
 
-  const settingsCards = [
+  const settingsCards: Array<{
+    id: string;
+    title: string;
+    subtitle: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+    iconStyles: string;
+    badgeVariant: NonNullable<BadgeProps['variant']>;
+    actionLabel: string;
+    onAction: () => void;
+  }> = [
     {
       id: 'score',
       title: 'Score de Saúde Financeira & Crédito',
       subtitle: 'Diagnóstico Patrimonial',
       description: 'Pontuação calculada de 0 a 1000 pontos com análise em tempo real dos 4 pilares: reserva de emergência, saúde de dívidas, retenção e organização bancária.',
       icon: Activity,
-      color: '#00FF88',
+      iconStyles: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400',
+      badgeVariant: 'success',
       actionLabel: 'Ver Diagnóstico',
       onAction: () => setScoreModalOpen(true),
     },
@@ -43,7 +55,8 @@ export const SettingsView: React.FC = () => {
       subtitle: 'Projeção Estratégica',
       description: 'Simule impactos de aumentos de despesas, demissão, renda extra e amortização acelerada antes de tomar decisões financeiras reais.',
       icon: Compass,
-      color: '#F59E0B',
+      iconStyles: 'bg-amber-500/15 border-amber-500/30 text-amber-400',
+      badgeVariant: 'warning',
       actionLabel: 'Abrir Simulador',
       onAction: () => setWhatIfModalOpen(true),
     },
@@ -53,7 +66,8 @@ export const SettingsView: React.FC = () => {
       subtitle: 'Estilização Neon',
       description: 'Alterne instantaneamente a paleta visual do sistema (Cyber Emerald, Midnight Gold, Deep Ocean, Neon Violet, Sunset Crimson).',
       icon: Palette,
-      color: '#A855F7',
+      iconStyles: 'bg-purple-500/15 border-purple-500/30 text-purple-400',
+      badgeVariant: 'purple',
       actionLabel: 'Personalizar Temas',
       onAction: () => setThemeModalOpen(true),
     },
@@ -63,7 +77,8 @@ export const SettingsView: React.FC = () => {
       subtitle: 'Produtividade por Teclado',
       description: 'Visualize todos os atalhos de teclado globais para operar o NossoBolso em velocidade máxima (Ctrl + /, Ctrl + K, M, Q, E, H, B, T, R, P).',
       icon: Keyboard,
-      color: '#00FF88',
+      iconStyles: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400',
+      badgeVariant: 'success',
       actionLabel: 'Ver Atalhos',
       onAction: () => setShortcutsModalOpen(true),
     },
@@ -73,7 +88,8 @@ export const SettingsView: React.FC = () => {
       subtitle: 'Emissão Profissional',
       description: 'Gere recibos e comprovantes de pagamento profissionais formatados para impressão física ou envio direto em PDF/WhatsApp.',
       icon: FileText,
-      color: '#06B6D4',
+      iconStyles: 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400',
+      badgeVariant: 'info',
       actionLabel: 'Gerar Recibo',
       onAction: () => setReceiptModalOpen(true),
     },
@@ -83,7 +99,8 @@ export const SettingsView: React.FC = () => {
       subtitle: 'Gestão de Dados Local',
       description: 'Exporte um backup em JSON 100% criptografado e seguro da sua base local IndexedDB ou restaure dados salvos previamente.',
       icon: Database,
-      color: '#38BDF8',
+      iconStyles: 'bg-sky-500/15 border-sky-500/30 text-sky-400',
+      badgeVariant: 'info',
       actionLabel: 'Gerenciar Backup',
       onAction: () => setBackupModalOpen(true),
     },
@@ -93,7 +110,8 @@ export const SettingsView: React.FC = () => {
       subtitle: 'App Nativo Mobile',
       description: 'Instale o NossoBolso como aplicativo nativo offline na tela inicial do seu celular Android ou iPhone sem depender da App Store.',
       icon: Smartphone,
-      color: '#00FF88',
+      iconStyles: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400',
+      badgeVariant: 'success',
       actionLabel: 'Instalar no Celular',
       onAction: () => setPwaModalOpen(true),
     },
@@ -101,7 +119,6 @@ export const SettingsView: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 w-full animate-fadeIn pb-24 md:pb-6">
-      {/* Cabeçalho Futurista de Configurações */}
       <div className="p-6 bg-gradient-to-r from-[#0D1526] via-[#0A0E1A] to-[#0D1424] border border-[#00FF88]/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl relative overflow-hidden">
         <div className="absolute -top-12 -right-12 w-40 h-40 bg-[#00FF88]/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -143,26 +160,14 @@ export const SettingsView: React.FC = () => {
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <div
-                    className="p-3 rounded-2xl border transition-transform group-hover:scale-105"
-                    style={{
-                      backgroundColor: `${card.color}15`,
-                      borderColor: `${card.color}40`,
-                      color: card.color,
-                    }}
+                    className={`p-3 rounded-2xl border transition-transform group-hover:scale-105 ${card.iconStyles}`}
                   >
                     <Icon className="w-6 h-6" />
                   </div>
 
-                  <span
-                    className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border"
-                    style={{
-                      backgroundColor: `${card.color}10`,
-                      borderColor: `${card.color}30`,
-                      color: card.color,
-                    }}
-                  >
+                  <Badge variant={card.badgeVariant} size="sm">
                     {card.subtitle}
-                  </span>
+                  </Badge>
                 </div>
 
                 <div className="flex flex-col gap-1 mt-1">

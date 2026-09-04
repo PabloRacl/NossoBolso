@@ -1,5 +1,7 @@
 import React from 'react';
 import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
+import { ProgressBar } from '../ui/ProgressBar';
 import { useAppStore } from '../../store/useAppStore';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../services/db';
@@ -145,15 +147,8 @@ export const BudgetProgressWidget: React.FC<BudgetProgressWidgetProps> = ({ sele
             const limit = b.monthlyLimit;
             const pct = limit > 0 ? Math.round((spent / limit) * 100) : 0;
             const remaining = Math.max(limit - spent, 0);
-
             const isOver = spent > limit;
             const isWarning = !isOver && pct >= 80;
-
-            const progressColor = isOver
-              ? 'bg-gradient-to-r from-[#FF4D6D] to-[#EF4444] shadow-[0_0_12px_rgba(255,77,109,0.5)]'
-              : isWarning
-              ? 'bg-gradient-to-r from-[#F59E0B] to-[#FFB300] shadow-[0_0_12px_rgba(245,158,11,0.5)]'
-              : 'bg-gradient-to-r from-[#00FF88] to-[#06B6D4] shadow-[0_0_12px_rgba(0,255,136,0.5)]';
 
             return (
               <div
@@ -175,31 +170,30 @@ export const BudgetProgressWidget: React.FC<BudgetProgressWidgetProps> = ({ sele
 
                   <div className="flex items-center gap-1.5 text-xs font-extrabold">
                     {isOver ? (
-                      <span className="flex items-center gap-1 text-[#FF4D6D] bg-[#FF4D6D]/20 px-2.5 py-0.5 rounded-md border border-[#FF4D6D]/50 text-[10px] font-black uppercase tracking-wider animate-pulse">
+                      <Badge variant="danger" size="sm" className="animate-pulse flex items-center gap-1">
                         <ShieldAlert className="w-3.5 h-3.5" />
                         EXCEDIDO EM {formatBRL(spent - limit, isPrivacyMode)} ({pct}%)
-                      </span>
+                      </Badge>
                     ) : isWarning ? (
-                      <span className="flex items-center gap-1 text-[#F59E0B] bg-[#F59E0B]/20 px-2.5 py-0.5 rounded-md border border-[#F59E0B]/50 text-[10px] font-black uppercase tracking-wider">
+                      <Badge variant="warning" size="sm" className="flex items-center gap-1">
                         <AlertTriangle className="w-3.5 h-3.5" />
                         ATENÇÃO ({pct}%)
-                      </span>
+                      </Badge>
                     ) : (
-                      <span className="flex items-center gap-1 text-[#00FF88] bg-[#00FF88]/15 px-2.5 py-0.5 rounded-md border border-[#00FF88]/40 text-[10px] font-black uppercase tracking-wider">
+                      <Badge variant="success" size="sm" className="flex items-center gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         {pct}% UTILIZADO
-                      </span>
+                      </Badge>
                     )}
                   </div>
                 </div>
 
-                {/* Barra Neon Laser de Progresso */}
-                <div className="w-full h-2.5 bg-[#0A0B0E] rounded-full overflow-hidden border border-[#2E3B52]/80 p-0.5">
-                  <div
-                    className={`h-full ${progressColor} transition-all duration-500 rounded-full`}
-                    style={{ width: `${Math.min(pct, 100)}%` }}
-                  />
-                </div>
+                {/* Barra de Progresso Padronizada do Design System */}
+                <ProgressBar
+                  value={pct}
+                  variant={isOver ? 'rose' : isWarning ? 'amber' : 'emerald'}
+                  size="md"
+                />
 
                 {/* Linha 2: Valores com Restante Livre Claro */}
                 <div className="flex items-center justify-between text-[11px] font-bold text-[#94A3B8]">

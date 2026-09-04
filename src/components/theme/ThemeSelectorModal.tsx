@@ -10,6 +10,8 @@ interface ThemeOption {
   primaryColor: string;
   accentBg: string;
   borderColor: string;
+  textColor: string;
+  badgeBg: string;
   description: string;
 }
 
@@ -20,6 +22,8 @@ export const THEME_OPTIONS: ThemeOption[] = [
     primaryColor: '#00FF88',
     accentBg: 'bg-[#00FF88]/15',
     borderColor: 'border-[#00FF88]/40',
+    textColor: 'text-[#00FF88]',
+    badgeBg: 'bg-[#00FF88] text-[#0B0F19]',
     description: 'Estilo cibernético bio-esmeralda vibrante.',
   },
   {
@@ -28,6 +32,8 @@ export const THEME_OPTIONS: ThemeOption[] = [
     primaryColor: '#FFD700',
     accentBg: 'bg-[#FFD700]/15',
     borderColor: 'border-[#FFD700]/40',
+    textColor: 'text-[#FFD700]',
+    badgeBg: 'bg-[#FFD700] text-[#090D16]',
     description: 'Design de luxo executivo com tons de ouro 24k.',
   },
   {
@@ -36,6 +42,8 @@ export const THEME_OPTIONS: ThemeOption[] = [
     primaryColor: '#06B6D4',
     accentBg: 'bg-[#06B6D4]/15',
     borderColor: 'border-[#06B6D4]/40',
+    textColor: 'text-[#06B6D4]',
+    badgeBg: 'bg-[#06B6D4] text-[#090D16]',
     description: 'Ciano neon inspirado em tecnologia marinha.',
   },
   {
@@ -44,6 +52,8 @@ export const THEME_OPTIONS: ThemeOption[] = [
     primaryColor: '#A855F7',
     accentBg: 'bg-[#A855F7]/15',
     borderColor: 'border-[#A855F7]/40',
+    textColor: 'text-[#A855F7]',
+    badgeBg: 'bg-[#A855F7] text-[#FFFFFF]',
     description: 'Roxo futurista cyberpunk com alto contraste.',
   },
   {
@@ -52,6 +62,8 @@ export const THEME_OPTIONS: ThemeOption[] = [
     primaryColor: '#FF4D6D',
     accentBg: 'bg-[#FF4D6D]/15',
     borderColor: 'border-[#FF4D6D]/40',
+    textColor: 'text-[#FF4D6D]',
+    badgeBg: 'bg-[#FF4D6D] text-[#FFFFFF]',
     description: 'Vermelho carmesim de alta energia e atitude.',
   },
 ];
@@ -103,8 +115,7 @@ export const ThemeSelectorModal: React.FC<{ isOpen: boolean; onClose: () => void
               >
                 <div className="flex items-center gap-3.5">
                   <div
-                    className="w-8 h-8 rounded-full border-2 border-white/20 shadow-md shrink-0 flex items-center justify-center font-bold text-xs"
-                    style={{ backgroundColor: theme.primaryColor, color: '#000' }}
+                    className={`w-8 h-8 rounded-full border-2 border-white/20 shadow-md shrink-0 flex items-center justify-center font-bold text-xs ${theme.badgeBg}`}
                   >
                     ★
                   </div>
@@ -115,7 +126,7 @@ export const ThemeSelectorModal: React.FC<{ isOpen: boolean; onClose: () => void
                 </div>
 
                 {isSelected ? (
-                  <CheckCircle2 className="w-5 h-5 shrink-0" style={{ color: theme.primaryColor }} />
+                  <CheckCircle2 className={`w-5 h-5 shrink-0 ${theme.textColor}`} />
                 ) : (
                   <span className="text-xs text-[#64748B] font-bold">Selecionar</span>
                 )}

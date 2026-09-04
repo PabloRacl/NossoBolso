@@ -61,6 +61,20 @@ export const FinancialHealthScoreWidget: React.FC = () => {
     };
   }, [transactions, wallets, debtContracts]);
 
+  const levelBadgeStyles: Record<string, string> = {
+    EXCELENTE: 'bg-[#00FF88]/15 border-[#00FF88]/40 text-[#00FF88]',
+    BOM: 'bg-[#06B6D4]/15 border-[#06B6D4]/40 text-[#06B6D4]',
+    ATENÇÃO: 'bg-[#F59E0B]/15 border-[#F59E0B]/40 text-[#F59E0B]',
+    CRÍTICO: 'bg-[#FF4D6D]/15 border-[#FF4D6D]/40 text-[#FF4D6D]',
+  };
+
+  const levelTextStyles: Record<string, string> = {
+    EXCELENTE: 'text-[#00FF88]',
+    BOM: 'text-[#06B6D4]',
+    ATENÇÃO: 'text-[#F59E0B]',
+    CRÍTICO: 'text-[#FF4D6D]',
+  };
+
   return (
     <Card className="p-5 flex flex-col gap-4 border-l-4 border-l-[#00FF88] hover:border-[#00FF88]/60 transition-all duration-300">
       <div className="flex items-center justify-between">
@@ -75,8 +89,7 @@ export const FinancialHealthScoreWidget: React.FC = () => {
         </div>
 
         <span
-          className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 border"
-          style={{ backgroundColor: `${levelColor}20`, borderColor: `${levelColor}50`, color: levelColor }}
+          className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 border ${levelBadgeStyles[level] || 'text-[#00FF88]'}`}
         >
           <Award className="w-3.5 h-3.5" />
           <span>{level}</span>
@@ -87,7 +100,7 @@ export const FinancialHealthScoreWidget: React.FC = () => {
         {/* Mostrador Numérico do Score */}
         <div className="p-4 bg-[#090D18] border border-[#1E293B] rounded-2xl flex flex-col items-center justify-center text-center">
           <span className="text-[10px] font-extrabold text-[#94A3B8] uppercase">Pontuação Atual</span>
-          <span className="text-4xl font-black my-1 drop-shadow-md" style={{ color: levelColor }}>
+          <span className={`text-4xl font-black my-1 drop-shadow-md ${levelTextStyles[level] || 'text-[#00FF88]'}`}>
             {score}
           </span>
           <span className="text-[10px] text-[#64748B] font-bold">de 1000 pontos possíveis</span>

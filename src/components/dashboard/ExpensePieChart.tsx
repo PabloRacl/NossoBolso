@@ -89,6 +89,10 @@ interface PieSectorProps {
   fill: string;
 }
 
+const isPieSectorProps = (p: unknown): p is PieSectorProps => {
+  return typeof p === 'object' && p !== null && 'cx' in p && 'cy' in p && 'fill' in p;
+};
+
 const renderActiveShape = (props: PieSectorProps) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
   return (
@@ -283,7 +287,7 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                   paddingAngle={4}
                   dataKey="value"
                   activeIndex={activeIndex}
-                  activeShape={(props: unknown) => renderActiveShape(props as PieSectorProps)}
+                  activeShape={(props: unknown) => isPieSectorProps(props) ? renderActiveShape(props) : <g />}
                   onMouseEnter={(_, index) => setActiveIndex(index)}
                   onMouseLeave={() => setActiveIndex(undefined)}
                 >

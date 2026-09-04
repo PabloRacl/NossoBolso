@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatBRL, formatPercent } from '../../utils/formatters';
+import { ProgressBar } from '../ui/ProgressBar';
 import { Wallet, TrendingUp, TrendingDown, CreditCard, ShieldCheck, Cpu, ArrowUpRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
@@ -98,12 +99,11 @@ export const StatCards: React.FC<StatCardsProps> = ({
             <span className="text-[#94A3B8]">Capacidade de Retenção:</span>
             <span className="text-[#00FF88]">{savingsPercent.toFixed(1)}% Guardado</span>
           </div>
-          <div className="w-full h-2 bg-[#0A0B0E] rounded-full overflow-hidden border border-[#2E3B52]/80 p-0.5">
-            <div
-              className="h-full bg-gradient-to-r from-[#00FF88] via-[#06B6D4] to-[#3B82F6] rounded-full transition-all duration-500 shadow-[0_0_12px_rgba(0,255,136,0.5)]"
-              style={{ width: `${Math.min(savingsPercent, 100)}%` }}
-            />
-          </div>
+          <ProgressBar
+            value={savingsPercent}
+            variant="gradient"
+            size="sm"
+          />
         </div>
       </div>
 
@@ -160,12 +160,11 @@ export const StatCards: React.FC<StatCardsProps> = ({
               <span className="text-[#FF4D6D] text-[10px] flex items-center">Ver <ArrowUpRight className="w-3 h-3 ml-0.5" /></span>
             </div>
           </div>
-          <div className="w-full h-1.5 bg-[#0A0B0E] rounded-full overflow-hidden border border-[#2E3B52]">
-            <div
-              className="h-full bg-gradient-to-r from-[#F59E0B] to-[#FF4D6D] rounded-full"
-              style={{ width: `${burnRatePct}%` }}
-            />
-          </div>
+          <ProgressBar
+            value={burnRatePct}
+            variant="rose"
+            size="sm"
+          />
         </div>
 
         {/* 3. DÍVIDAS & CARTÕES -> Ir para Financiamentos */}
