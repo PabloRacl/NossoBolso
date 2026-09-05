@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Transaction, Goal } from '../../types';
-import { formatBRL } from '../../utils/formatters';
-import { formatDate } from '../../utils/dateUtils';
-import { useAppStore } from '../../store/useAppStore';
+import { Transaction, Goal } from '../../tipos';
+import { formatBRL } from '../../utilidades/formatters';
+import { formatDate } from '../../utilidades/dateUtils';
+import { useAppStore } from '../../estado/useAppStore';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../services/db';
+import { db } from '../../servicos/db';
 import {
   Download,
   Printer,
@@ -121,7 +121,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals })
   };
 
   const handleExportCSV = () => {
-    const headers = ['ID', 'Descricao', 'Tipo', 'Categoria', 'Data', 'Valor (R$)'];
+    const headers = ['ID', 'Descrição', 'Tipo', 'Categoria', 'Data', 'Valor (R$)'];
     const rows = transactions.map((tx) => [
       tx.id,
       `"${tx.description.replace(/"/g, '""')}"`,

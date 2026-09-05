@@ -3,12 +3,12 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { ProgressBar } from '../ui/ProgressBar';
-import { db } from '../../services/db';
+import { db } from '../../servicos/db';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { formatBRL, formatPercent } from '../../utils/formatters';
-import { formatDate } from '../../utils/dateUtils';
-import { useAppStore } from '../../store/useAppStore';
-import { Plus, Car, CreditCard, ShieldAlert, CheckCircle2, Calendar, Trash2, Zap, Pencil, ShieldCheck, Sparkles } from 'lucide-react';
+import { formatBRL, formatPercent } from '../../utilidades/formatters';
+import { formatDate } from '../../utilidades/dateUtils';
+import { useAppStore } from '../../estado/useAppStore';
+import { Plus, Car, CreditCard, ShieldAlert, CheckCircle2, Calendar, Trash2, Zap, Pencil, ShieldCheck, Sparkles, Filter, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const containerVariants = {
@@ -27,12 +27,20 @@ export const DebtsView: React.FC = () => {
     setDebtContractModalOpen, 
     setAmortizacaoModalOpen, 
     setAmortizacaoContractId,
-    setEditingDebtContractId
+    setEditingDebtContractId,
+    setEditingTransactionId,
+    setTransactionModalOpen,
+    selectedMonth
   } = useAppStore();
+
   const contracts = useLiveQuery(() => db.debtContracts.toArray(), []) || [];
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
 
   const [expandedContractId, setExpandedContractId] = useState<string | null>(null);
+  
+  // Filtros individuais de busca e escopo para o cronograma de cada contrato
+  const [scheduleSearch, setScheduleSearch] = useState<Record<string, string>>({});
+  const [scheduleScope, setScheduleScope] = useState<Record<string, string>>({});
 
   // Auto-repair para garantir que o contrato do ONIX ou outros contratos preservem originalTotalInstallments = 36
   useEffect(() => {
@@ -45,6 +53,16 @@ export const DebtsView: React.FC = () => {
       }
     });
   }, [contracts]);
+
+  // Formatar nome amigável do mês selecionado no topo
+  const getSelectedMonthLabel = () => {
+    if (!selectedMonth || selectedMonth === 'all') return 'Mês Ativo';
+    const [y, m] = selectedMonth.split('-');
+    if (!y || !m) return selectedMonth;
+    const d = new Date(parseInt(y), parseInt(m) - 1, 1);
+    const monthName = d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+    return monthName.charAt(0).toUpperCase() + monthName.slice(1);
+  };
 
   // Calculate totals
   const totalFinanced = contracts.reduce((acc, c) => {
@@ -60,19 +78,15 @@ export const DebtsView: React.FC = () => {
     const originalTotal = c.originalTotalInstallments || (c.title.includes('ONIX') ? 36 : Math.max(c.totalInstallments, 36));
     const singleVal = (c.installmentAmount || 0) + (c.insuranceAmount || 0);
 
-    // 1. Parcelas pagas antes da contratação (ex: 5)
     const initialPaidCount = Math.max(startInstallment - 1, 0);
     const initialPaidAmount = initialPaidCount * singleVal;
 
-    // 2. Parcelas restantes pendentes com transação no banco de dados (ex: 20)
     const remainingPendingCount = contractTxs.length;
     const remainingAmount = contractTxs.reduce((acc, t) => acc + t.amount, 0);
 
-    // 3. Parcelas eliminadas/abatidas por amortização extraordinária (ex: 36 - 5 - 20 = 11)
     const amortizedCount = Math.max(originalTotal - initialPaidCount - remainingPendingCount, 0);
     const amortizedAmountSaved = amortizedCount * singleVal;
 
-    // 4. Progresso de Quitação
     const paidCount = initialPaidCount;
     const totalDoneCount = initialPaidCount + amortizedCount;
     const progressPct = originalTotal > 0 ? (totalDoneCount / originalTotal) * 100 : 0;
@@ -108,6 +122,11 @@ export const DebtsView: React.FC = () => {
     setTimeout(() => setAmortizacaoModalOpen(true), 50);
   };
 
+  const handleEditSingleInstallment = (txId: string) => {
+    setEditingTransactionId(txId);
+    setTransactionModalOpen(true);
+  };
+
   const handleDeleteContract = async (id: string) => {
     if (!confirm('Deseja realmente excluir este financiamento e todas as suas parcelas?')) return;
     await db.debtContracts.delete(id);
@@ -124,7 +143,7 @@ export const DebtsView: React.FC = () => {
         <div>
           <h3 className="text-xl font-extrabold text-[#F8FAFC]">Financiamentos & Dívidas Contratadas</h3>
           <p className="text-xs text-[#94A3B8] font-medium">
-            Gerencie contratos de longo prazo (Veículos 36x, Consórcios, Empréstimos)
+            Gerencie contratos de longo prazo (Veículos 36x, Consórcios, Empréstimos 360x)
           </p>
         </div>
 
@@ -241,6 +260,9 @@ export const DebtsView: React.FC = () => {
               };
             }
 
+            const currentScope = scheduleScope[contract.id] || 'current_month';
+            const currentQuery = scheduleSearch[contract.id] || '';
+
             return (
               <Card
                 key={contract.id}
@@ -284,7 +306,7 @@ export const DebtsView: React.FC = () => {
                     <button
                       onClick={() => handleEditContract(contract.id)}
                       className="p-2 text-[#64748B] hover:text-[#00FF88] hover:bg-[#1E2330] rounded-xl transition-colors"
-                      title="Editar Financiamento"
+                      title="Editar Financiamento Geral"
                     >
                       <Pencil className="w-5 h-5" />
                     </button>
@@ -321,13 +343,15 @@ export const DebtsView: React.FC = () => {
                     className="text-xs font-bold text-[#06B6D4] hover:underline flex items-center gap-1"
                   >
                     <Calendar className="w-3.5 h-3.5" />
-                    {expandedContractId === contract.id ? 'Ocultar Lista de Parcelas' : 'Ver Cronograma Completo de Parcelas'}
+                    {expandedContractId === contract.id ? 'Ocultar Cronograma de Parcelas' : 'Ver Cronograma & Editar Parcela do Mês X'}
                   </button>
                 </div>
 
-                {/* Expanded Installment List (Cronograma Completo das 36 Parcelas com Amortizadas Visíveis!) */}
+                {/* Expanded Installment List com Filtros Avançados por Mês e Edição Individual */}
                 {expandedContractId === contract.id && (
                   <div className="mt-2 p-4 bg-[#0A0B0E] border border-[#1E293B] rounded-2xl flex flex-col gap-3 animate-fadeIn shadow-xl">
+                    
+                    {/* Header do Cronograma & Telemetria */}
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#2E3B52]/60 pb-3">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-[#00FF88]" />
@@ -336,7 +360,6 @@ export const DebtsView: React.FC = () => {
                         </h5>
                       </div>
 
-                      {/* Badges em Evidência de Telemetria com Destaque para Amortizações */}
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[10px] font-black text-[#10B981] bg-[#10B981]/15 px-2.5 py-1 rounded-lg border border-[#10B981]/30">
                           {initialPaidCount} Pagas ({formatBRL(initialPaidAmount)})
@@ -345,7 +368,7 @@ export const DebtsView: React.FC = () => {
                         {amortizedCount > 0 && (
                           <span className="text-[10px] font-black text-[#00FF88] bg-[#00FF88]/15 px-2.5 py-1 rounded-lg border border-[#00FF88]/40 flex items-center gap-1 shadow-[0_0_12px_rgba(0,255,136,0.3)] animate-pulse">
                             <Zap className="w-3.5 h-3.5 text-[#00FF88]" />
-                            <span>⚡ {amortizedCount} Antecipada(s) por Amortização ({formatBRL(amortizedAmountSaved)})</span>
+                            <span>⚡ {amortizedCount} Antecipada(s) ({formatBRL(amortizedAmountSaved)})</span>
                           </span>
                         )}
 
@@ -355,6 +378,35 @@ export const DebtsView: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* Toolbar de Filtro por Mês / Ano e Busca da Parcela X */}
+                    <div className="flex flex-wrap items-center justify-between gap-2.5 bg-[#090D18] p-2.5 rounded-xl border border-[#1E293B]">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Filter className="w-3.5 h-3.5 text-[#00FF88] shrink-0" />
+                        <span className="text-xs font-bold text-[#94A3B8] shrink-0">Filtrar Visão:</span>
+
+                        <select
+                          value={currentScope}
+                          onChange={(e) => setScheduleScope({ ...scheduleScope, [contract.id]: e.target.value })}
+                          className="px-3 py-1.5 text-xs bg-[#162032] border border-[#2E3B52] rounded-lg text-[#00FF88] font-extrabold focus:outline-none cursor-pointer"
+                        >
+                          <option value="current_month">📅 Mês Selecionado ({getSelectedMonthLabel()})</option>
+                          <option value="next">⚡ Apenas Próxima Parcela (Nº {startInstallment})</option>
+                          <option value="all">🌐 Ver Todas as {originalTotal} Parcelas</option>
+                        </select>
+                      </div>
+
+                      <div className="w-full sm:w-64">
+                        <input
+                          type="text"
+                          placeholder="🔍 Nº parcela ou mês (ex: 153 ou 09/2026)..."
+                          value={currentQuery}
+                          onChange={(e) => setScheduleSearch({ ...scheduleSearch, [contract.id]: e.target.value })}
+                          className="w-full h-8 px-3 text-xs bg-[#0A0B0E] border border-[#2E3B52] rounded-lg text-[#F8FAFC] placeholder-[#64748B] focus:border-[#00FF88] focus:outline-none transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Lista de Parcelas Filtrada */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-96 overflow-y-auto pr-1">
                       {(() => {
                         const singleVal = (contract.installmentAmount || 0) + (contract.insuranceAmount || 0);
@@ -372,6 +424,7 @@ export const DebtsView: React.FC = () => {
                             num: i,
                             amount: tx ? tx.amount : singleVal,
                             date: tx ? tx.date : '',
+                            txId: tx ? tx.id : undefined,
                             isPaid,
                             isNext,
                             isPending,
@@ -379,7 +432,44 @@ export const DebtsView: React.FC = () => {
                           });
                         }
 
-                        return allInstallments.map((inst) => (
+                        // Aplicar Filtros de Mês / Busca
+                        const filteredInstallments = allInstallments.filter((inst) => {
+                          // Busca textual (nº da parcela ou data)
+                          if (currentQuery.trim() !== '') {
+                            const q = currentQuery.toLowerCase();
+                            const matchesNum = String(inst.num).includes(q);
+                            const matchesDate = inst.date ? formatDate(inst.date).toLowerCase().includes(q) : false;
+                            if (!matchesNum && !matchesDate) return false;
+                          }
+
+                          // Filtro de Escopo
+                          if (currentScope === 'next') {
+                            return inst.isNext;
+                          }
+                          if (currentScope === 'current_month' && selectedMonth && selectedMonth !== 'all') {
+                            if (inst.isNext) return true; // Mantém a próxima visível
+                            if (inst.date && inst.date.startsWith(selectedMonth)) return true;
+                            return false;
+                          }
+
+                          return true;
+                        });
+
+                        if (filteredInstallments.length === 0) {
+                          return (
+                            <div className="col-span-2 p-6 text-center text-xs text-[#94A3B8] bg-[#090D18] rounded-xl border border-[#1E293B]">
+                              Nenhuma parcela encontrada para o filtro selecionado ({getSelectedMonthLabel()}). 
+                              <button
+                                onClick={() => setScheduleScope({ ...scheduleScope, [contract.id]: 'all' })}
+                                className="ml-2 text-[#00FF88] font-bold underline hover:text-[#00E577]"
+                              >
+                                Clique aqui para ver todas as {originalTotal} parcelas
+                              </button>
+                            </div>
+                          );
+                        }
+
+                        return filteredInstallments.map((inst) => (
                           <div
                             key={`inst_${contract.id}_${inst.num}`}
                             className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
@@ -427,10 +517,20 @@ export const DebtsView: React.FC = () => {
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-2.5 shrink-0">
+                            <div className="flex items-center gap-2 shrink-0">
                               <span className="text-xs font-black text-[#F8FAFC]">
                                 {formatBRL(inst.amount)}
                               </span>
+
+                              {inst.txId && (
+                                <button
+                                  onClick={() => handleEditSingleInstallment(inst.txId!)}
+                                  className="p-1.5 text-[#94A3B8] hover:text-[#00FF88] hover:bg-[#1E293B] rounded-lg transition-colors border border-transparent hover:border-[#00FF88]/30"
+                                  title={`Editar valor/data da Parcela ${inst.num}`}
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                              )}
 
                               {inst.isPaid ? (
                                 <span className="text-[10px] font-black text-[#10B981] bg-[#10B981]/20 border border-[#10B981]/40 px-2 py-0.5 rounded-md">

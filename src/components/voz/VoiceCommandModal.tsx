@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { useAppStore } from '../../store/useAppStore';
-import { db } from '../../services/db';
+import { useAppStore } from '../../estado/useAppStore';
+import { db } from '../../servicos/db';
 import { Mic, MicOff, Sparkles, CheckCircle2, AlertCircle, Volume2, ArrowRight } from 'lucide-react';
 
 interface ISpeechRecognitionInstance {
@@ -31,8 +31,22 @@ export const VoiceCommandModal: React.FC<{ isOpen: boolean; onClose: () => void 
   const [transcript, setTranscript] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (!isOpen) {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
       setIsListening(false);
       setTranscript('');
       setFeedback(null);
@@ -85,14 +99,16 @@ export const VoiceCommandModal: React.FC<{ isOpen: boolean; onClose: () => void 
     if (lower.includes('carteiras') || lower.includes('banco')) {
       setActivePage('wallets');
       setFeedback('Navegando para Carteiras & Bancos!');
-      setTimeout(onClose, 1200);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(onClose, 1200);
       return;
     }
 
     if (lower.includes('relatório') || lower.includes('relatorios')) {
       setActivePage('reports');
       setFeedback('Navegando para Relatórios!');
-      setTimeout(onClose, 1200);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(onClose, 1200);
       return;
     }
 
@@ -132,7 +148,8 @@ export const VoiceCommandModal: React.FC<{ isOpen: boolean; onClose: () => void 
       // Disparar Animação de Moeda Voadora Holográfica!
       triggerTransactionAnimation(type, amount, description);
       setFeedback(`✅ Transação cadastrada: ${description} (R$ ${amount.toFixed(2)})`);
-      setTimeout(onClose, 1500);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(onClose, 1500);
     } else {
       setFeedback('Não identifiquei o valor ou o tipo da transação. Fale por exemplo: "Adicionar despesa de 70 reais"');
     }

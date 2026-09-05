@@ -1,4 +1,4 @@
-import { PantryItem } from '../../types';
+import { PantryItem } from '../../tipos';
 
 export type PantryTab = 'stock' | 'wizard' | 'shopping';
 export type PriceCalculationMode = 'unit' | 'combo' | 'discount';

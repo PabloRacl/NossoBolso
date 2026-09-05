@@ -14,8 +14,8 @@ import {
   Calendar,
   Sparkles,
 } from 'lucide-react';
-import { useAppStore } from '../../store/useAppStore';
-import { authService } from '../../services/authService';
+import { useAppStore } from '../../estado/useAppStore';
+import { authService } from '../../servicos/authService';
 
 export const UserProfileModal: React.FC = () => {
   const {
@@ -188,8 +188,32 @@ export const UserProfileModal: React.FC = () => {
               </div>
             </div>
 
+            {/* Guest Conversion Card */}
+            {user.role === 'guest' && (
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-amber-600/10 to-slate-900 border border-amber-500/30 flex flex-col gap-3">
+                <div className="flex items-center gap-2 text-amber-300">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs font-bold">Modo Convidado Ativo</span>
+                </div>
+                <p className="text-[11px] text-slate-300">
+                  Você está visualizando uma base de demonstração. Seus lançamentos não serão sincronizados na nuvem até você criar uma conta.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleClose();
+                    setUser(null);
+                    setAuthMode('register');
+                  }}
+                  className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/20"
+                >
+                  Criar Conta Gratuita Agora
+                </button>
+              </div>
+            )}
+
             {/* Change Password Collapsible Section */}
-            {user.provider === 'credentials' && (
+            {user.provider === 'credentials' && user.role !== 'guest' && (
               <div className="border border-slate-800/80 rounded-2xl bg-slate-950/40 overflow-hidden">
                 <button
                   type="button"

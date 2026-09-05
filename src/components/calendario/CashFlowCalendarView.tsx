@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../services/db';
-import { useAppStore, getCurrentMonthKey } from '../../store/useAppStore';
-import { formatBRL } from '../../utils/formatters';
+import { db } from '../../servicos/db';
+import { useAppStore, getCurrentMonthKey } from '../../estado/useAppStore';
+import { formatBRL } from '../../utilidades/formatters';
 import { Card } from '../ui/Card';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownRight, ShieldAlert, Sparkles, CheckCircle2, DollarSign } from 'lucide-react';
 

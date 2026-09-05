@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShieldCheck, ArrowRight, Loader2, Facebook, Linkedin } from 'lucide-react';
 
 interface SocialLoginModalProps {
-  provider: 'google' | 'facebook' | 'linkedin' | null;
+  provider: 'google' | 'facebook' | 'linkedin' | 'twitter' | null;
   onClose: () => void;
   onExecute: (email: string, name: string) => void;
   loading: boolean;
@@ -57,8 +57,17 @@ export const SocialLoginModal: React.FC<SocialLoginModalProps> = ({
                       <Linkedin className="w-6 h-6" />
                     </div>
                   )}
+                  {provider === 'twitter' && (
+                    <div className="p-2 rounded-xl bg-white/10 border border-white/20 text-white">
+                      <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                      </svg>
+                    </div>
+                  )}
                   <div>
-                    <h3 className="text-base font-bold text-white capitalize">Conectar com {provider}</h3>
+                    <h3 className="text-base font-bold text-white">
+                      Conectar com {provider === 'twitter' ? 'X (Twitter)' : provider === 'google' ? 'Google' : provider === 'linkedin' ? 'LinkedIn' : 'Facebook'}
+                    </h3>
                     <p className="text-xs text-slate-400 font-medium">Autenticação rápida de conta social</p>
                   </div>
                 </div>

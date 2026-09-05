@@ -1,9 +1,9 @@
 import React from 'react';
 import { Card } from '../ui/Card';
-import { PantryItem } from '../../types';
+import { PantryItem } from '../../tipos';
 import { PriceCalculationMode } from './pantryTypes';
-import { formatBRL } from '../../utils/formatters';
-import { useAppStore } from '../../store/useAppStore';
+import { formatBRL } from '../../utilidades/formatters';
+import { useAppStore } from '../../estado/useAppStore';
 import {
   Tag,
   Flame,

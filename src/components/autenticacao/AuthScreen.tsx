@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertCircle,
@@ -9,13 +9,15 @@ import {
   CloudSun,
   Coins,
   Zap,
+  X,
 } from 'lucide-react';
-import { useAppStore } from '../../store/useAppStore';
-import { authService } from '../../services/authService';
-import { BioCyberLogo } from '../layout/BioCyberLogo';
+import { useAppStore } from '../../estado/useAppStore';
+import { authService } from '../../servicos/authService';
+import { isSupabaseConfigured } from '../../servicos/supabase';
+import { BioCyberLogo } from '../estrutura/BioCyberLogo';
 import { FallingLeavesAnimation, WeatherMode } from './FallingLeavesAnimation';
 import { AuthLiveDashboard } from './AuthLiveDashboard';
-import { UserProfile } from '../../types';
+import { UserProfile } from '../../tipos';
 import { LoginForm } from './LoginForm';
 import { RegisterForm } from './RegisterForm';
 import { VerifyCodeForm } from './VerifyCodeForm';
@@ -34,11 +36,21 @@ export const AuthScreen: React.FC = () => {
   const [simulatedToken, setSimulatedToken] = useState<string | null>(null);
 
   // Social Login Popup State
-  const [socialModalProvider, setSocialModalProvider] = useState<'google' | 'facebook' | 'linkedin' | null>(null);
+  const [socialModalProvider, setSocialModalProvider] = useState<'google' | 'facebook' | 'linkedin' | 'twitter' | null>(null);
   const [socialLoading, setSocialLoading] = useState<'google' | 'facebook' | 'linkedin' | 'twitter' | null>(null);
   const [socialConnectingStep, setSocialConnectingStep] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const linkedinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+      if (linkedinTimerRef.current) clearTimeout(linkedinTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const checkDesktop = () => {
@@ -61,7 +73,8 @@ export const AuthScreen: React.FC = () => {
   // Transição Suave Universal para o Sistema
   const transitionToSystem = (authenticatedUser: UserProfile, msg?: string) => {
     setSuccessMessage(msg || `Bem-vindo ao NossoBolso, ${authenticatedUser.name.split(' ')[0]}!`);
-    setTimeout(() => {
+    if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    transitionTimerRef.current = setTimeout(() => {
       setUser(authenticatedUser);
     }, 1100);
   };
@@ -69,15 +82,15 @@ export const AuthScreen: React.FC = () => {
   const handleGuestLogin = () => {
     const guestUser: UserProfile = {
       id: 'usr_guest',
-      name: 'Convidado Local',
+      name: 'Convidado (Demonstração)',
       email: 'convidado@nossobolso.app',
       avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=guest',
       provider: 'credentials',
-      role: 'user',
+      role: 'guest',
       isEmailVerified: true,
       createdAt: new Date().toISOString(),
     };
-    transitionToSystem(guestUser, 'Modo Convidado ativado! Preparando demonstração...');
+    transitionToSystem(guestUser, 'Modo Convidado ativado! Carregando dados de demonstração...');
   };
 
   const handleOAuthRealLogin = async (provider: 'google' | 'twitter' | 'linkedin') => {
@@ -93,29 +106,41 @@ export const AuthScreen: React.FC = () => {
     setSocialConnectingStep(`Iniciando canal seguro com ${pName}...`);
 
     try {
-      if (provider === 'google') {
-        const res = await authService.loginWithGoogleReal();
-        if (res.error) {
-          setError(res.error);
-          setSocialLoading(null);
-          return;
-        }
-      } else if (provider === 'twitter') {
-        const res = await authService.loginWithTwitterReal();
-        if (res.error) {
-          setError(res.error);
-          setSocialLoading(null);
-          return;
+      if (isSupabaseConfigured) {
+        if (provider === 'google') {
+          const res = await authService.loginWithGoogleReal();
+          if (res.error) {
+            // Em caso de provedor não ativo no Supabase, abre o modal de conexão direta do app
+            setSocialModalProvider('google');
+            setSocialLoading(null);
+            return;
+          }
+        } else if (provider === 'twitter') {
+          const res = await authService.loginWithTwitterReal();
+          if (res.error) {
+            setSocialModalProvider('twitter');
+            setSocialLoading(null);
+            return;
+          }
+        } else {
+          setSocialConnectingStep('Preparando tela de autorização...');
+          if (linkedinTimerRef.current) clearTimeout(linkedinTimerRef.current);
+          linkedinTimerRef.current = setTimeout(() => {
+            setSocialModalProvider('linkedin');
+            setSocialLoading(null);
+          }, 600);
         }
       } else {
-        setSocialConnectingStep('Preparando tela de autorização...');
-        setTimeout(() => {
-          setSocialModalProvider('linkedin');
+        // Modo local/offline: abre o modal oficial de conexão social do NossoBolso sem erro
+        setSocialConnectingStep('Preparando tela de conexão rápida...');
+        if (linkedinTimerRef.current) clearTimeout(linkedinTimerRef.current);
+        linkedinTimerRef.current = setTimeout(() => {
+          setSocialModalProvider(provider);
           setSocialLoading(null);
-        }, 800);
+        }, 400);
       }
     } catch {
-      setError(`Falha ao conectar com ${pName}. Tente novamente.`);
+      setSocialModalProvider(provider);
       setSocialLoading(null);
     }
   };
@@ -291,11 +316,21 @@ export const AuthScreen: React.FC = () => {
                   initial={{ opacity: 0, y: -10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  className="mb-4 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium backdrop-blur-md space-y-2"
+                  className="mb-4 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium backdrop-blur-md space-y-2 relative"
                 >
-                  <div className="flex items-center gap-2 font-bold text-rose-400">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{error}</span>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 font-bold text-rose-400">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setError(null)}
+                      className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/60 transition-colors shrink-0"
+                      title="Fechar aviso"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                   {error.includes('Já existe uma conta') && (
                     <div className="flex items-center gap-2 pt-1">
@@ -351,6 +386,11 @@ export const AuthScreen: React.FC = () => {
                   onSocialLogin={handleOAuthRealLogin}
                   onGuestLogin={handleGuestLogin}
                   socialLoading={socialLoading}
+                  onUnverifiedEmail={(emailTarget) => {
+                    setRegisteredEmail(emailTarget);
+                    setSuccessMessage(`Por favor, insira o código de verificação enviado para ${emailTarget}`);
+                    setAuthMode('verify');
+                  }}
                 />
               )}
 

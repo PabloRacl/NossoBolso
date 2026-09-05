@@ -2,11 +2,11 @@ import React from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { ProgressBar } from '../ui/ProgressBar';
-import { PantryItem, Wallet } from '../../types';
+import { PantryItem, Wallet } from '../../tipos';
 import { ShoppingSummary, PriceCalculationMode } from './pantryTypes';
 import { ShoppingItemCard } from './ShoppingItemCard';
-import { formatBRL } from '../../utils/formatters';
-import { useAppStore } from '../../store/useAppStore';
+import { formatBRL } from '../../utilidades/formatters';
+import { useAppStore } from '../../estado/useAppStore';
 import {
   ShoppingCart,
   Plus,

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { PantryItem } from '../../types';
-import { db } from '../../services/db';
+import { PantryItem } from '../../tipos';
+import { db } from '../../servicos/db';
 
 interface PantryItemModalProps {
   isOpen: boolean;

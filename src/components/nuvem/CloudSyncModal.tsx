@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { isSupabaseConfigured, SUPABASE_SQL_SCHEMA } from '../../services/supabase';
-import { Database, CheckCircle2, Copy, ExternalLink, Cloud, ShieldCheck } from 'lucide-react';
+import { useAppStore } from '../../estado/useAppStore';
+import { isSupabaseConfigured, SUPABASE_SQL_SCHEMA } from '../../servicos/supabase';
+import { Database, CheckCircle2, Copy, ExternalLink, Cloud, ShieldCheck, AlertTriangle } from 'lucide-react';
 
 interface CloudSyncModalProps {
   isOpen: boolean;
@@ -10,6 +11,8 @@ interface CloudSyncModalProps {
 }
 
 export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose }) => {
+  const { user } = useAppStore();
+  const isGuest = user?.role === 'guest';
   const [copied, setCopied] = useState(false);
 
   const handleCopySql = () => {
@@ -21,6 +24,28 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="☁️ Banco de Dados Online (Supabase Cloud)">
       <div className="flex flex-col gap-5 text-sm">
+        {/* Banner de Restrição para Modo Convidado */}
+        {isGuest && (
+          <div className="p-4 bg-amber-500/15 border border-amber-500/30 rounded-2xl flex items-center justify-between gap-3 text-xs text-amber-300">
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle className="w-5 h-5 shrink-0 text-amber-400" />
+              <span>
+                <strong>Restrição de Demonstração:</strong> O modo convidado opera 100% isolado na memória do navegador. Para sincronizar em tempo real com seu projeto na nuvem Supabase, crie uma conta gratuita.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                useAppStore.getState().setUser(null);
+                useAppStore.getState().setAuthMode('register');
+              }}
+              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg shrink-0 transition-colors"
+            >
+              Criar Conta
+            </button>
+          </div>
+        )}
         {/* Status Card */}
         <div className={`p-4 rounded-xl border flex items-center justify-between ${
           isSupabaseConfigured

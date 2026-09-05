@@ -21,7 +21,7 @@ export const AuthLiveDashboard: React.FC = () => {
   return (
     <div className="w-full space-y-4 select-none">
       {/* Cabeçalho Hero */}
-      <div className="space-y-2.5 text-center lg:text-left">
+      <div className="space-y-3 flex flex-col items-center text-center">
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -32,14 +32,14 @@ export const AuthLiveDashboard: React.FC = () => {
           NossoBolso OS • Inteligência Financeira
         </motion.div>
 
-        <h1 className="text-3xl sm:text-4xl lg:text-[40px] font-black tracking-tight text-white leading-[1.15]">
+        <h1 className="text-3xl sm:text-4xl lg:text-[40px] font-black tracking-tight text-white leading-[1.15] text-center">
           Sua vida financeira <br />
           <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(16,185,129,0.35)]">
             organizada de forma simples
           </span>
         </h1>
 
-        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium max-w-md mx-auto lg:mx-0">
+        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium max-w-lg mx-auto text-center">
           Acompanhe saldos, faturas, amortização de dívidas, despensa de mantimentos e manutenções veiculares em um só ecossistema.
         </p>
       </div>
@@ -160,7 +160,7 @@ export const AuthLiveDashboard: React.FC = () => {
       </div>
 
       {/* Badges de Garantias */}
-      <div className="flex items-center justify-center lg:justify-start gap-4 sm:gap-6 pt-1 text-[11px] font-medium text-slate-400">
+      <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 pt-1 text-[11px] font-medium text-slate-400">
         <span className="flex items-center gap-1.5">
           <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
           100% Gratuito & Privado

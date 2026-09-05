@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Card } from '../ui/Card';
-import { formatBRL } from '../../utils/formatters';
+import { formatBRL } from '../../utilidades/formatters';
 import { Flame, Sparkles, TrendingUp, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 

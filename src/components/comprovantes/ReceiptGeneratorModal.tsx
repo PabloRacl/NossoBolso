@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { formatBRL } from '../../utils/formatters';
+import { formatBRL } from '../../utilidades/formatters';
 import { FileText, Printer, Share2, CheckCircle2, Sparkles, QrCode } from 'lucide-react';
 
 export const ReceiptGeneratorModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {

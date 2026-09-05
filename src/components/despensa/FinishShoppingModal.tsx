@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { Wallet, Transaction } from '../../types';
-import { db } from '../../services/db';
-import { formatBRL } from '../../utils/formatters';
-import { useAppStore } from '../../store/useAppStore';
+import { Wallet, Transaction } from '../../tipos';
+import { db } from '../../servicos/db';
+import { formatBRL } from '../../utilidades/formatters';
+import { useAppStore } from '../../estado/useAppStore';
 import { ShoppingCart, CreditCard, Banknote, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface FinishShoppingModalProps {

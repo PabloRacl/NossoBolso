@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { db } from '../../services/db';
-import { Vehicle } from '../../types';
+import { db } from '../../servicos/db';
+import { Vehicle } from '../../tipos';
 
 interface EditMetricModalProps {
   isOpen: boolean;

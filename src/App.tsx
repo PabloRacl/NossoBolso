@@ -1,15 +1,16 @@
 import React, { useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, seedInitialData, processRecurringTransactions } from './services/db';
-import { useAppStore } from './store/useAppStore';
-import { AppLayout } from './components/layout/AppLayout';
-import { StatCards } from './components/dashboard/StatCards';
-import { IncomeVsExpenseChart } from './components/dashboard/IncomeVsExpenseChart';
-import { ExpensePieChart } from './components/dashboard/ExpensePieChart';
-import { RecentTransactions } from './components/dashboard/RecentTransactions';
-import { BudgetProgressWidget } from './components/dashboard/BudgetProgressWidget';
-import { AiInsightsWidget } from './components/dashboard/AiInsightsWidget';
-import { FinancialBadgesWidget } from './components/dashboard/FinancialBadgesWidget';
+import { db, seedInitialData, processRecurringTransactions } from './servicos/db';
+import { useAppStore } from './estado/useAppStore';
+import { AppLayout } from './components/estrutura/AppLayout';
+import { BioCyberLogo } from './components/estrutura/BioCyberLogo';
+import { StatCards } from './components/painel/StatCards';
+import { IncomeVsExpenseChart } from './components/painel/IncomeVsExpenseChart';
+import { ExpensePieChart } from './components/painel/ExpensePieChart';
+import { RecentTransactions } from './components/painel/RecentTransactions';
+import { BudgetProgressWidget } from './components/painel/BudgetProgressWidget';
+import { AiInsightsWidget } from './components/painel/AiInsightsWidget';
+import { FinancialBadgesWidget } from './components/painel/FinancialBadgesWidget';
 import { TransactionTable } from './components/transacoes/TransactionTable';
 import { WalletCards } from './components/carteiras/WalletCards';
 import { GoalCards } from './components/metas/GoalCards';
@@ -24,31 +25,31 @@ import { CategoryModal } from './components/categorias/CategoryModal';
 import { DebtsView } from './components/dividas/DebtsView';
 import { DebtContractModal } from './components/dividas/DebtContractModal';
 import { AmortizacaoModal } from './components/dividas/AmortizacaoModal';
-import { AlertsModal } from './components/alerts/AlertsModal';
+import { AlertsModal } from './components/alertas/AlertsModal';
 import { BudgetModal } from './components/orcamentos/BudgetModal';
 import { ContrachequeModal } from './components/transacoes/ContrachequeModal';
-import { CommandPalette } from './components/layout/CommandPalette';
-import { TransactionParticleAnimation } from './components/layout/TransactionParticleAnimation';
-import { HistoryDrawer } from './components/layout/HistoryDrawer';
-import { BackupModal } from './components/backup/BackupModal';
+import { CommandPalette } from './components/estrutura/CommandPalette';
+import { TransactionParticleAnimation } from './components/estrutura/TransactionParticleAnimation';
+import { HistoryDrawer } from './components/estrutura/HistoryDrawer';
+import { BackupModal } from './components/configuracoes/BackupModal';
 import { PantryView } from './components/despensa/PantryView';
 import { AutomotiveView } from './components/veiculos/AutomotiveView';
 import { CashFlowCalendarView } from './components/calendario/CashFlowCalendarView';
-import { CurrencyMarketWidget } from './components/widgets/CurrencyMarketWidget';
+import { CurrencyMarketWidget } from './components/modulos/CurrencyMarketWidget';
 import { VoiceCommandModal } from './components/voz/VoiceCommandModal';
-import { QrCodeScannerModal } from './components/scanner/QrCodeScannerModal';
-import { WhatIfSimulatorModal } from './components/simulator/WhatIfSimulatorModal';
+import { QrCodeScannerModal } from './components/comprovantes/QrCodeScannerModal';
+import { WhatIfSimulatorModal } from './components/simulador/WhatIfSimulatorModal';
 import { IndependenceSimulatorModal } from './components/calculadora/IndependenceSimulatorModal';
-import { ScoreModal } from './components/score/ScoreModal';
+import { ScoreModal } from './components/pontuacao/ScoreModal';
 import { UserProfileModal } from './components/autenticacao/UserProfileModal';
 import { AuthScreen } from './components/autenticacao/AuthScreen';
-import { authService } from './services/authService';
-import { supabase } from './services/supabase';
-import { ThemeSelectorModal } from './components/theme/ThemeSelectorModal';
+import { authService } from './servicos/authService';
+import { supabase } from './servicos/supabase';
+import { ThemeSelectorModal } from './components/tema/ThemeSelectorModal';
 import { ReceiptGeneratorModal } from './components/comprovantes/ReceiptGeneratorModal';
-import { ShortcutsModal } from './components/layout/ShortcutsModal';
+import { ShortcutsModal } from './components/estrutura/ShortcutsModal';
 import { PmpeConsignadoSimulatorModal } from './components/calculadora/PmpeConsignadoSimulatorModal';
-import { InstallPwaModal } from './components/pwa/InstallPwaModal';
+import { InstallPwaModal } from './components/configuracoes/InstallPwaModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const pageTransitionVariants = {
@@ -69,6 +70,8 @@ const pageTransitionVariants = {
 export const App: React.FC = () => {
   const {
     user,
+    isCheckingAuth,
+    setIsCheckingAuth,
     activePage,
     selectedMonth,
     setSelectedMonth,
@@ -96,8 +99,48 @@ export const App: React.FC = () => {
     setScoreModalOpen,
   } = useAppStore();
 
+  // Sincronizar sessão OAuth do Supabase sem flicker inicial
   useEffect(() => {
-    seedInitialData().then(async () => {
+    let isMounted = true;
+
+    const initAuth = async () => {
+      try {
+        const suUser = await authService.syncSupabaseSession();
+        if (suUser && isMounted) {
+          useAppStore.getState().setUser(suUser);
+        }
+      } catch (err) {
+        console.error('Erro ao verificar sessão Supabase:', err);
+      } finally {
+        if (isMounted) {
+          setIsCheckingAuth(false);
+        }
+      }
+    };
+
+    initAuth();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user && isMounted) {
+        const suUser = await authService.syncSupabaseSession();
+        if (suUser && isMounted) {
+          useAppStore.getState().setUser(suUser);
+          setIsCheckingAuth(false);
+        }
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [setIsCheckingAuth]);
+
+  // Seeding e sincronização de saldos baseado no usuário ativo
+  useEffect(() => {
+    seedInitialData(user).then(async () => {
       processRecurringTransactions();
       // Sincronizar o saldo da carteira principal com as transações reais acumuladas
       const allWallets = await db.wallets.toArray();
@@ -112,31 +155,7 @@ export const App: React.FC = () => {
         }
       }
     });
-  }, []);
-
-  // Sincronizar sessão OAuth do Google retornada pelo Supabase
-  useEffect(() => {
-    authService.syncSupabaseSession().then((suUser) => {
-      if (suUser && !useAppStore.getState().user) {
-        useAppStore.getState().setUser(suUser);
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        const suUser = await authService.syncSupabaseSession();
-        if (suUser) {
-          useAppStore.getState().setUser(suUser);
-        }
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  }, [user?.id, user?.role]);
 
   // Ouvinte global de teclas de atalho inteligentes
   useEffect(() => {
@@ -293,6 +312,28 @@ export const App: React.FC = () => {
     await db.transactions.delete(id);
   };
 
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen w-full bg-[#05070E] flex flex-col items-center justify-center p-6 select-none relative overflow-hidden">
+        <div className="absolute inset-0 bg-radial-gradient pointer-events-none opacity-40" />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.94 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+          className="flex flex-col items-center gap-4 z-10"
+        >
+          <BioCyberLogo size="lg" />
+          <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-slate-900/80 border border-slate-800 backdrop-blur-md shadow-xl mt-2">
+            <div className="w-3.5 h-3.5 border-2 border-[#00FF88] border-t-transparent rounded-full animate-spin" />
+            <span className="text-[11px] font-mono tracking-widest text-slate-300 uppercase">
+              Verificando Sessão Segura...
+            </span>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <AnimatePresence mode="wait">
       {!user ? (
@@ -304,7 +345,7 @@ export const App: React.FC = () => {
             opacity: 0,
             scale: 0.98,
             filter: 'blur(10px)',
-            transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+            transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
           }}
           className="w-full min-h-screen"
         >
@@ -312,16 +353,36 @@ export const App: React.FC = () => {
         </motion.div>
       ) : (
         <motion.div
-          key="app-layout-root"
+          key={`app-layout-${user.id || 'guest'}`}
           initial={{ opacity: 0 }}
           animate={{
             opacity: 1,
-            transition: { duration: 0.5, ease: 'easeOut' },
+            transition: { duration: 0.4, ease: 'easeOut' },
           }}
           className="w-full min-h-screen"
         >
           <AppLayout>
-      <AnimatePresence mode="wait">
+            {user.role === 'guest' && (
+              <div className="w-full bg-gradient-to-r from-amber-500/15 via-amber-600/10 to-slate-900/40 border border-amber-500/30 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs mb-5 rounded-2xl shadow-lg backdrop-blur-sm">
+                <div className="flex items-center gap-2.5 text-amber-300 font-medium">
+                  <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+                  <span>
+                    <strong>Modo Convidado (Demonstração):</strong> Você está explorando dados fictícios em ambiente de teste isolado. Recursos em nuvem e backups são restritos.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    useAppStore.getState().setUser(null);
+                    useAppStore.getState().setAuthMode('register');
+                  }}
+                  className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-emerald-500/25 transition-all cursor-pointer"
+                >
+                  Criar Conta Gratuita
+                </button>
+              </div>
+            )}
+            <AnimatePresence mode="wait">
         <motion.div
           key={activePage}
           initial="hidden"

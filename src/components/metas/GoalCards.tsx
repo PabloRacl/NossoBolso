@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { Goal } from '../../types';
+import { Goal } from '../../tipos';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
 import { ProgressBar } from '../ui/ProgressBar';
-import { formatBRL, formatPercent } from '../../utils/formatters';
-import { formatDate } from '../../utils/dateUtils';
-import { useAppStore } from '../../store/useAppStore';
+import { formatBRL, formatPercent } from '../../utilidades/formatters';
+import { formatDate } from '../../utilidades/dateUtils';
+import { useAppStore } from '../../estado/useAppStore';
 import { Plus, Target, Trash2, Edit2 } from 'lucide-react';
-import { db } from '../../services/db';
+import { db } from '../../servicos/db';
 import { motion } from 'framer-motion';
 
 import { GoalCalculatorWidget } from './GoalCalculatorWidget';
@@ -30,7 +30,7 @@ const containerVariants = {
 };
 
 export const GoalCards: React.FC<GoalCardsProps> = ({ goals }) => {
-  const { setGoalModalOpen, setEditingGoalId } = useAppStore();
+  const { setGoalModalOpen, setEditingGoalId, setBudgetModalOpen } = useAppStore();
 
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [contribAmount, setContribAmount] = useState('');
@@ -62,18 +62,39 @@ export const GoalCards: React.FC<GoalCardsProps> = ({ goals }) => {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-[#F8FAFC] font-extrabold text-lg">Metas & Objetivos</h3>
-        <Button
-          variant="primary"
-          onClick={() => {
-            setEditingGoalId(null);
-            setGoalModalOpen(true);
-          }}
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nova Meta</span>
-        </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col">
+          <h3 className="text-[#F8FAFC] font-extrabold text-lg">Metas & Objetivos Financeiros</h3>
+          <p className="text-xs text-[#94A3B8] font-medium">
+            Gerencie suas reservas de patrimônio e controle limites de orçamento por categoria.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          {/* BOTÃO ORÇAMENTOS POR CATEGORIA */}
+          <Button
+            variant="outline"
+            onClick={() => setBudgetModalOpen(true)}
+            className="bg-[#162032] border-[#00FF88]/40 hover:border-[#00FF88] text-[#F8FAFC] hover:text-[#00FF88] font-bold text-xs shadow-sm"
+            title="Definir e Gerenciar Tetos de Orçamento por Categoria"
+          >
+            <Target className="w-4 h-4 text-[#00FF88]" />
+            <span>Orçamentos</span>
+          </Button>
+
+          {/* BOTÃO NOVA META */}
+          <Button
+            variant="primary"
+            onClick={() => {
+              setEditingGoalId(null);
+              setGoalModalOpen(true);
+            }}
+            className="font-bold text-xs shadow-md shadow-[#00FF88]/20"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nova Meta</span>
+          </Button>
+        </div>
       </div>
 
       {/* Widget de Cálculo de Aportes & Contagem Regressiva */}

@@ -1,18 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { useAppStore } from '../../store/useAppStore';
+import { useAppStore } from '../../estado/useAppStore';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../services/db';
-import { formatBRL } from '../../utils/formatters';
+import { db } from '../../servicos/db';
+import { formatBRL } from '../../utilidades/formatters';
 import { FileCheck, Upload, CheckCircle, ArrowRight, RefreshCw, Plus, Trash2, HelpCircle } from 'lucide-react';
-
-interface ExtractedDeduction {
-  id: string;
-  name: string;
-  amount: number;
-  category: string;
-}
+import { parseContrachequeText, ExtractedDeduction } from '../../utilidades/contrachequeParser';
 
 export const ContrachequeModal: React.FC = () => {
   const { isContrachequeModalOpen, setContrachequeModalOpen, isPrivacyMode } = useAppStore();
@@ -21,7 +15,14 @@ export const ContrachequeModal: React.FC = () => {
   const [step, setStep] = useState<'upload' | 'evaluate' | 'success'>('upload');
   const [pastedText, setPastedText] = useState('');
   const [fileName, setFileName] = useState('');
-  
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
   const getLastDayOfMonth = (yearMonthStr: string) => {
     const [y, m] = yearMonthStr.split('-').map(Number);
     if (!y || !m) return new Date().toISOString().substring(0, 10);
@@ -76,91 +77,19 @@ export const ContrachequeModal: React.FC = () => {
   };
 
   // Set default wallet
-  React.useEffect(() => {
+  useEffect(() => {
     if (wallets.length > 0 && !selectedWalletId) {
       setSelectedWalletId(wallets[0].id);
     }
   }, [wallets, selectedWalletId]);
 
-  // Heuristic parser for contracheque text
-  const parseContrachequeText = (text: string) => {
-    let gross = 8659.00;
-    let net = 4244.65;
-    let emp = 'Polícia Militar de Pernambuco (PMPE)';
-    const foundDeductions: ExtractedDeduction[] = [];
-
-    const lines = text.split('\n');
-    lines.forEach((line, idx) => {
-      const lower = line.toLowerCase();
-      // Search for gross salary
-      if (lower.includes('bruto') || lower.includes('rendimentos') || lower.includes('vencimentos') || lower.includes('vantagens')) {
-        const matches = line.match(/\d+[.,]\d{2}/g);
-        if (matches) {
-          const val = parseFloat(matches[matches.length - 1].replace(/\./g, '').replace(',', '.'));
-          if (val > 1000) gross = val;
-        }
-      }
-
-      // Search for net salary
-      if (lower.includes('líquido') || lower.includes('liquido') || lower.includes('valor a receber')) {
-        const matches = line.match(/\d+[.,]\d{2}/g);
-        if (matches) {
-          const val = parseFloat(matches[matches.length - 1].replace(/\./g, '').replace(',', '.'));
-          if (val > 0) net = val;
-        }
-      }
-
-      // Detect 4003 Fund Protecao Social Milit
-      if (lower.includes('4003') || lower.includes('protecao social') || lower.includes('proteção social')) {
-        const matches = line.match(/\d+[.,]\d{2}/g);
-        if (matches) {
-          const val = parseFloat(matches[matches.length - 1].replace(/\./g, '').replace(',', '.'));
-          foundDeductions.push({ id: `ded_${idx}`, name: '4003 - Fund. Proteção Social Militar', amount: val, category: 'Impostos & Taxas' });
-        }
-      }
-
-      // Detect 4061 IRRF
-      if (lower.includes('4061') || lower.includes('imposto de rend') || lower.includes('irrf')) {
-        const matches = line.match(/\d+[.,]\d{2}/g);
-        if (matches) {
-          const val = parseFloat(matches[matches.length - 1].replace(/\./g, '').replace(',', '.'));
-          foundDeductions.push({ id: `ded_${idx}`, name: '4061 - IRRF - Imposto de Renda', amount: val, category: 'Impostos & Taxas' });
-        }
-      }
-
-      // Detect 4302 FERIAS
-      if (lower.includes('4302') || lower.includes('remum ferias')) {
-        const matches = line.match(/\d+[.,]\d{2}/g);
-        if (matches) {
-          const val = parseFloat(matches[matches.length - 1].replace(/\./g, '').replace(',', '.'));
-          foundDeductions.push({ id: `ded_${idx}`, name: '4302 - Compens. Ad. 1/3 Férias', amount: val, category: 'Outras Despesas' });
-        }
-      }
-
-      // Detect 4506 BRADESCO CONSIG
-      if (lower.includes('4506') || lower.includes('bradesco') || lower.includes('emprestimo')) {
-        const matches = line.match(/\d+[.,]\d{2}/g);
-        if (matches) {
-          const val = parseFloat(matches[matches.length - 1].replace(/\./g, '').replace(',', '.'));
-          foundDeductions.push({ id: `ded_${idx}`, name: '4506 - Bradesco (Empréstimo Consignado)', amount: val, category: 'Financiamentos & Empréstimos' });
-        }
-      }
-
-      // Detect 5091 SISMEPE
-      if (lower.includes('5091') || lower.includes('sismepe')) {
-        const matches = line.match(/\d+[.,]\d{2}/g);
-        if (matches) {
-          const val = parseFloat(matches[matches.length - 1].replace(/\./g, '').replace(',', '.'));
-          foundDeductions.push({ id: `ded_${idx}`, name: '5091 - SISMEPE (Plano de Saúde)', amount: val, category: 'Saúde' });
-        }
-      }
-    });
-
-    setEmployer(emp);
-    setGrossSalary(gross);
-    setNetSalary(net);
-    if (foundDeductions.length > 0) {
-      setDeductions(foundDeductions);
+  const handleProcessExtractedText = (text: string) => {
+    const result = parseContrachequeText(text);
+    setEmployer(result.employer);
+    setGrossSalary(result.grossSalary);
+    setNetSalary(result.netSalary);
+    if (result.deductions.length > 0) {
+      setDeductions(result.deductions);
     }
     setStep('evaluate');
   };
@@ -174,7 +103,7 @@ export const ContrachequeModal: React.FC = () => {
     reader.onload = (evt) => {
       const content = evt.target?.result as string;
       if (content) {
-        parseContrachequeText(content);
+        handleProcessExtractedText(content);
       }
     };
     reader.readAsText(file);
@@ -182,7 +111,7 @@ export const ContrachequeModal: React.FC = () => {
 
   const handleTextSubmit = () => {
     if (!pastedText.trim()) return;
-    parseContrachequeText(pastedText);
+    handleProcessExtractedText(pastedText);
   };
 
   const handleAddDeduction = () => {
@@ -261,7 +190,8 @@ export const ContrachequeModal: React.FC = () => {
     );
 
     setStep('success');
-    setTimeout(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
       setStep('upload');
       setPastedText('');
       setFileName('');

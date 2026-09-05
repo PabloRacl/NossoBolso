@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { Wallet } from '../../types';
-import { db } from '../../services/db';
+import { Wallet } from '../../tipos';
+import { db } from '../../servicos/db';
 import { ArrowRight, ArrowLeftRight, CheckCircle2 } from 'lucide-react';
-import { useAppStore } from '../../store/useAppStore';
+import { useAppStore } from '../../estado/useAppStore';
 
 interface TransferBetweenWalletsModalProps {
   isOpen: boolean;

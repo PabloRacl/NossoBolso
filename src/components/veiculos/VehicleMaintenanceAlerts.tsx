@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Card } from '../ui/Card';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../services/db';
+import { db } from '../../servicos/db';
 import { Car, Wrench, ShieldAlert, CheckCircle2, AlertTriangle, Calendar, ShieldCheck, Gauge } from 'lucide-react';
 
 interface MaintenanceAlert {

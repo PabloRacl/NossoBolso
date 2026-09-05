@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Send, Loader2, ArrowLeft } from 'lucide-react';
-import { authService } from '../../services/authService';
-import { getErrorMessage } from '../../utils/errorUtils';
+import { authService } from '../../servicos/authService';
+import { getErrorMessage } from '../../utilidades/errorUtils';
 
 interface ForgotPasswordFormProps {
   initialEmail?: string;

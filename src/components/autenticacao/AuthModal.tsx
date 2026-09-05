@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mail,
@@ -19,9 +19,9 @@ import {
   UserPlus,
   KeyRound,
 } from 'lucide-react';
-import { useAppStore } from '../../store/useAppStore';
-import { authService } from '../../services/authService';
-import { BioCyberLogo } from '../layout/BioCyberLogo';
+import { useAppStore } from '../../estado/useAppStore';
+import { authService } from '../../servicos/authService';
+import { BioCyberLogo } from '../estrutura/BioCyberLogo';
 
 export const AuthModal: React.FC = () => {
   const {
@@ -41,9 +41,23 @@ export const AuthModal: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
   if (!isAuthModalOpen) return null;
 
   const handleClose = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     setError(null);
     setSuccessMessage(null);
     setAuthModalOpen(false);
@@ -61,12 +75,18 @@ export const AuthModal: React.FC = () => {
       const user = await authService.login({ email, password });
       setUser(user);
       setSuccessMessage(`Bem-vindo de volta, ${user.name}!`);
-      setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
         handleClose();
       }, 800);
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setError(err.message);
+        const msg = err.message;
+        if (msg.includes('EMAIL_NOT_VERIFIED')) {
+          setError(msg.replace('EMAIL_NOT_VERIFIED:', '').trim());
+          setAuthMode('verify');
+        } else {
+          setError(msg);
+        }
       } else {
         setError('Ocorreu um erro ao realizar o login.');
       }
@@ -83,12 +103,9 @@ export const AuthModal: React.FC = () => {
     setError(null);
 
     try {
-      const user = await authService.register({ name, email, password });
-      setUser(user);
-      setSuccessMessage(`Conta criada com sucesso! Bem-vindo, ${user.name}.`);
-      setTimeout(() => {
-        handleClose();
-      }, 1000);
+      await authService.register({ name, email, password });
+      setSuccessMessage(`Cadastro realizado! Enviamos um código de ativação para ${email}. Confirme-o para ativar seu acesso.`);
+      setAuthMode('verify');
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -138,7 +155,7 @@ export const AuthModal: React.FC = () => {
       const user = await authService.loginSocial(provider);
       setUser(user);
       setSuccessMessage(`Conectado com sucesso via ${provider.toUpperCase()}!`);
-      setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
         handleClose();
       }, 800);
     } catch {

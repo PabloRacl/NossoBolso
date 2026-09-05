@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
-import { useAppStore } from '../../store/useAppStore';
-import { db } from '../../services/db';
+import { useAppStore } from '../../estado/useAppStore';
+import { db } from '../../servicos/db';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { TransactionType, Category } from '../../types';
+import { TransactionType, Category } from '../../tipos';
 import { Plus, Trash2, Tag, Smile, Edit2, Check } from 'lucide-react';
 
 const EMOJI_PRESETS = [

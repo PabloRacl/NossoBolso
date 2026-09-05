@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { useAppStore } from '../../store/useAppStore';
+import { useAppStore } from '../../estado/useAppStore';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../services/db';
-import { formatBRL } from '../../utils/formatters';
+import { db } from '../../servicos/db';
+import { formatBRL } from '../../utilidades/formatters';
 import { Target, Save, Info } from 'lucide-react';
 
 export const BudgetModal: React.FC = () => {

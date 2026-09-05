@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { useAppStore } from '../../store/useAppStore';
-import { parseOFX } from '../../services/ofxParser';
-import { OFXTransaction } from '../../types';
-import { db } from '../../services/db';
-import { formatBRL } from '../../utils/formatters';
-import { formatDate } from '../../utils/dateUtils';
+import { useAppStore } from '../../estado/useAppStore';
+import { parseOFX } from '../../servicos/ofxParser';
+import { OFXTransaction } from '../../tipos';
+import { db } from '../../servicos/db';
+import { formatBRL } from '../../utilidades/formatters';
+import { formatDate } from '../../utilidades/dateUtils';
 import { Upload, FileText, CheckCircle, HelpCircle } from 'lucide-react';
 
 export const OfxImportModal: React.FC = () => {

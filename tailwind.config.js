@@ -20,6 +20,23 @@ export default {
           muted: '#64748B',
           text: '#F8FAFC',
           subtext: '#94A3B8'
+        },
+        bolso: {
+          dark: '#0B0F19',
+          card: '#0D1424',
+          surface: '#090D18',
+          border: '#1E293B',
+          borderLight: '#2E3B52',
+          emerald: '#00FF88',
+          emeraldHover: '#00CC6D',
+          cyan: '#06B6D4',
+          amber: '#F59E0B',
+          rose: '#FF4D6D',
+          purple: '#8B5CF6',
+          blue: '#38BDF8',
+          text: '#F8FAFC',
+          muted: '#94A3B8',
+          faded: '#64748B'
         }
       },
       fontFamily: {

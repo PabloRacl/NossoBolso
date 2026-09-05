@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { useAppStore } from '../../store/useAppStore';
-import { formatBRL } from '../../utils/formatters';
+import { useAppStore } from '../../estado/useAppStore';
+import { formatBRL } from '../../utilidades/formatters';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { Sparkles, ShieldCheck, Flame, TrendingUp, DollarSign, Calendar, Compass, ArrowUpRight } from 'lucide-react';
 

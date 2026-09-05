@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card } from '../ui/Card';
 import { Badge, type BadgeProps } from '../ui/Badge';
-import { useAppStore } from '../../store/useAppStore';
+import { useAppStore } from '../../estado/useAppStore';
 import {
   Palette,
   Keyboard,
@@ -13,7 +13,8 @@ import {
   ShieldCheck,
   Sliders,
   Compass,
-  Activity
+  Activity,
+  Upload,
 } from 'lucide-react';
 
 export const SettingsView: React.FC = () => {
@@ -25,6 +26,7 @@ export const SettingsView: React.FC = () => {
     setBackupModalOpen,
     setPwaModalOpen,
     setScoreModalOpen,
+    setOfxModalOpen,
   } = useAppStore();
 
   const settingsCards: Array<{
@@ -38,6 +40,17 @@ export const SettingsView: React.FC = () => {
     actionLabel: string;
     onAction: () => void;
   }> = [
+    {
+      id: 'ofx',
+      title: 'Importador de Extrato Bancário (OFX)',
+      subtitle: 'Conciliação Bancária',
+      description: 'Importe arquivos de extrato .ofx ou .xml emitidos por qualquer banco para conciliar transações e saldos automaticamente.',
+      icon: Upload,
+      iconStyles: 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400',
+      badgeVariant: 'info',
+      actionLabel: 'Importar Arquivo OFX',
+      onAction: () => setOfxModalOpen(true),
+    },
     {
       id: 'score',
       title: 'Score de Saúde Financeira & Crédito',

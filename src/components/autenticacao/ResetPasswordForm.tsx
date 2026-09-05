@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, KeyRound, Eye, EyeOff, CheckCircle2, Loader2, ArrowLeft } from 'lucide-react';
-import { authService } from '../../services/authService';
-import { emailService } from '../../services/emailService';
-import { UserProfile } from '../../types';
-import { getErrorMessage } from '../../utils/errorUtils';
+import { authService } from '../../servicos/authService';
+import { emailService } from '../../servicos/emailService';
+import { UserProfile } from '../../tipos';
+import { getErrorMessage } from '../../utilidades/errorUtils';
 
 interface ResetPasswordFormProps {
   email: string;

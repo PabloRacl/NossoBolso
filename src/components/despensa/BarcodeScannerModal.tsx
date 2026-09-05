@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Camera, X, Check, Search } from 'lucide-react';
-import { PantryItem } from '../../types';
+import { PantryItem } from '../../tipos';
 
 interface BarcodeScannerModalProps {
   isOpen: boolean;

@@ -67,6 +67,28 @@ interface UmbrellaFlyer {
   coatColor: string;
 }
 
+interface PacmanEntity {
+  active: boolean;
+  type: 'yellow' | 'red' | 'cyan';
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  rotation: number;
+  rotationSpeed: number;
+  direction: 1 | -1;
+  swayPhase: number;
+  swayFreq: number;
+  swayAmp: number;
+  isTriggered: boolean;
+  triggerTimer: number;
+  stolenText: string | null;
+  stolenTextY: number;
+  stolenTextOpacity: number;
+  mouthPhase: number;
+}
+
 export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'leaves' }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -230,7 +252,7 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       prisonerSway: 0,
     };
 
-    let nextTrapTime = Date.now() + 4000;
+    let nextTrapTime = Date.now() + 5000;
 
     const spawnTrapLeaf = () => {
       trapLeaf.active = true;
@@ -243,6 +265,170 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       trapLeaf.trapTimer = 0;
       trapLeaf.stolenText = null;
       trapLeaf.prisonerSway = 0;
+    };
+
+    // LEPRECHAUN LEAF / DUENDE DO PREJUÍZO (VERDE INTENSO BRILHANTE)
+    const leprechaunLeaf: TrapLeafState = {
+      active: false,
+      x: -100,
+      y: -100,
+      vx: 0.25,
+      vy: 0.48,
+      size: 28,
+      rotation: 0,
+      rotationSpeed: 0.018,
+      swayPhase: 0,
+      swayFreq: 0.007,
+      swayAmp: 0.6,
+      isTrapped: false,
+      trapTimer: 0,
+      stolenText: null,
+      stolenTextY: 0,
+      stolenTextOpacity: 0,
+      prisonerSway: 0,
+    };
+
+    let nextLeprechaunTime = Date.now() + 2000;
+
+    const spawnLeprechaunLeaf = () => {
+      leprechaunLeaf.active = true;
+      leprechaunLeaf.x = Math.random() * width;
+      leprechaunLeaf.y = -30;
+      leprechaunLeaf.vx = (Math.random() - 0.5) * 0.45;
+      leprechaunLeaf.vy = 0.46 + Math.random() * 0.3;
+      leprechaunLeaf.size = 28 + Math.random() * 6;
+      leprechaunLeaf.isTrapped = false;
+      leprechaunLeaf.trapTimer = 0;
+      leprechaunLeaf.stolenText = null;
+      leprechaunLeaf.prisonerSway = 0;
+    };
+
+    // GHOST LEAF / FANTASMA CYBER DAS TAXAS OCULTAS (ROXA BRILHANTE)
+    const ghostLeaf: TrapLeafState = {
+      active: false,
+      x: -100,
+      y: -100,
+      vx: 0.2,
+      vy: 0.42,
+      size: 27,
+      rotation: 0,
+      rotationSpeed: 0.012,
+      swayPhase: 0,
+      swayFreq: 0.005,
+      swayAmp: 0.7,
+      isTrapped: false,
+      trapTimer: 0,
+      stolenText: null,
+      stolenTextY: 0,
+      stolenTextOpacity: 0,
+      prisonerSway: 0,
+    };
+
+    let nextGhostTime = Date.now() + 8000;
+
+    const spawnGhostLeaf = () => {
+      ghostLeaf.active = true;
+      ghostLeaf.x = Math.random() * width;
+      ghostLeaf.y = -30;
+      ghostLeaf.vx = (Math.random() - 0.5) * 0.35;
+      ghostLeaf.vy = 0.4 + Math.random() * 0.25;
+      ghostLeaf.size = 27 + Math.random() * 6;
+      ghostLeaf.isTrapped = false;
+      ghostLeaf.trapTimer = 0;
+      ghostLeaf.stolenText = null;
+      ghostLeaf.prisonerSway = 0;
+    };
+
+    // COME-COMES (PAC-MAN) DEVORADORES DE ORÇAMENTO DISFARÇADOS EM FOLHAS
+    const pacmen: PacmanEntity[] = [
+      {
+        active: false,
+        type: 'yellow',
+        x: -100,
+        y: -100,
+        vx: 0.3,
+        vy: 0.5,
+        size: 26,
+        rotation: 0,
+        rotationSpeed: 0.015,
+        direction: 1,
+        swayPhase: 0,
+        swayFreq: 0.006,
+        swayAmp: 0.55,
+        isTriggered: false,
+        triggerTimer: 0,
+        stolenText: null,
+        stolenTextY: 0,
+        stolenTextOpacity: 0,
+        mouthPhase: 0,
+      },
+      {
+        active: false,
+        type: 'red',
+        x: -100,
+        y: -100,
+        vx: 0.35,
+        vy: 0.52,
+        size: 26,
+        rotation: 0,
+        rotationSpeed: 0.017,
+        direction: 1,
+        swayPhase: 0,
+        swayFreq: 0.007,
+        swayAmp: 0.58,
+        isTriggered: false,
+        triggerTimer: 0,
+        stolenText: null,
+        stolenTextY: 0,
+        stolenTextOpacity: 0,
+        mouthPhase: 0,
+      },
+      {
+        active: false,
+        type: 'cyan',
+        x: -100,
+        y: -100,
+        vx: 0.28,
+        vy: 0.48,
+        size: 26,
+        rotation: 0,
+        rotationSpeed: 0.014,
+        direction: 1,
+        swayPhase: 0,
+        swayFreq: 0.006,
+        swayAmp: 0.52,
+        isTriggered: false,
+        triggerTimer: 0,
+        stolenText: null,
+        stolenTextY: 0,
+        stolenTextOpacity: 0,
+        mouthPhase: 0,
+      },
+    ];
+
+    const nextPacmanTimes = {
+      yellow: Date.now() + 3000,
+      red: Date.now() + 9000,
+      cyan: Date.now() + 15000,
+    };
+
+    const spawnPacman = (pacman: PacmanEntity) => {
+      pacman.active = true;
+      pacman.x = Math.random() * width;
+      pacman.y = -30;
+      pacman.direction = Math.random() > 0.5 ? 1 : -1;
+      pacman.vx = (Math.random() - 0.5) * 0.4;
+      pacman.vy = 0.45 + Math.random() * 0.25;
+      pacman.size = 26 + Math.random() * 5;
+      pacman.rotation = Math.random() * Math.PI * 2;
+      pacman.rotationSpeed = (Math.random() - 0.5) * 0.02;
+      pacman.swayPhase = Math.random() * Math.PI * 2;
+      pacman.swayFreq = 0.006 + Math.random() * 0.003;
+      pacman.swayAmp = 0.55;
+      pacman.isTriggered = false;
+      pacman.triggerTimer = 0;
+      pacman.stolenText = null;
+      pacman.mouthPhase = 0;
     };
 
     // LIGHTNING FLASH STATE FOR STORM MODE
@@ -592,6 +778,725 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       c.restore();
     };
 
+    // DRAW EMERALD LEPRECHAUN LEAF (VERDE INTENSO COM BRILHO NEON E PARTÍCULAS MÁGICAS)
+    const drawEmeraldLeprechaunLeaf = (c: CanvasRenderingContext2D, size: number, phase: number) => {
+      c.save();
+      c.shadowColor = '#00FF88';
+      c.shadowBlur = 26;
+
+      // Lado esquerdo da folha - Verde Esmeralda Radiante
+      c.fillStyle = '#00FF88';
+      c.beginPath();
+      c.moveTo(0, -size);
+      c.bezierCurveTo(-size * 0.85, -size * 0.4, -size * 0.7, size * 0.5, 0, size);
+      c.fill();
+
+      // Lado direito da folha - Verde Floresta Mágico
+      c.fillStyle = '#059669';
+      c.beginPath();
+      c.moveTo(0, -size);
+      c.bezierCurveTo(size * 0.85, -size * 0.4, size * 0.7, size * 0.5, 0, size);
+      c.fill();
+
+      // Contorno exterior verde neon
+      c.strokeStyle = '#A7F3D0';
+      c.lineWidth = size * 0.08;
+      c.beginPath();
+      c.moveTo(0, -size);
+      c.bezierCurveTo(-size * 0.85, -size * 0.4, -size * 0.7, size * 0.5, 0, size);
+      c.bezierCurveTo(size * 0.7, size * 0.5, size * 0.85, -size * 0.4, 0, -size);
+      c.stroke();
+
+      // Nervura central dourada-esmeralda
+      c.strokeStyle = '#FEF08A';
+      c.lineWidth = size * 0.09;
+      c.beginPath();
+      c.moveTo(0, -size * 0.9);
+      c.lineTo(0, size * 1.15);
+      c.stroke();
+
+      c.restore();
+    };
+
+    // DRAW DANCING & LAUGHING LEPRECHAUN (DUENDE DANÇANDO E RINDO DO PREJUÍZO)
+    const drawDancingLeprechaun = (
+      c: CanvasRenderingContext2D,
+      size: number,
+      animPhase: number
+    ) => {
+      c.save();
+      c.shadowColor = '#00FF88';
+      c.shadowBlur = 20;
+
+      // Movimentos rítmicos de dança e pulo
+      const danceX = Math.sin(animPhase * 5) * 5;
+      const danceY = -Math.abs(Math.cos(animPhase * 5)) * 6;
+      const armWave = Math.sin(animPhase * 6) * 0.35;
+      const laughMouth = 4 + Math.abs(Math.sin(animPhase * 6)) * 4;
+
+      // 1. Aura Mágica Verde / Faíscas de Dinheiro Voando
+      c.fillStyle = 'rgba(0, 255, 136, 0.15)';
+      c.beginPath();
+      c.arc(danceX, danceY - 5, size * 1.4, 0, Math.PI * 2);
+      c.fill();
+
+      // Moedas e notas voando descontroladas
+      for (let m = 0; m < 4; m++) {
+        const coinAngle = animPhase * 3 + m * 1.6;
+        const coinDist = size * (1.1 + Math.sin(coinAngle) * 0.3);
+        const cx = danceX + Math.cos(coinAngle) * coinDist;
+        const cy = danceY - 15 + Math.sin(coinAngle) * coinDist * 0.7;
+        c.fillStyle = '#FBBF24';
+        c.strokeStyle = '#FEF08A';
+        c.lineWidth = 1;
+        c.beginPath();
+        c.arc(cx, cy, 3, 0, Math.PI * 2);
+        c.fill();
+        c.stroke();
+      }
+
+      // 2. Perninhas e Sapatinhos Pontudos de Duende
+      const leftLegLift = Math.sin(animPhase * 5) > 0 ? 5 : 0;
+      const rightLegLift = Math.sin(animPhase * 5) <= 0 ? 5 : 0;
+
+      // Perna Esquerda
+      c.strokeStyle = '#065F46';
+      c.lineWidth = 3.5;
+      c.lineCap = 'round';
+      c.beginPath();
+      c.moveTo(danceX - 6, danceY + size * 0.3);
+      c.lineTo(danceX - 10, danceY + size * 0.75 - leftLegLift);
+      c.stroke();
+      // Sapatinho Esquerdo Pontudo com Curva pra Cima
+      c.fillStyle = '#090D16';
+      c.strokeStyle = '#FBBF24';
+      c.lineWidth = 1.2;
+      c.beginPath();
+      c.moveTo(danceX - 10, danceY + size * 0.75 - leftLegLift);
+      c.lineTo(danceX - 18, danceY + size * 0.75 - leftLegLift);
+      c.lineTo(danceX - 19, danceY + size * 0.65 - leftLegLift);
+      c.closePath();
+      c.fill();
+      c.stroke();
+
+      // Perna Direita
+      c.strokeStyle = '#065F46';
+      c.lineWidth = 3.5;
+      c.beginPath();
+      c.moveTo(danceX + 6, danceY + size * 0.3);
+      c.lineTo(danceX + 10, danceY + size * 0.75 - rightLegLift);
+      c.stroke();
+      // Sapatinho Direito Pontudo com Curva pra Cima
+      c.beginPath();
+      c.moveTo(danceX + 10, danceY + size * 0.75 - rightLegLift);
+      c.lineTo(danceX + 18, danceY + size * 0.75 - rightLegLift);
+      c.lineTo(danceX + 19, danceY + size * 0.65 - rightLegLift);
+      c.closePath();
+      c.fill();
+      c.stroke();
+
+      // 3. Tronco / Jaqueta Verde com Cinto de Ouro
+      c.fillStyle = '#059669';
+      c.strokeStyle = '#34D399';
+      c.lineWidth = 2;
+      c.beginPath();
+      c.roundRect(danceX - 12, danceY - 5, 24, 22, 6);
+      c.fill();
+      c.stroke();
+
+      // Cinto Preto com Fivela Dourada
+      c.fillStyle = '#0F172A';
+      c.fillRect(danceX - 12, danceY + 7, 24, 5);
+      c.strokeStyle = '#FBBF24';
+      c.lineWidth = 1.5;
+      c.strokeRect(danceX - 4, danceY + 6, 8, 7);
+
+      // 4. Braços Levantados Dançando e Chacoalhando
+      // Braço Esquerdo
+      c.strokeStyle = '#059669';
+      c.lineWidth = 3.5;
+      c.beginPath();
+      c.moveTo(danceX - 10, danceY - 2);
+      c.lineTo(danceX - 20, danceY - 14 - armWave * 10);
+      c.stroke();
+      // Mãozinha
+      c.fillStyle = '#FBBF24';
+      c.beginPath();
+      c.arc(danceX - 21, danceY - 15 - armWave * 10, 3, 0, Math.PI * 2);
+      c.fill();
+
+      // Braço Direito
+      c.beginPath();
+      c.moveTo(danceX + 10, danceY - 2);
+      c.lineTo(danceX + 20, danceY - 14 + armWave * 10);
+      c.stroke();
+      // Mãozinha
+      c.beginPath();
+      c.arc(danceX + 21, danceY - 15 + armWave * 10, 3, 0, Math.PI * 2);
+      c.fill();
+
+      // 5. Cabeça e Orelhas Pontudas
+      const headY = danceY - 18;
+      // Orelhas pontudas de elfo/duende
+      c.fillStyle = '#FCA5A5';
+      c.beginPath();
+      c.moveTo(danceX - 11, headY);
+      c.lineTo(danceX - 22, headY - 4);
+      c.lineTo(danceX - 11, headY + 5);
+      c.closePath();
+      c.fill();
+
+      c.beginPath();
+      c.moveTo(danceX + 11, headY);
+      c.lineTo(danceX + 22, headY - 4);
+      c.lineTo(danceX + 11, headY + 5);
+      c.closePath();
+      c.fill();
+
+      // Rosto
+      c.beginPath();
+      c.arc(danceX, headY, 11, 0, Math.PI * 2);
+      c.fill();
+
+      // Barba Laranja Pontuda de Duende
+      c.fillStyle = '#EA580C';
+      c.beginPath();
+      c.moveTo(danceX - 10, headY + 3);
+      c.bezierCurveTo(danceX - 8, headY + 16, danceX + 8, headY + 16, danceX + 10, headY + 3);
+      c.lineTo(danceX, headY + 18);
+      c.closePath();
+      c.fill();
+
+      // Olhos Fechados Gargalhando (Arquinhos felizes maliciosos ^ ^)
+      c.strokeStyle = '#0F172A';
+      c.lineWidth = 1.8;
+      c.beginPath();
+      c.arc(danceX - 4, headY - 2, 2.5, Math.PI, 0);
+      c.stroke();
+      c.beginPath();
+      c.arc(danceX + 4, headY - 2, 2.5, Math.PI, 0);
+      c.stroke();
+
+      // Bocão Aberto Gargalhando
+      c.fillStyle = '#7F1D1D';
+      c.beginPath();
+      c.arc(danceX, headY + 3, laughMouth, 0, Math.PI);
+      c.closePath();
+      c.fill();
+      // Dentinho branco no topo
+      c.fillStyle = '#FFFFFF';
+      c.fillRect(danceX - 3, headY + 3, 6, 2);
+
+      // Narizinho
+      c.fillStyle = '#F87171';
+      c.beginPath();
+      c.arc(danceX, headY, 2, 0, Math.PI * 2);
+      c.fill();
+
+      // 6. Chapéu Verde Pontudo de Duende com Fivela
+      c.fillStyle = '#047857';
+      c.strokeStyle = '#34D399';
+      c.lineWidth = 1.8;
+      // Aba do chapéu
+      c.beginPath();
+      c.ellipse(danceX, headY - 9, 18, 5, 0, 0, Math.PI * 2);
+      c.fill();
+      c.stroke();
+
+      // Cone do chapéu com topo dobrado
+      const hatTipX = danceX + 18 + Math.sin(animPhase * 5) * 4;
+      const hatTipY = headY - 32;
+      c.beginPath();
+      c.moveTo(danceX - 11, headY - 11);
+      c.quadraticCurveTo(danceX, headY - 30, hatTipX, hatTipY);
+      c.quadraticCurveTo(danceX + 5, headY - 18, danceX + 11, headY - 11);
+      c.closePath();
+      c.fill();
+      c.stroke();
+
+      // Fita do chapéu
+      c.fillStyle = '#0F172A';
+      c.fillRect(danceX - 11, headY - 14, 22, 4);
+      // Fivela de Ouro do chapéu
+      c.strokeStyle = '#FBBF24';
+      c.lineWidth = 1.5;
+      c.strokeRect(danceX - 4, headY - 15, 8, 6);
+
+      // Guizo / Sininho Dourado na Ponta do Chapéu
+      c.fillStyle = '#FBBF24';
+      c.shadowColor = '#FBBF24';
+      c.shadowBlur = 10;
+      c.beginPath();
+      c.arc(hatTipX, hatTipY, 3.5, 0, Math.PI * 2);
+      c.fill();
+
+      // Risos animados no ar ao redor dele
+      c.fillStyle = '#FEF08A';
+      c.shadowColor = '#00FF88';
+      c.shadowBlur = 8;
+      c.font = 'bold 9px sans-serif';
+      c.fillText('HA!', danceX - 25, headY - 15 - Math.sin(animPhase * 4) * 5);
+      c.fillText('HA!', danceX + 22, headY - 20 + Math.sin(animPhase * 4) * 5);
+
+      c.restore();
+    };
+
+    // DRAW PHANTOM PURPLE LEAF (ROXA COM BRILHO VIOLETA CYBER E ECTOPLASMA)
+    const drawPhantomPurpleLeaf = (c: CanvasRenderingContext2D, size: number, phase: number) => {
+      c.save();
+      c.shadowColor = '#C084FC';
+      c.shadowBlur = 26;
+
+      // Lado esquerdo da folha - Púrpura Neon
+      c.fillStyle = '#A855F7';
+      c.beginPath();
+      c.moveTo(0, -size);
+      c.bezierCurveTo(-size * 0.85, -size * 0.4, -size * 0.7, size * 0.5, 0, size);
+      c.fill();
+
+      // Lado direito da folha - Violeta Noturno
+      c.fillStyle = '#6B21A8';
+      c.beginPath();
+      c.moveTo(0, -size);
+      c.bezierCurveTo(size * 0.85, -size * 0.4, size * 0.7, size * 0.5, 0, size);
+      c.fill();
+
+      // Contorno exterior magenta neon
+      c.strokeStyle = '#F472B6';
+      c.lineWidth = size * 0.08;
+      c.beginPath();
+      c.moveTo(0, -size);
+      c.bezierCurveTo(-size * 0.85, -size * 0.4, -size * 0.7, size * 0.5, 0, size);
+      c.bezierCurveTo(size * 0.7, size * 0.5, size * 0.85, -size * 0.4, 0, -size);
+      c.stroke();
+
+      // Nervura central ciano néon
+      c.strokeStyle = '#38BDF8';
+      c.lineWidth = size * 0.09;
+      c.beginPath();
+      c.moveTo(0, -size * 0.9);
+      c.lineTo(0, size * 1.15);
+      c.stroke();
+
+      c.restore();
+    };
+
+    // DRAW CYBER GHOST (FANTASMA CYBER DAS TAXAS OCULTAS E ASSINATURAS ESQUECIDAS)
+    const drawCyberGhost = (
+      c: CanvasRenderingContext2D,
+      size: number,
+      animPhase: number
+    ) => {
+      c.save();
+      c.shadowColor = '#C084FC';
+      c.shadowBlur = 24;
+
+      const floatY = Math.sin(animPhase * 3) * 6;
+      const tailWave = Math.sin(animPhase * 4) * 7;
+
+      // 1. Corpo Ectoplasmático Fluido do Fantasma
+      const grad = c.createLinearGradient(0, -size * 1.2 + floatY, 0, size * 1.2 + floatY);
+      grad.addColorStop(0, 'rgba(236, 72, 153, 0.9)');
+      grad.addColorStop(0.5, 'rgba(168, 85, 247, 0.85)');
+      grad.addColorStop(1, 'rgba(99, 102, 241, 0.2)');
+
+      c.fillStyle = grad;
+      c.strokeStyle = '#F472B6';
+      c.lineWidth = 2.2;
+
+      c.beginPath();
+      // Cabeça arredondada
+      c.arc(0, -size * 0.4 + floatY, size * 0.7, Math.PI, 0);
+      // Lado direito descendo
+      c.bezierCurveTo(size * 0.75, 0 + floatY, size * 0.9, size * 0.8 + floatY, size * 0.5 + tailWave, size * 1.3 + floatY);
+      // Cauda com 3 pontas fantasmagóricas ondulantes
+      c.quadraticCurveTo(size * 0.25, size * 0.9 + floatY, 0, size * 1.3 + floatY - tailWave * 0.5);
+      c.quadraticCurveTo(-size * 0.25, size * 0.9 + floatY, -size * 0.5 + tailWave, size * 1.3 + floatY);
+      // Lado esquerdo subindo
+      c.bezierCurveTo(-size * 0.9, size * 0.8 + floatY, -size * 0.75, 0 + floatY, -size * 0.7, -size * 0.4 + floatY);
+      c.closePath();
+      c.fill();
+      c.stroke();
+
+      // 2. Olhos Cibernéticos Ciano Neon
+      const blink = Math.sin(animPhase * 1.5) > 0.96 ? 0.2 : 1.0;
+      c.shadowColor = '#38BDF8';
+      c.shadowBlur = 14;
+      c.fillStyle = '#38BDF8';
+      c.beginPath();
+      c.ellipse(-size * 0.25, -size * 0.4 + floatY, 4.5, 6 * blink, 0.2, 0, Math.PI * 2);
+      c.ellipse(size * 0.25, -size * 0.4 + floatY, 4.5, 6 * blink, -0.2, 0, Math.PI * 2);
+      c.fill();
+
+      // Pupila escura
+      c.fillStyle = '#0F172A';
+      c.beginPath();
+      c.arc(-size * 0.23, -size * 0.4 + floatY, 2 * blink, 0, Math.PI * 2);
+      c.arc(size * 0.27, -size * 0.4 + floatY, 2 * blink, 0, Math.PI * 2);
+      c.fill();
+
+      // 3. Sorriso Fantasmagórico Zombeteiro com Presas
+      c.strokeStyle = '#0F172A';
+      c.fillStyle = '#1E1B4B';
+      c.lineWidth = 1.5;
+      c.beginPath();
+      c.arc(0, -size * 0.15 + floatY, 9, 0.2, Math.PI - 0.2);
+      c.closePath();
+      c.fill();
+      c.stroke();
+
+      // Presinhas brancas
+      c.fillStyle = '#FFFFFF';
+      c.beginPath();
+      c.moveTo(-4, -size * 0.15 + floatY);
+      c.lineTo(-2, -size * 0.07 + floatY);
+      c.lineTo(0, -size * 0.15 + floatY);
+      c.moveTo(0, -size * 0.15 + floatY);
+      c.lineTo(2, -size * 0.07 + floatY);
+      c.lineTo(4, -size * 0.15 + floatY);
+      c.fill();
+
+      // 4. Cartão de Crédito Sendo "Drenado" pelo Fantasma
+      const cardX = size * 0.75 + Math.sin(animPhase * 4) * 3;
+      const cardY = floatY + Math.cos(animPhase * 4) * 4;
+
+      c.save();
+      c.translate(cardX, cardY);
+      c.rotate(0.3 + Math.sin(animPhase * 3) * 0.15);
+
+      // Cartão Rosa / Púrpura Mordido
+      c.shadowColor = '#EC4899';
+      c.shadowBlur = 12;
+      c.fillStyle = '#BE185D';
+      c.strokeStyle = '#F472B6';
+      c.lineWidth = 1.5;
+      c.beginPath();
+      c.roundRect(-14, -9, 28, 18, 3.5);
+      c.fill();
+      c.stroke();
+
+      // Chip Dourado
+      c.fillStyle = '#FBBF24';
+      c.fillRect(-10, -4, 6, 5);
+
+      // Símbolo de Taxa / Dinheiro Sumindo
+      c.fillStyle = '#FFFFFF';
+      c.font = 'bold 8px sans-serif';
+      c.fillText('TAX', 1, 1);
+
+      c.restore();
+
+      // Moedinhas evaporando
+      for (let s = 0; s < 3; s++) {
+        const sparkY = floatY - 20 - s * 8 - (animPhase * 20) % 15;
+        const sparkX = -size * 0.5 + Math.sin(animPhase * 4 + s) * 12;
+        c.fillStyle = '#EC4899';
+        c.shadowColor = '#EC4899';
+        c.shadowBlur = 6;
+        c.beginPath();
+        c.arc(sparkX, sparkY, 1.8, 0, Math.PI * 2);
+        c.fill();
+      }
+
+      c.restore();
+    };
+
+    // DRAW PACMAN DISGUISE LEAF (FOLHAS DISFARÇADAS DOS COME-COMES NAS CORES AMARELA, VERMELHA E CIANO)
+    const drawPacmanLeaf = (
+      c: CanvasRenderingContext2D,
+      size: number,
+      type: 'yellow' | 'red' | 'cyan'
+    ) => {
+      c.save();
+
+      let mainColor = '#FACC15';
+      let darkColor = '#CA8A04';
+      let strokeColor = '#FEF08A';
+      let shadowColor = '#EAB308';
+
+      if (type === 'red') {
+        mainColor = '#EF4444';
+        darkColor = '#B91C1C';
+        strokeColor = '#FCA5A5';
+        shadowColor = '#DC2626';
+      } else if (type === 'cyan') {
+        mainColor = '#06B6D4';
+        darkColor = '#0E7490';
+        strokeColor = '#67E8F9';
+        shadowColor = '#0891B2';
+      }
+
+      c.shadowColor = shadowColor;
+      c.shadowBlur = 24;
+
+      // Lado esquerdo da folha
+      c.fillStyle = mainColor;
+      c.beginPath();
+      c.moveTo(0, -size);
+      c.bezierCurveTo(-size * 0.85, -size * 0.4, -size * 0.7, size * 0.5, 0, size);
+      c.fill();
+
+      // Lado direito da folha
+      c.fillStyle = darkColor;
+      c.beginPath();
+      c.moveTo(0, -size);
+      c.bezierCurveTo(size * 0.85, -size * 0.4, size * 0.7, size * 0.5, 0, size);
+      c.fill();
+
+      // Contorno exterior neon da cor
+      c.strokeStyle = strokeColor;
+      c.lineWidth = size * 0.08;
+      c.beginPath();
+      c.moveTo(0, -size);
+      c.bezierCurveTo(-size * 0.85, -size * 0.4, -size * 0.7, size * 0.5, 0, size);
+      c.bezierCurveTo(size * 0.7, size * 0.5, size * 0.85, -size * 0.4, 0, -size);
+      c.stroke();
+
+      // Nervura central
+      c.strokeStyle = '#FFFFFF';
+      c.lineWidth = size * 0.09;
+      c.beginPath();
+      c.moveTo(0, -size * 0.9);
+      c.lineTo(0, size * 1.15);
+      c.stroke();
+
+      c.restore();
+    };
+
+    // DRAW COME-COME (PAC-MAN) DEVORADOR DE ORÇAMENTO COM VIDA E ANIMAÇÃO
+    const drawPacmanEntity = (
+      c: CanvasRenderingContext2D,
+      pacman: PacmanEntity
+    ) => {
+      const { type, size, direction, mouthPhase, triggerTimer } = pacman;
+      c.save();
+
+      let mainColor = '#FACC15';
+      let shadowCol = '#EAB308';
+      let strokeCol = '#FEF08A';
+
+      if (type === 'red') {
+        mainColor = '#EF4444';
+        shadowCol = '#DC2626';
+        strokeCol = '#FCA5A5';
+      } else if (type === 'cyan') {
+        mainColor = '#06B6D4';
+        shadowCol = '#0891B2';
+        strokeCol = '#A5F3FC';
+      }
+
+      c.shadowColor = shadowCol;
+      c.shadowBlur = 24;
+
+      // 1. Rastro de Velocidade e Poeira de Corrida Atrás do Come-Come
+      const runCycle = triggerTimer * 0.45;
+      const trailDir = -direction;
+      c.strokeStyle = strokeCol;
+      c.lineWidth = 1.5;
+      for (let t = 0; t < 3; t++) {
+        const lineY = (t - 1) * (size * 0.35);
+        const lineLen = size * (0.6 + Math.sin(runCycle + t) * 0.25);
+        c.beginPath();
+        c.moveTo(trailDir * (size * 0.9), lineY);
+        c.lineTo(trailDir * (size * 0.9 + lineLen), lineY);
+        c.stroke();
+      }
+
+      // Fumacinha de corrida nos pés
+      c.fillStyle = 'rgba(255, 255, 255, 0.25)';
+      const dustPulse = Math.sin(runCycle * 2) * 3;
+      c.beginPath();
+      c.arc(trailDir * (size * 0.8), size * 0.7 + dustPulse, 4, 0, Math.PI * 2);
+      c.arc(trailDir * (size * 1.1), size * 0.6 - dustPulse, 3, 0, Math.PI * 2);
+      c.fill();
+
+      // 2. Patinhas / Pezinhos Correndo Velozes Embaixo
+      const foot1X = Math.sin(runCycle) * (size * 0.4);
+      const foot1Y = size * 0.85 + Math.abs(Math.cos(runCycle)) * 3;
+      const foot2X = Math.sin(runCycle + Math.PI) * (size * 0.4);
+      const foot2Y = size * 0.85 + Math.abs(Math.cos(runCycle + Math.PI)) * 3;
+
+      c.fillStyle = '#0F172A';
+      c.strokeStyle = strokeCol;
+      c.lineWidth = 1.5;
+
+      // Pé 1
+      c.beginPath();
+      c.ellipse(foot1X, foot1Y, size * 0.22, size * 0.14, 0.1 * direction, 0, Math.PI * 2);
+      c.fill();
+      c.stroke();
+
+      // Pé 2
+      c.beginPath();
+      c.ellipse(foot2X, foot2Y, size * 0.22, size * 0.14, -0.1 * direction, 0, Math.PI * 2);
+      c.fill();
+      c.stroke();
+
+      // 3. Trilha de Moedas à Frente Sendo "Sugadas" para Dentro da Boca
+      c.fillStyle = type === 'yellow' ? '#FEF08A' : type === 'red' ? '#FCA5A5' : '#A5F3FC';
+      c.strokeStyle = '#FFFFFF';
+      c.lineWidth = 1;
+      for (let b = 1; b <= 4; b++) {
+        // Moedas deslizam em direção à boca conforme o ciclo
+        const slideOffset = (mouthPhase * 25) % (size * 0.75);
+        const dotDist = size * 0.95 + b * (size * 0.75) - slideOffset;
+        if (dotDist > size * 0.4) {
+          const dotX = direction * dotDist;
+          const dotPulse = Math.max(1.8, 3.2 - b * 0.35 + Math.sin(mouthPhase * 8 + b) * 0.8);
+          c.beginPath();
+          c.arc(dotX, Math.sin(mouthPhase * 4 + b) * 2, dotPulse, 0, Math.PI * 2);
+          c.fill();
+          c.stroke();
+        }
+      }
+
+      // 4. Corpo do Come-Come com Squash & Stretch Anatômico Vivo
+      c.save();
+      if (direction === -1) {
+        c.scale(-1, 1);
+      }
+
+      // Ciclo de mastigação dinâmico
+      const chompVal = Math.sin(mouthPhase * 9);
+      const mouthOpen = 0.12 + Math.abs(chompVal) * 0.52;
+
+      // Squash & Stretch: estica ao abrir a boca, achata ao morder com impacto
+      const stretchX = chompVal > 0 ? 1.08 : 0.94;
+      const stretchY = chompVal > 0 ? 0.94 : 1.06;
+      c.scale(stretchX, stretchY);
+
+      // Corpo principal
+      c.fillStyle = mainColor;
+      c.strokeStyle = strokeCol;
+      c.lineWidth = 2;
+
+      c.beginPath();
+      c.moveTo(0, 0);
+      c.arc(0, 0, size, mouthOpen, Math.PI * 2 - mouthOpen);
+      c.closePath();
+      c.fill();
+      c.stroke();
+
+      // Dentes afiados para o Vermelho (Inflação)
+      if (type === 'red') {
+        c.fillStyle = '#FFFFFF';
+        // Dentes superiores
+        c.beginPath();
+        c.moveTo(size * 0.5, -size * 0.35);
+        c.lineTo(size * 0.65, -size * 0.15);
+        c.lineTo(size * 0.35, -size * 0.15);
+        c.closePath();
+        c.fill();
+        // Dentes inferiores
+        c.beginPath();
+        c.moveTo(size * 0.5, size * 0.35);
+        c.lineTo(size * 0.65, size * 0.15);
+        c.lineTo(size * 0.35, size * 0.15);
+        c.closePath();
+        c.fill();
+      }
+
+      // Língua gulosa vermelha no fundo da boca
+      c.fillStyle = '#DC2626';
+      c.beginPath();
+      c.arc(size * 0.15, 0, size * 0.35, -0.3, 0.3);
+      c.fill();
+
+      // 5. Olhos Vivos e Expressivos
+      const eyeX = size * 0.22;
+      const eyeY = -size * 0.52;
+      c.fillStyle = '#FFFFFF';
+      c.beginPath();
+      c.arc(eyeX, eyeY, size * 0.25, 0, Math.PI * 2);
+      c.fill();
+
+      // Pupila focada nas moedas à frente
+      c.fillStyle = '#0F172A';
+      c.beginPath();
+      c.arc(eyeX + 2.5, eyeY, size * 0.14, 0, Math.PI * 2);
+      c.fill();
+
+      // Reflexo brilhante de luz na pupila
+      c.fillStyle = '#FFFFFF';
+      c.beginPath();
+      c.arc(eyeX + 3.5, eyeY - 1.5, size * 0.06, 0, Math.PI * 2);
+      c.fill();
+
+      // Sobrancelha expressiva
+      c.strokeStyle = '#0F172A';
+      c.lineWidth = 1.8;
+      c.beginPath();
+      if (type === 'red') {
+        // Sobrancelha zangada/travessa
+        c.moveTo(eyeX - 4, eyeY - 8);
+        c.lineTo(eyeX + 6, eyeY - 5);
+      } else {
+        // Sobrancelha arqueada divertida
+        c.moveTo(eyeX - 5, eyeY - 6);
+        c.quadraticCurveTo(eyeX, eyeY - 9, eyeX + 5, eyeY - 6);
+      }
+      c.stroke();
+
+      // Detalhes extras por tipo:
+      if (type === 'red') {
+        // Chifrinhos de diabinho da inflação com brilho
+        c.fillStyle = '#B91C1C';
+        c.strokeStyle = '#FCA5A5';
+        c.lineWidth = 1.4;
+        c.beginPath();
+        c.moveTo(-size * 0.35, -size * 0.75);
+        c.lineTo(-size * 0.58, -size * 1.25);
+        c.lineTo(-size * 0.15, -size * 0.9);
+        c.closePath();
+        c.fill();
+        c.stroke();
+
+        c.beginPath();
+        c.moveTo(size * 0.35, -size * 0.75);
+        c.lineTo(size * 0.58, -size * 1.25);
+        c.lineTo(size * 0.15, -size * 0.9);
+        c.closePath();
+        c.fill();
+        c.stroke();
+      } else if (type === 'cyan') {
+        // Anteninha cibernética neon oscilando
+        const antennaWave = Math.sin(triggerTimer * 0.3) * 3;
+        c.strokeStyle = '#38BDF8';
+        c.lineWidth = 2.2;
+        c.beginPath();
+        c.moveTo(0, -size);
+        c.lineTo(antennaWave, -size - 12);
+        c.stroke();
+        c.fillStyle = '#E0F2FE';
+        c.shadowColor = '#38BDF8';
+        c.shadowBlur = 12;
+        c.beginPath();
+        c.arc(antennaWave, -size - 13, 3.8, 0, Math.PI * 2);
+        c.fill();
+      } else if (type === 'yellow') {
+        // Bochecha coradinha charmosa
+        c.fillStyle = 'rgba(239, 68, 68, 0.4)';
+        c.beginPath();
+        c.ellipse(size * 0.1, -size * 0.15, 5, 3, 0, 0, Math.PI * 2);
+        c.fill();
+      }
+
+      // 6. Migalhas e Faíscas de Mastigação Estourando
+      c.fillStyle = strokeCol;
+      for (let p = 0; p < 6; p++) {
+        const sparkAngle = (p * Math.PI * 2) / 6 + mouthPhase * 5;
+        const sparkDist = size * (1.1 + Math.sin(triggerTimer * 0.3 + p) * 0.3);
+        const spX = Math.cos(sparkAngle) * sparkDist;
+        const spY = Math.sin(sparkAngle) * sparkDist;
+        c.beginPath();
+        c.arc(spX, spY, 2.2, 0, Math.PI * 2);
+        c.fill();
+      }
+
+      c.restore(); // Fecha espelhamento de direção
+      c.restore(); // Fecha contexto do come-come
+    };
+
 
     // DRAW STAIRS & STICKMAN CLIMBING (Escada Conectada com Bordas da Tela + Boneco em Postura Real de Subida + Vitória)
     const drawStairsStickmanAndVictory = (
@@ -915,8 +1820,29 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
       // Check Trap Leaf Spawn (only in leaves mode)
       if (mode === 'leaves' && !trapLeaf.active && now > nextTrapTime) {
         spawnTrapLeaf();
-        nextTrapTime = now + 12000 + Math.random() * 9000;
+        nextTrapTime = now + 16000 + Math.random() * 9000;
       }
+
+      // Check Leprechaun Leaf Spawn (Duende do Prejuízo)
+      if (mode === 'leaves' && !leprechaunLeaf.active && now > nextLeprechaunTime) {
+        spawnLeprechaunLeaf();
+        nextLeprechaunTime = now + 14000 + Math.random() * 8000;
+      }
+
+      // Check Cyber Ghost Leaf Spawn (Fantasma dos Gastos Ocultos)
+      if (mode === 'leaves' && !ghostLeaf.active && now > nextGhostTime) {
+        spawnGhostLeaf();
+        nextGhostTime = now + 15000 + Math.random() * 9000;
+      }
+
+      // Check Pacman Spawns (Come-Comes Amarelo, Vermelho e Ciano)
+      pacmen.forEach((pacman) => {
+        const nextTime = nextPacmanTimes[pacman.type];
+        if (!pacman.active && now > nextTime) {
+          spawnPacman(pacman);
+          nextPacmanTimes[pacman.type] = now + 15000 + Math.random() * 10000;
+        }
+      });
 
       // Dampen mouse velocity
       mouseVx *= 0.92;
@@ -1069,6 +1995,243 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
           trapLeaf.active = false;
         }
       }
+
+      // RENDER LEPRECHAUN LEAF / DUENDE DO PREJUÍZO (VERDE COM DANÇA E RISADAS)
+      if (mode === 'leaves' && leprechaunLeaf.active) {
+        leprechaunLeaf.swayPhase += leprechaunLeaf.swayFreq;
+        const sway = Math.sin(leprechaunLeaf.swayPhase) * leprechaunLeaf.swayAmp;
+        leprechaunLeaf.x += leprechaunLeaf.vx + sway;
+        leprechaunLeaf.y += leprechaunLeaf.vy;
+        leprechaunLeaf.rotation += leprechaunLeaf.rotationSpeed;
+        leprechaunLeaf.prisonerSway += 0.09;
+
+        const ldx = mouseX - leprechaunLeaf.x;
+        const ldy = mouseY - leprechaunLeaf.y;
+        const ldist = Math.sqrt(ldx * ldx + ldy * ldy);
+
+        if (ldist < 55 && !leprechaunLeaf.isTrapped) {
+          leprechaunLeaf.isTrapped = true;
+          leprechaunLeaf.trapTimer = 0;
+          const leprechaunLosses = [
+            '-R$ 2.450,00 (Compra por Impulso!)',
+            '-R$ 3.890,00 (Sem Pesquisar Preço!)',
+            '-R$ 5.200,00 (Parcelou em 24x!)',
+            '-R$ 4.750,00 (Taxa de Desatenção!)',
+          ];
+          leprechaunLeaf.stolenText = leprechaunLosses[Math.floor(Math.random() * leprechaunLosses.length)];
+          leprechaunLeaf.stolenTextY = leprechaunLeaf.y - 35;
+          leprechaunLeaf.stolenTextOpacity = 1.0;
+        }
+
+        ctx.save();
+        ctx.translate(leprechaunLeaf.x, leprechaunLeaf.y);
+        if (!leprechaunLeaf.isTrapped) {
+          ctx.rotate(leprechaunLeaf.rotation);
+          drawEmeraldLeprechaunLeaf(ctx, leprechaunLeaf.size, leprechaunLeaf.prisonerSway);
+        } else {
+          drawDancingLeprechaun(ctx, leprechaunLeaf.size, leprechaunLeaf.prisonerSway);
+        }
+        ctx.restore();
+
+        if (leprechaunLeaf.isTrapped) {
+          leprechaunLeaf.trapTimer++;
+          leprechaunLeaf.stolenTextY -= 0.6;
+          leprechaunLeaf.stolenTextOpacity -= 0.005;
+
+          if (leprechaunLeaf.stolenText && leprechaunLeaf.stolenTextOpacity > 0) {
+            ctx.save();
+            ctx.fillStyle = '#10B981';
+            ctx.shadowColor = '#00FF88';
+            ctx.shadowBlur = 16;
+            ctx.font = 'bold 15px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.globalAlpha = Math.max(leprechaunLeaf.stolenTextOpacity, 0);
+            ctx.fillText(`🤣 DUENDE DO PREJUÍZO: ${leprechaunLeaf.stolenText}`, leprechaunLeaf.x, leprechaunLeaf.stolenTextY);
+            ctx.restore();
+          }
+
+          if (leprechaunLeaf.trapTimer > 210) {
+            leprechaunLeaf.active = false;
+          }
+        }
+
+        if (leprechaunLeaf.y > height + 50) {
+          leprechaunLeaf.active = false;
+        }
+      }
+
+      // RENDER CYBER GHOST LEAF / FANTASMA DAS TAXAS OCULTAS (ROXA CYBER)
+      if (mode === 'leaves' && ghostLeaf.active) {
+        ghostLeaf.swayPhase += ghostLeaf.swayFreq;
+        const sway = Math.sin(ghostLeaf.swayPhase) * ghostLeaf.swayAmp;
+        ghostLeaf.x += ghostLeaf.vx + sway;
+        ghostLeaf.y += ghostLeaf.vy;
+        ghostLeaf.rotation += ghostLeaf.rotationSpeed;
+        ghostLeaf.prisonerSway += 0.07;
+
+        const gdx = mouseX - ghostLeaf.x;
+        const gdy = mouseY - ghostLeaf.y;
+        const gdist = Math.sqrt(gdx * gdx + gdy * gdy);
+
+        if (gdist < 55 && !ghostLeaf.isTrapped) {
+          ghostLeaf.isTrapped = true;
+          ghostLeaf.trapTimer = 0;
+          const ghostLosses = [
+            '-R$ 1.850,00 (Assinaturas Esquecidas!)',
+            '-R$ 960,00 (Anuidade Não Negociada!)',
+            '-R$ 1.450,00 (Tarifas Bancárias Ocultas!)',
+            '-R$ 2.300,00 (Juros do Rotativo!)',
+          ];
+          ghostLeaf.stolenText = ghostLosses[Math.floor(Math.random() * ghostLosses.length)];
+          ghostLeaf.stolenTextY = ghostLeaf.y - 35;
+          ghostLeaf.stolenTextOpacity = 1.0;
+        }
+
+        ctx.save();
+        ctx.translate(ghostLeaf.x, ghostLeaf.y);
+        if (!ghostLeaf.isTrapped) {
+          ctx.rotate(ghostLeaf.rotation);
+          drawPhantomPurpleLeaf(ctx, ghostLeaf.size, ghostLeaf.prisonerSway);
+        } else {
+          drawCyberGhost(ctx, ghostLeaf.size, ghostLeaf.prisonerSway);
+        }
+        ctx.restore();
+
+        if (ghostLeaf.isTrapped) {
+          ghostLeaf.trapTimer++;
+          ghostLeaf.stolenTextY -= 0.6;
+          ghostLeaf.stolenTextOpacity -= 0.005;
+
+          if (ghostLeaf.stolenText && ghostLeaf.stolenTextOpacity > 0) {
+            ctx.save();
+            ctx.fillStyle = '#C084FC';
+            ctx.shadowColor = '#A855F7';
+            ctx.shadowBlur = 16;
+            ctx.font = 'bold 15px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.globalAlpha = Math.max(ghostLeaf.stolenTextOpacity, 0);
+            ctx.fillText(`👻 GASTO FANTASMA: ${ghostLeaf.stolenText}`, ghostLeaf.x, ghostLeaf.stolenTextY);
+            ctx.restore();
+          }
+
+          if (ghostLeaf.trapTimer > 210) {
+            ghostLeaf.active = false;
+          }
+        }
+
+        if (ghostLeaf.y > height + 50) {
+          ghostLeaf.active = false;
+        }
+      }
+
+      // RENDER PACMEN (COME-COMES DEVORADORES DE ORÇAMENTO DISFARÇADOS EM FOLHAS)
+      pacmen.forEach((pacman) => {
+        if (!pacman.active) return;
+
+        const pdx = mouseX - pacman.x;
+        const pdy = mouseY - pacman.y;
+        const pdist = Math.sqrt(pdx * pdx + pdy * pdy);
+
+        // Se o mouse passar perto da folha, REVELA O COME-COME VIVO E FAMINTO!
+        if (pdist < 52 && !pacman.isTriggered) {
+          pacman.isTriggered = true;
+          pacman.triggerTimer = 0;
+
+          // Decide a direção de corrida: se estiver mais pra esquerda da tela, corre pra direita; senão pra esquerda
+          pacman.direction = pacman.x < width * 0.5 ? 1 : -1;
+
+          if (pacman.type === 'yellow') {
+            const yellowLosses = [
+              '-R$ 1.850,00 (Comeu a Poupança!)',
+              '-R$ 2.400,00 (Devorou a Reserva!)',
+              '-R$ 1.200,00 (Economias Engolidas!)',
+            ];
+            pacman.stolenText = yellowLosses[Math.floor(Math.random() * yellowLosses.length)];
+          } else if (pacman.type === 'red') {
+            const redLosses = [
+              '-R$ 3.600,00 (Mordida da Inflação!)',
+              '-R$ 4.200,00 (Juros do Rotativo!)',
+              '-R$ 2.950,00 (Poder de Compra Devorado!)',
+            ];
+            pacman.stolenText = redLosses[Math.floor(Math.random() * redLosses.length)];
+          } else {
+            const cyanLosses = [
+              '-R$ 4.500,00 (Engoliu o Limite do Cartão!)',
+              '-R$ 3.800,00 (Parcelas no Carnê!)',
+              '-R$ 2.700,00 (Tarifa de Empréstimo!)',
+            ];
+            pacman.stolenText = cyanLosses[Math.floor(Math.random() * cyanLosses.length)];
+          }
+
+          pacman.stolenTextY = pacman.y - 35;
+          pacman.stolenTextOpacity = 1.0;
+        }
+
+        ctx.save();
+        ctx.translate(pacman.x, pacman.y);
+
+        if (!pacman.isTriggered) {
+          // Movimento de queda suave como folha
+          pacman.swayPhase += pacman.swayFreq;
+          const sway = Math.sin(pacman.swayPhase) * pacman.swayAmp;
+          pacman.x += pacman.vx + sway;
+          pacman.y += pacman.vy;
+          pacman.rotation += pacman.rotationSpeed;
+
+          ctx.rotate(pacman.rotation);
+          drawPacmanLeaf(ctx, pacman.size, pacman.type);
+        } else {
+          // Come-Come VIVO: corre velozmente pela tela dando saltos e mastigando!
+          pacman.triggerTimer++;
+          pacman.mouthPhase += 0.14;
+
+          // Corrida rápida na direção com saltinhos elásticos
+          const runSpeed = pacman.direction * (2.6 + Math.min(pacman.triggerTimer * 0.02, 1.4));
+          pacman.x += runSpeed;
+          pacman.y += Math.sin(pacman.triggerTimer * 0.28) * 2.4 + 0.15;
+
+          drawPacmanEntity(ctx, pacman);
+        }
+        ctx.restore();
+
+        if (pacman.isTriggered) {
+          pacman.stolenTextY -= 0.7;
+          pacman.stolenTextOpacity -= 0.005;
+
+          if (pacman.stolenText && pacman.stolenTextOpacity > 0) {
+            ctx.save();
+            const textCol =
+              pacman.type === 'yellow' ? '#FACC15' : pacman.type === 'red' ? '#EF4444' : '#06B6D4';
+            const shadowC =
+              pacman.type === 'yellow' ? '#EAB308' : pacman.type === 'red' ? '#DC2626' : '#0891B2';
+            ctx.fillStyle = textCol;
+            ctx.shadowColor = shadowC;
+            ctx.shadowBlur = 16;
+            ctx.font = 'bold 15px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.globalAlpha = Math.max(pacman.stolenTextOpacity, 0);
+
+            const prefix =
+              pacman.type === 'yellow'
+                ? '🟡 COME-COME DA POUPANÇA: '
+                : pacman.type === 'red'
+                ? '🔴 COME-COME DA INFLAÇÃO: '
+                : '🔵 COME-COME DAS PARCELAS: ';
+
+            ctx.fillText(`${prefix}${pacman.stolenText}`, pacman.x, pacman.stolenTextY);
+            ctx.restore();
+          }
+
+          if (pacman.triggerTimer > 210) {
+            pacman.active = false;
+          }
+        }
+
+        // Se sair da tela nas bordas inferiores ou laterais
+        if (pacman.y > height + 60 || pacman.x < -80 || pacman.x > width + 80) {
+          pacman.active = false;
+        }
+      });
 
       animationFrameId = requestAnimationFrame(render);
     };

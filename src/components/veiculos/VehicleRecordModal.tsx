@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { VehicleRecord, VehicleRecordType, ComponentCategory, Wallet } from '../../types';
-import { db } from '../../services/db';
+import { VehicleRecord, VehicleRecordType, ComponentCategory, Wallet } from '../../tipos';
+import { db } from '../../servicos/db';
 
 interface VehicleRecordModalProps {
   isOpen: boolean;

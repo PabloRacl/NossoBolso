@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { ComponentCategory, ComponentSpec } from '../../types';
-import { db } from '../../services/db';
+import { ComponentCategory, ComponentSpec } from '../../tipos';
+import { db } from '../../servicos/db';
 
 interface EditComponentSpecModalProps {
   isOpen: boolean;

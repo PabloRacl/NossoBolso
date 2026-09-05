@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
-import { authService } from '../../services/authService';
-import { UserProfile } from '../../types';
-import { getErrorMessage } from '../../utils/errorUtils';
+import { authService } from '../../servicos/authService';
+import { UserProfile } from '../../tipos';
+import { getErrorMessage } from '../../utilidades/errorUtils';
 
 interface RegisterFormProps {
   onSuccess: (user: UserProfile, email: string) => void;

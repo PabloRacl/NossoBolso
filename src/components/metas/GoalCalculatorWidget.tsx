@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { Card } from '../ui/Card';
-import { Goal } from '../../types';
-import { formatBRL } from '../../utils/formatters';
-import { useAppStore } from '../../store/useAppStore';
+import { Goal } from '../../tipos';
+import { formatBRL } from '../../utilidades/formatters';
+import { useAppStore } from '../../estado/useAppStore';
 import { Target, Calendar, Clock, TrendingUp, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export const GoalCalculatorWidget: React.FC<{ goals: Goal[] }> = ({ goals }) => {

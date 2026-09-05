@@ -3,8 +3,8 @@ import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
-import { useAppStore } from '../../store/useAppStore';
-import { db } from '../../services/db';
+import { useAppStore } from '../../estado/useAppStore';
+import { db } from '../../servicos/db';
 
 const BANK_PRESETS = [
   { name: 'Nubank', bankName: 'Nubank', icon: '🟣', color: '#8A05BE' },

@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
-import { useAppStore } from '../../store/useAppStore';
-import { db } from '../../services/db';
+import { useAppStore } from '../../estado/useAppStore';
+import { db } from '../../servicos/db';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { getTodayStr } from '../../utils/dateUtils';
-import { formatBRL } from '../../utils/formatters';
+import { getTodayStr } from '../../utilidades/dateUtils';
+import { formatBRL } from '../../utilidades/formatters';
+import { generateDebtSchedule } from '../../utilidades/debtCalculations';
+import { DebtContractSummary } from './DebtContractSummary';
 import { Car, CreditCard, Sparkles, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -117,85 +119,40 @@ export const DebtContractModal: React.FC = () => {
     const selectedWalletId = walletId || (wallets[0]?.id ?? 'w1');
 
     const baseDate = new Date(startDate + 'T12:00:00');
-    const transactionsToInsert = [];
     let calculatedTotalAmount = 0;
 
-    if (amortizationSystem === 'price') {
-      if (instVal <= 0) return;
-      calculatedTotalAmount = totalContractCost;
+    const schedule = generateDebtSchedule({
+      system: amortizationSystem,
+      totalInstallments: totalInstallmentsNum,
+      startInstallmentNum: startNum,
+      financedAmount: parseFloat(financedAmount) || 0,
+      fixedInstallmentAmount: instVal,
+      interestRate: parsedRate,
+      interestRateType: interestRateType,
+      insuranceAmount: parsedInsurance,
+      baseDate,
+    });
 
-      // Gerar TODAS as parcelas do contrato (da Parcela 1 até totalInstallmentsNum)
-      for (let currentNum = 1; currentNum <= totalInstallmentsNum; currentNum++) {
-        // Offset de meses em relação à próxima parcela (startNum)
-        const offsetMonths = currentNum - startNum;
-        const txDate = new Date(baseDate);
-        txDate.setMonth(baseDate.getMonth() + offsetMonths);
+    if (amortizationSystem === 'price' && instVal <= 0) return;
+    if (amortizationSystem === 'sac' && (!financedAmount || parseFloat(financedAmount) <= 0)) return;
 
-        const yyyy = txDate.getFullYear();
-        const mm = String(txDate.getMonth() + 1).padStart(2, '0');
-        const dd = String(txDate.getDate()).padStart(2, '0');
-        const formattedDate = `${yyyy}-${mm}-${dd}`;
+    calculatedTotalAmount = schedule.totalContractCost;
 
-        transactionsToInsert.push({
-          id: `tx_${contractId}_${currentNum}`,
-          description: `${title.trim()} (${currentNum}/${totalInstallmentsNum})`,
-          amount: finalInstallmentVal,
-          date: formattedDate,
-          type: 'expense' as const,
-          category: category || 'Financiamentos & Veículos',
-          walletId: selectedWalletId,
-          contractId: contractId,
-          installments: {
-            current: currentNum,
-            total: totalInstallmentsNum,
-          },
-          createdAt: new Date().toISOString(),
-        });
-      }
-    } else {
-      // Sistema SAC - Gerar todas as parcelas do contrato
-      const balanceToAmortize = parseFloat(financedAmount);
-      if (isNaN(balanceToAmortize) || balanceToAmortize <= 0) return;
-
-      const monthlyRate = interestRateType === 'yearly' ? (parsedRate / 12 / 100) : (parsedRate / 100);
-      const monthlyAmortization = balanceToAmortize / totalInstallmentsNum;
-      let runningBalance = balanceToAmortize;
-
-      for (let currentNum = 1; currentNum <= totalInstallmentsNum; currentNum++) {
-        const offsetMonths = currentNum - startNum;
-        const txDate = new Date(baseDate);
-        txDate.setMonth(baseDate.getMonth() + offsetMonths);
-
-        const yyyy = txDate.getFullYear();
-        const mm = String(txDate.getMonth() + 1).padStart(2, '0');
-        const dd = String(txDate.getDate()).padStart(2, '0');
-        const formattedDate = `${yyyy}-${mm}-${dd}`;
-
-        const periodInterest = runningBalance * monthlyRate;
-        const periodTotal = monthlyAmortization + periodInterest + parsedInsurance;
-        const roundedTotal = instVal > 0 ? instVal : Math.round(periodTotal * 100) / 100;
-
-        transactionsToInsert.push({
-          id: `tx_${contractId}_${currentNum}`,
-          description: `${title.trim()} (${currentNum}/${totalInstallmentsNum})`,
-          amount: roundedTotal,
-          date: formattedDate,
-          type: 'expense' as const,
-          category: category || 'Financiamentos & Veículos',
-          walletId: selectedWalletId,
-          contractId: contractId,
-          installments: {
-            current: currentNum,
-            total: totalInstallmentsNum,
-          },
-          createdAt: new Date().toISOString(),
-        });
-
-        runningBalance -= monthlyAmortization;
-        calculatedTotalAmount += roundedTotal;
-      }
-      if (calculatedTotalAmount === 0) calculatedTotalAmount = balanceToAmortize;
-    }
+    const transactionsToInsert = schedule.items.map((item) => ({
+      id: `tx_${contractId}_${item.installmentNumber}`,
+      description: `${title.trim()} (${item.installmentNumber}/${totalInstallmentsNum})`,
+      amount: item.installmentAmount,
+      date: item.dueDate,
+      type: 'expense' as const,
+      category: category || 'Financiamentos & Veículos',
+      walletId: selectedWalletId,
+      contractId: contractId,
+      installments: {
+        current: item.installmentNumber,
+        total: totalInstallmentsNum,
+      },
+      createdAt: new Date().toISOString(),
+    }));
 
     let originalCreatedAt = new Date().toISOString();
     if (editingDebtContractId) {
@@ -504,51 +461,16 @@ export const DebtContractModal: React.FC = () => {
         {/* Card Futurista de Resumo com Validação Matemática Impecável */}
         <AnimatePresence mode="wait">
           {amortizationSystem === 'price' && instVal > 0 && (
-            <motion.div
-              key="price-summary"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="p-4 bg-gradient-to-br from-[#121929] to-[#0A0D18] border border-[#00FF88]/30 rounded-2xl flex flex-col gap-3 shadow-lg"
-            >
-              <div className="flex items-center justify-between text-xs font-black text-[#94A3B8] border-b border-[#2E3B52] pb-2">
-                <span className="flex items-center gap-1.5 text-[#F8FAFC]">
-                  <Sparkles className="w-4 h-4 text-[#00FF88]" />
-                  <span>RESUMO FINANCEIRO CONTRATADO</span>
-                </span>
-                <span className="text-[#00FF88] font-mono">{totalInstallmentsNum} PARCELAS DE {formatBRL(finalInstallmentVal)}</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3 bg-[#0D1424] border border-[#2E3B52] rounded-xl flex flex-col">
-                  <span className="text-[10px] font-black text-[#94A3B8] uppercase">Custo Total ({totalInstallmentsNum}x)</span>
-                  <span className="text-sm font-black text-[#00FF88] mt-1">
-                    {formatBRL(totalContractCost)}
-                  </span>
-                  <span className="text-[9px] text-[#64748B] font-medium mt-0.5">Contrato completo</span>
-                </div>
-
-                <div className="p-3 bg-[#0D1424] border border-[#10B981]/30 rounded-xl flex flex-col">
-                  <span className="text-[10px] font-black text-[#94A3B8] uppercase">Já Pago ({paidCount}x)</span>
-                  <span className="text-sm font-black text-[#10B981] mt-1">
-                    {formatBRL(paidTotalCost)}
-                  </span>
-                  <span className="text-[9px] text-[#10B981] font-medium mt-0.5">
-                    {paidCount > 0 ? `Parcelas 1 até ${paidCount}` : 'Nenhuma paga'}
-                  </span>
-                </div>
-
-                <div className="p-3 bg-[#0D1424] border border-[#F59E0B]/30 rounded-xl flex flex-col">
-                  <span className="text-[10px] font-black text-[#94A3B8] uppercase">Saldo Devedor ({remainingCount}x)</span>
-                  <span className="text-sm font-black text-[#F59E0B] mt-1">
-                    {formatBRL(remainingTotalCost)}
-                  </span>
-                  <span className="text-[9px] text-[#F59E0B] font-medium mt-0.5">
-                    Parcela {startNum} até {totalInstallmentsNum}
-                  </span>
-                </div>
-              </div>
-            </motion.div>
+            <DebtContractSummary
+              totalInstallmentsNum={totalInstallmentsNum}
+              finalInstallmentVal={finalInstallmentVal}
+              totalContractCost={totalContractCost}
+              paidCount={paidCount}
+              paidTotalCost={paidTotalCost}
+              remainingCount={remainingCount}
+              remainingTotalCost={remainingTotalCost}
+              startNum={startNum}
+            />
           )}
         </AnimatePresence>
 

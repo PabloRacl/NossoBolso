@@ -1,9 +1,9 @@
 import React from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { PantryItem } from '../../types';
-import { formatBRL } from '../../utils/formatters';
-import { useAppStore } from '../../store/useAppStore';
+import { PantryItem } from '../../tipos';
+import { formatBRL } from '../../utilidades/formatters';
+import { useAppStore } from '../../estado/useAppStore';
 import {
   Package,
   ClipboardCheck,

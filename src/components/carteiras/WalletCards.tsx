@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Wallet } from '../../types';
+import { Wallet } from '../../tipos';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { formatBRL } from '../../utils/formatters';
-import { useAppStore } from '../../store/useAppStore';
+import { formatBRL } from '../../utilidades/formatters';
+import { useAppStore } from '../../estado/useAppStore';
 import {
   Plus,
   Trash2,
@@ -19,7 +19,7 @@ import {
   Wallet as WalletIcon,
   Wifi
 } from 'lucide-react';
-import { db } from '../../services/db';
+import { db } from '../../servicos/db';
 import { motion } from 'framer-motion';
 import { TransferBetweenWalletsModal } from './TransferBetweenWalletsModal';
 

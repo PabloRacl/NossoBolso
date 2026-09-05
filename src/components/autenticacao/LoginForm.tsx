@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, Linkedin } from 'lucide-react';
-import { authService } from '../../services/authService';
-import { UserProfile } from '../../types';
-import { getErrorMessage } from '../../utils/errorUtils';
+import { authService } from '../../servicos/authService';
+import { UserProfile } from '../../tipos';
+import { getErrorMessage } from '../../utilidades/errorUtils';
 
 interface LoginFormProps {
   onSuccess: (user: UserProfile, msg?: string) => void;
@@ -12,6 +12,7 @@ interface LoginFormProps {
   onSocialLogin: (provider: 'google' | 'twitter' | 'linkedin') => void;
   onGuestLogin: () => void;
   socialLoading: 'google' | 'facebook' | 'linkedin' | 'twitter' | null;
+  onUnverifiedEmail?: (email: string) => void;
 }
 
 export const LoginForm: React.FC<LoginFormProps> = ({
@@ -21,6 +22,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   onSocialLogin,
   onGuestLogin,
   socialLoading,
+  onUnverifiedEmail,
 }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,7 +38,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       const user = await authService.login({ email, password });
       onSuccess(user, `Olá, ${user.name.split(' ')[0]}! Acessando seu painel...`);
     } catch (err: unknown) {
-      onError(getErrorMessage(err, 'Ocorreu um erro ao realizar o login.'));
+      const rawMsg = getErrorMessage(err, 'Ocorreu um erro ao realizar o login.');
+      if (rawMsg.includes('EMAIL_NOT_VERIFIED')) {
+        const cleanMsg = rawMsg.replace('EMAIL_NOT_VERIFIED:', '').trim();
+        onError(cleanMsg);
+        if (onUnverifiedEmail) {
+          setTimeout(() => {
+            onUnverifiedEmail(email);
+          }, 1400);
+        }
+      } else {
+        onError(rawMsg);
+      }
     } finally {
       setLoading(false);
     }

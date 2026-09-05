@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { useAppStore } from '../../store/useAppStore';
-import { formatBRL } from '../../utils/formatters';
+import { useAppStore } from '../../estado/useAppStore';
+import { formatBRL } from '../../utilidades/formatters';
 import { ShieldCheck, Calculator, DollarSign, Percent, AlertTriangle, Sparkles, TrendingUp, Award } from 'lucide-react';
 
 export const PmpeConsignadoSimulatorModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {

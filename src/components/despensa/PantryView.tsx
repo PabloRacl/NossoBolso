@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../services/db';
-import { PantryItem } from '../../types';
+import { db } from '../../servicos/db';
+import { PantryItem } from '../../tipos';
 import { PantryItemModal } from './PantryItemModal';
 import { BarcodeScannerModal } from './BarcodeScannerModal';
 import { FinishShoppingModal } from './FinishShoppingModal';
@@ -11,7 +11,7 @@ import { PantryStockTab } from './PantryStockTab';
 import { PantryWizardTab } from './PantryWizardTab';
 import { PantryShoppingTab } from './PantryShoppingTab';
 import { PantryTab, PriceCalculationMode } from './pantryTypes';
-import { formatBRL } from '../../utils/formatters';
+import { formatBRL } from '../../utilidades/formatters';
 
 export const PantryView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<PantryTab>('stock');

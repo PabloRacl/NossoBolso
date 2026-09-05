@@ -3,11 +3,11 @@ import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
-import { useAppStore } from '../../store/useAppStore';
-import { db } from '../../services/db';
+import { useAppStore } from '../../estado/useAppStore';
+import { db } from '../../servicos/db';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { TransactionType } from '../../types';
-import { getTodayStr } from '../../utils/dateUtils';
+import { TransactionType } from '../../tipos';
+import { getTodayStr } from '../../utilidades/dateUtils';
 import { Repeat, Calendar, Layers } from 'lucide-react';
 
 export const TransactionModal: React.FC = () => {
