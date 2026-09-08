@@ -11,6 +11,7 @@ import {
   Trash2,
   Edit2,
   Minus,
+  RotateCcw,
 } from 'lucide-react';
 
 interface PantryStockTabProps {
@@ -23,6 +24,7 @@ interface PantryStockTabProps {
   onCategorySelect: (cat: string) => void;
   onStartWizard: () => void;
   onOpenNewItemModal: () => void;
+  onOpenRestoreModal?: () => void;
   onEditItem: (item: PantryItem) => void;
   onDeleteItem: (id: string) => void;
   onQuickQtyChange: (item: PantryItem, delta: number) => void;
@@ -38,6 +40,7 @@ export const PantryStockTab: React.FC<PantryStockTabProps> = ({
   onCategorySelect,
   onStartWizard,
   onOpenNewItemModal,
+  onOpenRestoreModal,
   onEditItem,
   onDeleteItem,
   onQuickQtyChange,
@@ -89,29 +92,60 @@ export const PantryStockTab: React.FC<PantryStockTabProps> = ({
           </div>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onStartWizard}
-          className="border-[#06B6D4]/40 text-[#06B6D4] w-full sm:w-auto justify-center"
-        >
-          <ClipboardCheck className="w-4 h-4" />
-          <span>Conferência Pré-Feira</span>
-        </Button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {onOpenRestoreModal && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenRestoreModal}
+              className="border-[#06B6D4]/40 text-[#06B6D4] hover:bg-[#06B6D4]/10 w-full sm:w-auto justify-center"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Restaurar Estoque</span>
+            </Button>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onStartWizard}
+            className="border-[#00FF88]/40 text-[#00FF88] w-full sm:w-auto justify-center"
+          >
+            <ClipboardCheck className="w-4 h-4" />
+            <span>Conferência Pré-Feira</span>
+          </Button>
+        </div>
       </div>
 
       {/* Grid de Itens do Estoque */}
       {filteredItems.length === 0 ? (
         <Card className="p-8 sm:p-12 text-center flex flex-col items-center gap-3">
           <Package className="w-12 h-12 text-[#64748B]" />
-          <h4 className="text-base font-bold text-[#F8FAFC]">Nenhum item cadastrado no estoque</h4>
-          <p className="text-xs text-[#94A3B8]">
-            Adicione os alimentos e produtos que você costuma ter em casa para controlar o estoque e gerar listas automáticas de feira.
+          <h4 className="text-base font-bold text-[#F8FAFC]">
+            {items.length === 0 ? 'Nenhum item cadastrado no estoque' : 'Nenhum item corresponde à pesquisa'}
+          </h4>
+          <p className="text-xs text-[#94A3B8] max-w-md mx-auto">
+            {items.length === 0
+              ? 'Se você já havia cadastrado o estoque anteriormente, você pode restaurar seus dados perdidos dos bancos do navegador ou carregar a despensa residencial completa.'
+              : 'Tente alterar os termos da busca ou limpar os filtros de categoria.'}
           </p>
-          <Button variant="primary" onClick={onOpenNewItemModal}>
-            <Plus className="w-4 h-4" />
-            <span>Cadastrar Primeiro Item</span>
-          </Button>
+          <div className="flex flex-wrap items-center justify-center gap-3 mt-2">
+            <Button variant="primary" onClick={onOpenNewItemModal}>
+              <Plus className="w-4 h-4" />
+              <span>Cadastrar Novo Item</span>
+            </Button>
+
+            {items.length === 0 && onOpenRestoreModal && (
+              <Button
+                variant="outline"
+                onClick={onOpenRestoreModal}
+                className="border-[#06B6D4]/50 text-[#06B6D4] hover:bg-[#06B6D4]/15 font-bold"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Restaurar Estoque Perdido</span>
+              </Button>
+            )}
+          </div>
         </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

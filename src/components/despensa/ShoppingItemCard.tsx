@@ -1,9 +1,9 @@
 import React from 'react';
-import { Card } from '../ui/Card';
 import { PantryItem } from '../../tipos';
 import { PriceCalculationMode } from './pantryTypes';
 import { formatBRL } from '../../utilidades/formatters';
 import { useAppStore } from '../../estado/useAppStore';
+import { motion } from 'framer-motion';
 import {
   Tag,
   Flame,
@@ -13,6 +13,9 @@ import {
   AlertTriangle,
   TrendingUp,
   TrendingDown,
+  ShoppingCart,
+  RotateCcw,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface ShoppingItemCardProps {
@@ -25,6 +28,7 @@ interface ShoppingItemCardProps {
   discount: number;
   effectiveUnitPrice: number;
   itemSubtotal: number;
+  viewMode?: 'aisle' | 'checkout';
   onToggleCheck: () => void;
   onQtyChange: (delta: number) => void;
   onPriceChange: (price: number) => void;
@@ -33,42 +37,67 @@ interface ShoppingItemCardProps {
   onDiscountChange: (discount: number) => void;
 }
 
-export const ShoppingItemCard: React.FC<ShoppingItemCardProps> = ({
-  item,
-  isChecked,
-  qtyToBuy,
-  priceMode,
-  cartPrice,
-  comboTotal,
-  discount,
-  effectiveUnitPrice,
-  itemSubtotal,
-  onToggleCheck,
-  onQtyChange,
-  onPriceChange,
-  onSetPriceMode,
-  onComboTotalChange,
-  onDiscountChange,
-}) => {
+export const ShoppingItemCard = React.forwardRef<HTMLDivElement, ShoppingItemCardProps>((
+  {
+    item,
+    isChecked,
+    qtyToBuy,
+    priceMode,
+    cartPrice,
+    comboTotal,
+    discount,
+    effectiveUnitPrice,
+    itemSubtotal,
+    viewMode = 'aisle',
+    onToggleCheck,
+    onQtyChange,
+    onPriceChange,
+    onSetPriceMode,
+    onComboTotalChange,
+    onDiscountChange,
+  },
+  ref
+) => {
   const { isPrivacyMode } = useAppStore();
 
-  const formatQtyDisplay = (val: number) => {
-    if (Number.isInteger(val)) return String(val);
-    return val.toFixed(2).replace('.', ',');
+  const formatQtyDisplay = (val?: number | null) => {
+    const safeVal = typeof val === 'number' && !isNaN(val) ? val : 0;
+    if (Number.isInteger(safeVal)) return String(safeVal);
+    return safeVal.toFixed(2).replace('.', ',');
   };
 
-  const defaultNeeded = Math.max(Math.round((item.idealQuantity - item.currentQuantity) * 100) / 100, 0.01);
-  const priceDiff = effectiveUnitPrice - item.lastPrice;
-  const priceDiffPct = item.lastPrice > 0 ? (priceDiff / item.lastPrice) * 100 : 0;
+  const currentQty = typeof item.currentQuantity === 'number' && !isNaN(item.currentQuantity) ? item.currentQuantity : 0;
+  const idealQty = typeof item.idealQuantity === 'number' && !isNaN(item.idealQuantity) ? item.idealQuantity : 1;
+  const lastPrice = typeof item.lastPrice === 'number' && !isNaN(item.lastPrice) ? item.lastPrice : 0;
+  const unit = item.unit || 'un';
+  const category = item.category || 'Alimentos';
+  const name = item.name || 'Produto';
+  const effUnitPrice = typeof effectiveUnitPrice === 'number' && !isNaN(effectiveUnitPrice) ? effectiveUnitPrice : lastPrice;
+  const subtotal = typeof itemSubtotal === 'number' && !isNaN(itemSubtotal) ? itemSubtotal : 0;
+
+  const defaultNeeded = Math.max(Math.round((idealQty - currentQty) * 100) / 100, 0.01);
+  const priceDiff = effUnitPrice - lastPrice;
+  const priceDiffPct = lastPrice > 0 ? (priceDiff / lastPrice) * 100 : 0;
   const isInflationAlert = priceDiffPct > 15;
+  const isSaving = priceDiff < 0;
 
   return (
-    <Card
-      key={item.id}
-      className={`p-4 sm:p-5 transition-all flex flex-col gap-4 ${
+    <motion.div
+      ref={ref}
+      layout
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{
+        opacity: 0,
+        y: -65,
+        scale: 0.88,
+        transition: { duration: 0.35, ease: 'easeInOut' },
+      }}
+      transition={{ duration: 0.25 }}
+      className={`w-full p-4 sm:p-5 rounded-2xl border transition-all flex flex-col gap-4 backdrop-blur-xl shadow-xl ${
         isChecked
           ? 'bg-[#00FF88]/10 border-[#00FF88]/40 shadow-lg shadow-[#00FF88]/5'
-          : 'bg-[#0A0B0E]/80 border-[#1E2330] hover:border-[#2E3B52]'
+          : 'bg-[#162032]/85 border-[#2E3B52] hover:border-[#3B4C6A]'
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -83,10 +112,10 @@ export const ShoppingItemCard: React.FC<ShoppingItemCardProps> = ({
           <div className="flex flex-col">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#162032] text-[#06B6D4] border border-[#2E3B52]">
-                {item.category}
+                {category}
               </span>
               <span className="text-xs text-[#00FF88] font-bold">
-                Faltam: {formatQtyDisplay(defaultNeeded)} {item.unit} (Estoque: {formatQtyDisplay(item.currentQuantity)})
+                Faltam: {formatQtyDisplay(defaultNeeded)} {unit} (Estoque: {formatQtyDisplay(currentQty)})
               </span>
               {isInflationAlert && (
                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-[#FF4D6D]/20 text-[#FF4D6D] border border-[#FF4D6D]/40 flex items-center gap-1">
@@ -97,19 +126,19 @@ export const ShoppingItemCard: React.FC<ShoppingItemCardProps> = ({
             </div>
 
             <h4 className={`text-lg font-black mt-1 ${isChecked ? 'line-through text-[#94A3B8]' : 'text-[#F8FAFC]'}`}>
-              {item.name}
+              {name}
             </h4>
           </div>
         </div>
 
         <div className="flex flex-col items-end">
           <span className="text-[10px] font-extrabold uppercase text-[#94A3B8]">Subtotal Item</span>
-          <span className="text-xl font-black text-[#00FF88]">{formatBRL(itemSubtotal, isPrivacyMode)}</span>
+          <span className="text-xl font-black text-[#00FF88]">{formatBRL(subtotal, isPrivacyMode)}</span>
         </div>
       </div>
 
       {/* Seletor de Modo de Valor / Desconto */}
-      <div className="flex flex-col gap-2 p-3 bg-[#12141A] border border-[#2E3B52] rounded-xl">
+      <div className="flex flex-col gap-2 p-3 bg-[#0A0B0E]/80 border border-[#2E3B52] rounded-xl">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-[10px] font-extrabold uppercase text-[#94A3B8] flex items-center gap-1">
             <Tag className="w-3.5 h-3.5 text-[#00FF88]" />
@@ -162,16 +191,18 @@ export const ShoppingItemCard: React.FC<ShoppingItemCardProps> = ({
             <label className="text-[10px] font-bold text-[#94A3B8] uppercase">Qtd Comprada no Carrinho</label>
             <div className="flex items-center gap-1.5 h-10 px-2 bg-[#0A0B0E] border border-[#2E3B52] rounded-xl">
               <button
-                onClick={() => onQtyChange(item.unit === 'kg' || item.unit === 'L' ? -0.25 : -1)}
+                type="button"
+                onClick={() => onQtyChange(unit === 'kg' || unit === 'L' ? -0.25 : -1)}
                 className="w-7 h-7 rounded-lg bg-[#162032] flex items-center justify-center text-[#F8FAFC] font-black text-sm active:scale-95 cursor-pointer"
               >
                 <Minus className="w-3 h-3" />
               </button>
               <span className="flex-1 text-center font-black text-sm text-[#00FF88]">
-                {formatQtyDisplay(qtyToBuy)} {item.unit}
+                {formatQtyDisplay(qtyToBuy)} {unit}
               </span>
               <button
-                onClick={() => onQtyChange(item.unit === 'kg' || item.unit === 'L' ? 0.25 : 1)}
+                type="button"
+                onClick={() => onQtyChange(unit === 'kg' || unit === 'L' ? 0.25 : 1)}
                 className="w-7 h-7 rounded-lg bg-[#162032] flex items-center justify-center text-[#F8FAFC] font-black text-sm active:scale-95 cursor-pointer"
               >
                 <Plus className="w-3 h-3" />
@@ -182,19 +213,19 @@ export const ShoppingItemCard: React.FC<ShoppingItemCardProps> = ({
           {priceMode === 'unit' && (
             <div className="flex flex-col gap-1 sm:col-span-2">
               <label className="text-[10px] font-bold text-[#94A3B8] uppercase">
-                Preço Unitário Prateleira (R$/{item.unit})
+                Preço Unitário Prateleira (R$/{unit})
               </label>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
                   step="0.01"
-                  value={cartPrice}
+                  value={cartPrice || ''}
                   onChange={(e) => onPriceChange(parseFloat(e.target.value) || 0)}
                   className="w-full h-10 px-3 bg-[#0A0B0E] border border-[#2E3B52] rounded-xl text-sm text-[#F59E0B] font-black focus:border-[#00FF88] focus:outline-none"
                   placeholder="Preço normal por unidade"
                 />
                 <span className="text-[11px] text-[#94A3B8] whitespace-nowrap">
-                  Mês anterior: <strong className="text-[#F8FAFC]">{formatBRL(item.lastPrice, isPrivacyMode)}</strong>
+                  Mês anterior: <strong className="text-[#F8FAFC]">{formatBRL(lastPrice, isPrivacyMode)}</strong>
                 </span>
               </div>
             </div>
@@ -210,7 +241,7 @@ export const ShoppingItemCard: React.FC<ShoppingItemCardProps> = ({
                 <input
                   type="number"
                   step="0.50"
-                  value={comboTotal}
+                  value={comboTotal || ''}
                   onChange={(e) => onComboTotalChange(parseFloat(e.target.value) || 0)}
                   className="w-full h-10 px-3 bg-[#0A0B0E] border border-[#FF4D6D]/60 rounded-xl text-sm text-[#FF4D6D] font-black focus:outline-none"
                   placeholder="Digite o valor total pago por todas as unidades"
@@ -226,7 +257,7 @@ export const ShoppingItemCard: React.FC<ShoppingItemCardProps> = ({
                 <input
                   type="number"
                   step="0.01"
-                  value={cartPrice}
+                  value={cartPrice || ''}
                   onChange={(e) => onPriceChange(parseFloat(e.target.value) || 0)}
                   className="w-full h-10 px-3 bg-[#0A0B0E] border border-[#2E3B52] rounded-xl text-sm text-[#F8FAFC] font-black focus:outline-none"
                 />
@@ -237,7 +268,7 @@ export const ShoppingItemCard: React.FC<ShoppingItemCardProps> = ({
                 <input
                   type="number"
                   step="0.10"
-                  value={discount}
+                  value={discount || ''}
                   onChange={(e) => onDiscountChange(parseFloat(e.target.value) || 0)}
                   className="w-full h-10 px-3 bg-[#0A0B0E] border border-[#F59E0B]/60 rounded-xl text-sm text-[#F59E0B] font-black focus:outline-none"
                   placeholder="R$ desconto total"
@@ -251,20 +282,53 @@ export const ShoppingItemCard: React.FC<ShoppingItemCardProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-[#94A3B8] font-medium">Preço Efetivo Calculado:</span>
             <strong className="text-[#00FF88] font-black text-sm">
-              {formatBRL(effectiveUnitPrice, isPrivacyMode)} / {item.unit}
+              {formatBRL(effUnitPrice, isPrivacyMode)} / {unit}
             </strong>
           </div>
 
-          {priceDiff !== 0 && (
+          {priceDiff !== 0 && !isNaN(priceDiff) && (
             <div className={`flex items-center gap-1 font-bold text-[11px] ${priceDiff > 0 ? 'text-[#FF4D6D]' : 'text-[#00FF88]'}`}>
               {priceDiff > 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
               <span>
-                {priceDiff > 0 ? '+' : ''}{priceDiffPct.toFixed(1)}% ({formatBRL(Math.abs(priceDiff), isPrivacyMode)}/{item.unit})
+                {priceDiff > 0 ? '+' : ''}{priceDiffPct.toFixed(1)}% ({formatBRL(Math.abs(priceDiff), isPrivacyMode)}/{unit})
               </span>
             </div>
           )}
         </div>
+
+        {/* Botão de Ação Direta (Gôndola vs Caixa) */}
+        <div className="pt-2 border-t border-[#1E293B] flex items-center justify-between gap-3">
+          {viewMode === 'aisle' ? (
+            <button
+              type="button"
+              onClick={onToggleCheck}
+              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all cursor-pointer active:scale-98"
+            >
+              <ShoppingCart className="w-4 h-4 text-white" />
+              <span>Pegar e Colocar no Carrinho ({formatBRL(subtotal, isPrivacyMode)})</span>
+            </button>
+          ) : (
+            <div className="w-full flex items-center justify-between">
+              <span className="text-xs font-bold text-[#00FF88] flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-[#00FF88]" />
+                <span>No Carrinho</span>
+              </span>
+
+              <button
+                type="button"
+                onClick={onToggleCheck}
+                className="px-3 py-1.5 rounded-lg bg-[#162032] hover:bg-[#FF4D6D]/20 text-[#94A3B8] hover:text-[#FF4D6D] border border-[#2E3B52] hover:border-[#FF4D6D]/40 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                title="Devolver item para a gôndola"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Devolver à Gôndola</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-    </Card>
+    </motion.div>
   );
-};
+});
+
+ShoppingItemCard.displayName = 'ShoppingItemCard';

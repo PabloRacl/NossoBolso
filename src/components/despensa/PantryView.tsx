@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../servicos/db';
 import { PantryItem } from '../../tipos';
@@ -6,6 +6,8 @@ import { PantryItemModal } from './PantryItemModal';
 import { BarcodeScannerModal } from './BarcodeScannerModal';
 import { FinishShoppingModal } from './FinishShoppingModal';
 import { UnitPriceCalculatorModal } from './UnitPriceCalculatorModal';
+import { PantryRestoreModal } from './PantryRestoreModal';
+import { recoverPantryFromAnyDatabase } from '../../servicos/pantryRecoveryService';
 import { PantryHeader } from './PantryHeader';
 import { PantryStockTab } from './PantryStockTab';
 import { PantryWizardTab } from './PantryWizardTab';
@@ -26,6 +28,16 @@ export const PantryView: React.FC = () => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
   const [isUnitCalcModalOpen, setIsUnitCalcModalOpen] = useState(false);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+
+  // Auto-recuperação silenciosa se o estoque estiver zerado
+  useEffect(() => {
+    if (items.length === 0) {
+      recoverPantryFromAnyDatabase().catch((e) => {
+        console.warn('Tentativa de auto-recuperação silenciosa:', e);
+      });
+    }
+  }, [items.length]);
 
   // Search & Category Filters in Stock
   const [searchFilter, setSearchFilter] = useState('');
@@ -43,10 +55,9 @@ export const PantryView: React.FC = () => {
   const [cartDiscounts, setCartDiscounts] = useState<Record<string, number>>({});
   const [selectedWalletId, setSelectedWalletId] = useState<string>('');
 
-  // Teto de Orçamento, Desconto no Caixa, Filtros e Agrupamento por Corredor
+  // Teto de Orçamento, Desconto no Caixa e Agrupamento por Corredor
   const [budgetCap, setBudgetCap] = useState<string>('500.00');
   const [cashierDiscount, setCashierDiscount] = useState<string>('0');
-  const [shoppingFilter, setShoppingFilter] = useState<'all' | 'checked' | 'pending'>('all');
   const [groupByAisle, setGroupByAisle] = useState<boolean>(true);
 
   // 1. Filtered Stock Items
@@ -110,9 +121,10 @@ export const PantryView: React.FC = () => {
       const defaultQty: Record<string, number> = {};
       const defaultPrices: Record<string, number> = {};
       items.forEach((item) => {
-        const needed = Math.max(item.idealQuantity - qty, 0);
+        const itemCurrentQty = item.id === currentWizardItem.id ? qty : (item.currentQuantity ?? 0);
+        const needed = Math.max(Math.round((item.idealQuantity - itemCurrentQty) * 100) / 100, 0);
         defaultQty[item.id] = needed > 0 ? needed : 1;
-        defaultPrices[item.id] = item.lastPrice;
+        defaultPrices[item.id] = item.lastPrice ?? 0;
       });
       setCartQuantities(defaultQty);
       setCartPrices(defaultPrices);
@@ -201,11 +213,21 @@ export const PantryView: React.FC = () => {
     let totalSpent = 0;
     let checkedCount = 0;
 
+    let totalSavings = 0;
     neededItems.forEach((item) => {
       const isChecked = cartChecked[item.id] ?? false;
       if (isChecked) {
         checkedCount += 1;
         totalSpent += getItemSubtotal(item);
+
+        const qty = getQtyToBuy(item);
+        const effectivePrice = getEffectiveUnitPrice(item);
+        if (item.lastPrice > 0 && effectivePrice < item.lastPrice) {
+          totalSavings += (item.lastPrice - effectivePrice) * qty;
+        }
+        if (cartDiscounts[item.id]) {
+          totalSavings += cartDiscounts[item.id];
+        }
       }
     });
 
@@ -215,6 +237,8 @@ export const PantryView: React.FC = () => {
     const isOverBudget = capNum > 0 && netTotalSpent > capNum;
     const budgetPct = capNum > 0 ? Math.min(Math.round((netTotalSpent / capNum) * 100), 100) : 0;
     const remainingBudget = capNum > 0 ? capNum - netTotalSpent : 0;
+    const finalSavings = totalSavings + discountNum;
+    const completionPct = neededItems.length > 0 ? Math.round((checkedCount / neededItems.length) * 100) : 0;
 
     return {
       totalSpent,
@@ -226,6 +250,8 @@ export const PantryView: React.FC = () => {
       isOverBudget,
       budgetPct,
       remainingBudget,
+      savingsTotal: finalSavings,
+      completionPct,
     };
   }, [neededItems, cartChecked, cartPrices, cartQuantities, cartPriceModes, cartComboTotals, cartDiscounts, budgetCap, cashierDiscount]);
 
@@ -245,28 +271,7 @@ export const PantryView: React.FC = () => {
     }
   };
 
-  const displayedNeededItems = useMemo(() => {
-    if (shoppingFilter === 'checked') {
-      return neededItems.filter((item) => cartChecked[item.id]);
-    }
-    if (shoppingFilter === 'pending') {
-      return neededItems.filter((item) => !cartChecked[item.id]);
-    }
-    return neededItems;
-  }, [neededItems, cartChecked, shoppingFilter]);
 
-  const displayedItemsByAisle = useMemo(() => {
-    return itemsByAisle
-      .map(([category, catItems]) => {
-        const filteredCatItems = catItems.filter((item) => {
-          if (shoppingFilter === 'checked') return cartChecked[item.id];
-          if (shoppingFilter === 'pending') return !cartChecked[item.id];
-          return true;
-        });
-        return [category, filteredCatItems] as [string, PantryItem[]];
-      })
-      .filter(([, catItems]) => catItems.length > 0);
-  }, [itemsByAisle, cartChecked, shoppingFilter]);
 
   const handleToggleCartItem = (id: string) => {
     setCartChecked((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -457,6 +462,7 @@ export const PantryView: React.FC = () => {
         onTabChange={setActiveTab}
         totalStockItems={items.length}
         totalNeededItems={neededItems.length}
+        checkedCartCount={shoppingSummary.checkedCount}
         onStartWizard={handleStartWizard}
         onOpenUnitCalcModal={() => setIsUnitCalcModalOpen(true)}
         onOpenScanner={() => setIsScannerOpen(true)}
@@ -466,6 +472,7 @@ export const PantryView: React.FC = () => {
           setEditingItem(null);
           setIsModalOpen(true);
         }}
+        onOpenRestoreModal={() => setIsRestoreModalOpen(true)}
       />
 
       {/* Aba 1: Estoque Doméstico */}
@@ -483,6 +490,7 @@ export const PantryView: React.FC = () => {
             setEditingItem(null);
             setIsModalOpen(true);
           }}
+          onOpenRestoreModal={() => setIsRestoreModalOpen(true)}
           onEditItem={(item) => {
             setEditingItem(item);
             setIsModalOpen(true);
@@ -510,9 +518,7 @@ export const PantryView: React.FC = () => {
       {activeTab === 'shopping' && (
         <PantryShoppingTab
           neededItems={neededItems}
-          displayedNeededItems={displayedNeededItems}
           itemsByAisle={itemsByAisle}
-          displayedItemsByAisle={displayedItemsByAisle}
           cartChecked={cartChecked}
           cartQuantities={cartQuantities}
           cartPrices={cartPrices}
@@ -526,8 +532,6 @@ export const PantryView: React.FC = () => {
           onBudgetCapChange={setBudgetCap}
           cashierDiscount={cashierDiscount}
           onCashierDiscountChange={setCashierDiscount}
-          shoppingFilter={shoppingFilter}
-          onShoppingFilterChange={setShoppingFilter}
           groupByAisle={groupByAisle}
           onToggleGroupByAisle={() => setGroupByAisle(!groupByAisle)}
           shoppingSummary={shoppingSummary}
@@ -552,6 +556,8 @@ export const PantryView: React.FC = () => {
           getQtyToBuy={getQtyToBuy}
           getEffectiveUnitPrice={getEffectiveUnitPrice}
           getItemSubtotal={getItemSubtotal}
+          searchFilter={searchFilter}
+          onSearchChange={setSearchFilter}
         />
       )}
 
@@ -563,6 +569,13 @@ export const PantryView: React.FC = () => {
         checkedCount={shoppingSummary.checkedCount}
         wallets={wallets}
         onConfirmFinish={handleConfirmFinishShopping}
+      />
+
+      {/* Modal de Restauração e Resgate de Estoque */}
+      <PantryRestoreModal
+        isOpen={isRestoreModalOpen}
+        onClose={() => setIsRestoreModalOpen(false)}
+        totalCurrentItems={items.length}
       />
     </div>
   );

@@ -10,6 +10,9 @@ import {
   Share2,
   Printer,
   Camera,
+  Search,
+  X,
+  RotateCcw,
 } from 'lucide-react';
 
 interface PantryHeaderProps {
@@ -17,12 +20,14 @@ interface PantryHeaderProps {
   onTabChange: (tab: PantryTab) => void;
   totalStockItems: number;
   totalNeededItems: number;
+  checkedCartCount?: number;
   onStartWizard: () => void;
   onOpenUnitCalcModal: () => void;
   onOpenScanner: () => void;
   onShareWhatsApp: () => void;
   onPrintPDF: () => void;
   onOpenNewItemModal: () => void;
+  onOpenRestoreModal?: () => void;
 }
 
 export const PantryHeader: React.FC<PantryHeaderProps> = ({
@@ -30,16 +35,19 @@ export const PantryHeader: React.FC<PantryHeaderProps> = ({
   onTabChange,
   totalStockItems,
   totalNeededItems,
+  checkedCartCount = 0,
   onStartWizard,
   onOpenUnitCalcModal,
   onOpenScanner,
   onShareWhatsApp,
   onPrintPDF,
   onOpenNewItemModal,
+  onOpenRestoreModal,
 }) => {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 p-2 bg-[#0D1424]/90 border border-[#2E3B52]/60 rounded-2xl shadow-lg">
-      <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+    <div className="flex flex-col gap-3 p-3 bg-[#0D1424]/90 border border-[#2E3B52]/60 rounded-2xl shadow-lg">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
         <button
           onClick={() => onTabChange('stock')}
           className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
@@ -73,13 +81,33 @@ export const PantryHeader: React.FC<PantryHeaderProps> = ({
           }`}
         >
           <ShoppingCart className="w-4 h-4 text-[#F59E0B]" />
-          <span>Feira Ao Vivo ({totalNeededItems})</span>
+          <span>
+            Feira Ao Vivo ({totalNeededItems})
+            {checkedCartCount > 0 && (
+              <span className="ml-1.5 px-1.5 py-0.5 rounded-md bg-[#00FF88]/20 text-[#00FF88] text-[10px] font-black border border-[#00FF88]/30">
+                {checkedCartCount} no carrinho
+              </span>
+            )}
+          </span>
         </button>
       </div>
 
       {/* Ferramentas de Exportação e Adição */}
-      <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+      <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
+        {onOpenRestoreModal && (
+          <button
+            type="button"
+            onClick={onOpenRestoreModal}
+            className="p-2.5 rounded-xl bg-[#162032] text-[#06B6D4] border border-[#2E3B52] hover:border-[#06B6D4]/50 hover:bg-[#06B6D4]/10 transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+            title="Recuperar itens sumidos de bancos anteriores ou carregar catálogo completo"
+          >
+            <RotateCcw className="w-4 h-4 text-[#06B6D4]" />
+            <span className="hidden sm:inline">Restaurar Estoque</span>
+          </button>
+        )}
+
         <button
+          type="button"
           onClick={onOpenUnitCalcModal}
           className="p-2.5 rounded-xl bg-[#00FF88]/15 text-[#00FF88] border border-[#00FF88]/30 hover:bg-[#00FF88]/25 transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer"
           title="Otimizador de Preço por KG/Litro na Prateleira"
@@ -91,6 +119,7 @@ export const PantryHeader: React.FC<PantryHeaderProps> = ({
         {activeTab === 'shopping' && (
           <>
             <button
+              type="button"
               onClick={onOpenScanner}
               className="p-2.5 rounded-xl bg-[#162032] text-[#00FF88] border border-[#2E3B52] hover:bg-[#00FF88]/15 transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer"
               title="Escanear Código de Barras / Câmera"
@@ -100,6 +129,7 @@ export const PantryHeader: React.FC<PantryHeaderProps> = ({
             </button>
 
             <button
+              type="button"
               onClick={onShareWhatsApp}
               className="p-2.5 rounded-xl bg-[#25D366]/15 text-[#25D366] border border-[#25D366]/30 hover:bg-[#25D366]/25 transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer"
               title="Compartilhar no WhatsApp"
@@ -109,6 +139,7 @@ export const PantryHeader: React.FC<PantryHeaderProps> = ({
             </button>
 
             <button
+              type="button"
               onClick={onPrintPDF}
               className="p-2.5 rounded-xl bg-[#162032] text-[#94A3B8] border border-[#2E3B52] hover:text-[#F8FAFC] transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer"
               title="Imprimir ou Salvar PDF"
@@ -132,5 +163,6 @@ export const PantryHeader: React.FC<PantryHeaderProps> = ({
         )}
       </div>
     </div>
-  );
+  </div>
+);
 };

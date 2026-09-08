@@ -1,6 +1,7 @@
 import { PantryItem } from '../../tipos';
 
 export type PantryTab = 'stock' | 'wizard' | 'shopping';
+export type ShoppingSubView = 'aisles' | 'checkout';
 export type PriceCalculationMode = 'unit' | 'combo' | 'discount';
 
 export interface ShoppingSummary {
@@ -13,4 +14,6 @@ export interface ShoppingSummary {
   isOverBudget: boolean;
   budgetPct: number;
   remainingBudget: number;
+  savingsTotal: number;
+  completionPct: number;
 }
