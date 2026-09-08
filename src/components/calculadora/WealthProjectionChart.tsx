@@ -4,6 +4,13 @@ import { formatBRL } from '../../utilidades/formatters';
 import { Flame, Sparkles, TrendingUp, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
+interface WealthChartPoint {
+  year: string;
+  total: number;
+  invested: number;
+  interest: number;
+}
+
 export const WealthProjectionChart: React.FC = () => {
   const [initialWealth, setInitialWealth] = useState('25000');
   const [monthlyContribution, setMonthlyContribution] = useState('1500');
@@ -11,20 +18,19 @@ export const WealthProjectionChart: React.FC = () => {
   const [desiredMonthlyIncome, setDesiredMonthlyIncome] = useState('8000');
 
   const projection = useMemo(() => {
-    const init = parseFloat(initialWealth) || 0;
-    const monthly = parseFloat(monthlyContribution) || 0;
+    const init = Math.max(parseFloat(initialWealth) || 0, 0);
+    const monthly = Math.max(parseFloat(monthlyContribution) || 0, 0);
     const rAnn = parseFloat(annualReturn) || 0;
-    const desiredInc = parseFloat(desiredMonthlyIncome) || 0;
+    const desiredInc = Math.max(parseFloat(desiredMonthlyIncome) || 0, 0);
 
     // F.I.R.E target wealth = 300x desired monthly income (4% rule)
     const targetWealth = desiredInc * 300;
 
     const monthlyRate = Math.pow(1 + rAnn / 100, 1 / 12) - 1;
 
-    const chartData = [];
+    const chartData: WealthChartPoint[] = [];
     let currentWealth = init;
     let totalInvested = init;
-    let monthsToTarget = 0;
     let targetReachedMonth = -1;
 
     // Simulate up to 35 years (420 months)
@@ -34,7 +40,7 @@ export const WealthProjectionChart: React.FC = () => {
         totalInvested += monthly;
       }
 
-      if (targetReachedMonth === -1 && currentWealth >= targetWealth) {
+      if (targetReachedMonth === -1 && targetWealth > 0 && currentWealth >= targetWealth) {
         targetReachedMonth = m;
       }
 

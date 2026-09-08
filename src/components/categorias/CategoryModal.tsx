@@ -46,11 +46,35 @@ export const CategoryModal: React.FC = () => {
 
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    const cleanName = name.trim();
+    if (!cleanName) return;
+
+    // Checagem de duplicidade de nome na mesma modalidade
+    const isDuplicate = categories.some(
+      (c) => c.id !== editingCatId && c.type === type && c.name.toLowerCase() === cleanName.toLowerCase()
+    );
+    if (isDuplicate) {
+      alert(`Já existe uma categoria cadastrada com o nome "${cleanName}". Escolha outro nome.`);
+      return;
+    }
 
     if (editingCatId) {
+      const oldCat = categories.find((c) => c.id === editingCatId);
+      if (oldCat && oldCat.name !== cleanName) {
+        // Remapeia transações que utilizavam o nome anterior
+        const affectedTxs = await db.transactions.where('category').equals(oldCat.name).toArray();
+        for (const tx of affectedTxs) {
+          await db.transactions.update(tx.id, { category: cleanName });
+        }
+        // Remapeia orçamentos configurados com a categoria anterior
+        const affectedBudgets = await db.budgets.where('category').equals(oldCat.name).toArray();
+        for (const b of affectedBudgets) {
+          await db.budgets.update(b.id, { category: cleanName });
+        }
+      }
+
       await db.categories.update(editingCatId, {
-        name: name.trim(),
+        name: cleanName,
         emoji: emoji || '🏷️',
         type,
       });
@@ -58,7 +82,7 @@ export const CategoryModal: React.FC = () => {
     } else {
       await db.categories.add({
         id: 'cat_' + Math.random().toString(36).substring(2, 9),
-        name: name.trim(),
+        name: cleanName,
         emoji: emoji || '🏷️',
         type,
       });
@@ -69,7 +93,25 @@ export const CategoryModal: React.FC = () => {
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (confirm('Deseja realmente excluir esta categoria?')) {
+    const targetCat = categories.find((c) => c.id === id);
+    if (!targetCat) return;
+
+    if (
+      confirm(
+        `Deseja realmente excluir a categoria "${targetCat.name}"? As transações vinculadas serão reclassificadas.`
+      )
+    ) {
+      const fallbackCatName = targetCat.type === 'income' ? 'Outros (Receita)' : 'Outras Despesas';
+      const affectedTxs = await db.transactions.where('category').equals(targetCat.name).toArray();
+      for (const tx of affectedTxs) {
+        await db.transactions.update(tx.id, { category: fallbackCatName });
+      }
+      // Remove orçamentos associados à categoria excluída
+      const affectedBudgets = await db.budgets.where('category').equals(targetCat.name).toArray();
+      for (const b of affectedBudgets) {
+        await db.budgets.delete(b.id);
+      }
+
       await db.categories.delete(id);
       if (editingCatId === id) {
         setEditingCatId(null);

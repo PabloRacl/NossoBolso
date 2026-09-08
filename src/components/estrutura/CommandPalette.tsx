@@ -20,6 +20,7 @@ import {
   Bell,
   ArrowRight,
   Sparkles,
+  FileText,
 } from 'lucide-react';
 
 interface CommandPaletteProps {
@@ -33,6 +34,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     setTransactionModalOpen,
     setOfxModalOpen,
     setContrachequeModalOpen,
+    setDdcModalOpen,
     setCategoryModalOpen,
     setBudgetModalOpen,
     setAlertsModalOpen,
@@ -86,6 +88,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     },
     { id: 'act_ofx', label: 'Importar Extrato OFX', icon: <Upload className="w-4 h-4 text-[#06B6D4]" />, run: () => setOfxModalOpen(true) },
     { id: 'act_holerite', label: 'Importar e Ler Contracheque / Holerite', icon: <FileCheck className="w-4 h-4 text-[#10B981]" />, run: () => setContrachequeModalOpen(true) },
+    { id: 'act_ddc', label: 'Importar DDC / Financiamento (PDF)', icon: <FileText className="w-4 h-4 text-[#06B6D4]" />, run: () => setDdcModalOpen(true) },
     { id: 'act_budget', label: 'Gerenciar Orçamentos por Categoria', icon: <Target className="w-4 h-4 text-[#F59E0B]" />, run: () => setBudgetModalOpen(true) },
     { id: 'act_category', label: 'Gerenciar Categorias', icon: <Tag className="w-4 h-4 text-[#FF4D6D]" />, run: () => setCategoryModalOpen(true) },
     { id: 'act_alerts', label: 'Abrir Central de Alertas', icon: <Bell className="w-4 h-4 text-[#F59E0B]" />, run: () => setAlertsModalOpen(true) },

@@ -7,6 +7,7 @@ import {
   checkRateLimit,
   recordFailedAttempt,
   resetRateLimit,
+  generateSecureOTP,
 } from '../utilidades/securityUtils';
 
 const STORAGE_KEY_USER = 'nossobolso_auth_user';
@@ -54,6 +55,7 @@ const getSavedUsers = (): UserProfile[] => {
         provider: 'credentials',
         role: 'user',
         isEmailVerified: true,
+        passwordHash: '09fba8ef3f0ecb4ddc60dbfdf0a7bf7406a57e9a622a7372a05d663684f6f6a5', // Hash seguro SHA-256 de '123456'
         createdAt: new Date().toISOString(),
       };
       localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify([defaultUser]));
@@ -112,7 +114,7 @@ export const authService = {
       const now = Date.now();
       const isTokenExpired = !existing.verificationTokenExpiresAt || new Date(existing.verificationTokenExpiresAt).getTime() < now;
       if (isTokenExpired || !existing.verificationToken) {
-        const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const newCode = generateSecureOTP(6);
         existing.verificationToken = newCode;
         existing.verificationTokenExpiresAt = new Date(now + 15 * 60 * 1000).toISOString();
         const userIdx = users.findIndex((u) => u.id === existing.id);
@@ -142,7 +144,12 @@ export const authService = {
           throw new Error('E-mail ou senha incorretos.');
         }
       } else {
-        // Migração suave de usuário prévio: armazena hash da senha informada
+        // Conta legada sem hash: valida se corresponde à senha padrão '123456'
+        const isDefaultPassword = password === '123456';
+        if (!isDefaultPassword) {
+          recordFailedAttempt(`login:${normalizedEmail}`, 5, 120000);
+          throw new Error('E-mail ou senha incorretos. Caso seja seu primeiro acesso, use a senha padrão ou redefina sua senha.');
+        }
         existing.passwordHash = await hashPassword(password);
         const userIdx = users.findIndex((u) => u.id === existing.id);
         if (userIdx !== -1) {
@@ -183,7 +190,7 @@ export const authService = {
     const existingIndex = users.findIndex((u) => u.email.toLowerCase() === normalizedEmail);
 
     const passwordHash = await hashPassword(password);
-    const verificationToken = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationToken = generateSecureOTP(6);
     const verificationTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
     if (existingIndex !== -1) {
@@ -261,8 +268,7 @@ export const authService = {
     const targetUser = users[userIndex];
 
     if (targetUser.isEmailVerified) {
-      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(targetUser));
-      return targetUser;
+      throw new Error('Este e-mail já foi verificado anteriormente. Por favor, acesse sua conta informando a sua senha.');
     }
 
     // Validação estrita: somente o token gerado confere
@@ -271,12 +277,13 @@ export const authService = {
       throw new Error('Código de verificação incorreto. Verifique sua caixa de entrada ou solicite novo código.');
     }
 
-    // Validação de expiração temporal (15 minutos)
-    if (targetUser.verificationTokenExpiresAt) {
-      const expiresAt = new Date(targetUser.verificationTokenExpiresAt).getTime();
-      if (Date.now() > expiresAt) {
-        throw new Error('Este código de verificação expirou (validade de 15 minutos). Solicite o reenvio de um novo código.');
-      }
+    // Validação de expiração temporal estrita (15 minutos)
+    if (!targetUser.verificationTokenExpiresAt) {
+      throw new Error('Código de verificação sem data de validade registrada. Solicite um novo código.');
+    }
+    const expiresAt = new Date(targetUser.verificationTokenExpiresAt).getTime();
+    if (isNaN(expiresAt) || Date.now() > expiresAt) {
+      throw new Error('Este código de verificação expirou (validade de 15 minutos). Solicite o reenvio de um novo código.');
     }
 
     // Marca o email como verificado e limpa tokens temporários
@@ -314,7 +321,7 @@ export const authService = {
 
     recordFailedAttempt(`resend:${normalizedEmail}`, 3, 60000);
 
-    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const newCode = generateSecureOTP(6);
     users[userIndex].verificationToken = newCode;
     users[userIndex].verificationTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
     localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
@@ -352,7 +359,7 @@ export const authService = {
     recordFailedAttempt(`reset_req:${normalizedEmail}`, 4, 120000);
 
     const targetUser = users[userIndex];
-    const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
+    const resetToken = generateSecureOTP(6);
     const resetTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
     users[userIndex].resetToken = resetToken;
@@ -394,11 +401,12 @@ export const authService = {
       throw new Error('Código de redefinição incorreto ou expirado. Tente novamente.');
     }
 
-    if (targetUser.resetTokenExpiresAt) {
-      const expiresAt = new Date(targetUser.resetTokenExpiresAt).getTime();
-      if (Date.now() > expiresAt) {
-        throw new Error('Este código de redefinição expirou. Solicite um novo código de recuperação.');
-      }
+    if (!targetUser.resetTokenExpiresAt) {
+      throw new Error('Código de redefinição sem data de validade registrada. Solicite um novo código de recuperação.');
+    }
+    const expiresAt = new Date(targetUser.resetTokenExpiresAt).getTime();
+    if (isNaN(expiresAt) || Date.now() > expiresAt) {
+      throw new Error('Este código de redefinição expirou. Solicite um novo código de recuperação.');
     }
 
     if (newPassword && newPassword.length < 6) {
@@ -468,7 +476,12 @@ export const authService = {
     };
 
     if (existingIndex !== -1) {
-      users[existingIndex] = { ...users[existingIndex], ...user, isEmailVerified: true };
+      const existingUser = users[existingIndex];
+      // Se a conta já existe e foi criada com senha tradicional, previne sobrescrita ou sequestro de conta não autorizado
+      if (existingUser.passwordHash && existingUser.provider === 'credentials') {
+        throw new Error('Esta conta já foi cadastrada com e-mail e senha tradicional. Por favor, autentique-se com sua senha.');
+      }
+      users[existingIndex] = { ...existingUser, ...user, isEmailVerified: true };
       localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
       localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(users[existingIndex]));
       return users[existingIndex];

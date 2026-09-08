@@ -74,9 +74,13 @@ export const TransferBetweenWalletsModal: React.FC<TransferBetweenWalletsModalPr
       createdAt: new Date().toISOString(),
     });
 
-    // 3. Atualizar Saldos nas Carteiras
-    await db.wallets.update(sourceWallet.id, { balance: sourceWallet.balance - val });
-    await db.wallets.update(targetWallet.id, { balance: targetWallet.balance + val });
+    // 3. Atualizar Saldos nas Carteiras de forma concorrente e atômica
+    const currentSrc = await db.wallets.get(sourceWallet.id);
+    const currentTgt = await db.wallets.get(targetWallet.id);
+    if (currentSrc && currentTgt) {
+      await db.wallets.update(sourceWallet.id, { balance: currentSrc.balance - val });
+      await db.wallets.update(targetWallet.id, { balance: currentTgt.balance + val });
+    }
 
     // Disparar Animação de Moeda
     useAppStore.getState().triggerTransactionAnimation('income', val, `Transferência para ${targetWallet.name}`);

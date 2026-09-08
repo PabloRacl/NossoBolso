@@ -52,7 +52,15 @@ export const WalletCards: React.FC<WalletCardsProps> = ({ wallets }) => {
       alert('Você precisa ter pelo menos uma carteira ativa no sistema.');
       return;
     }
-    if (confirm('Deseja realmente excluir esta carteira? As transações vinculadas serão mantidas.')) {
+    if (confirm('Deseja realmente excluir esta carteira? As transações vinculadas serão remapeadas para sua carteira principal.')) {
+      const remainingWallet = wallets.find((w) => w.id !== id);
+      if (remainingWallet) {
+        // Remapeia transações órfãs para a carteira remanescente
+        const orphanTxs = await db.transactions.where('walletId').equals(id).toArray();
+        for (const tx of orphanTxs) {
+          await db.transactions.update(tx.id, { walletId: remainingWallet.id });
+        }
+      }
       await db.wallets.delete(id);
     }
   };

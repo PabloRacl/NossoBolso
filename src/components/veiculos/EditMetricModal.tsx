@@ -66,7 +66,8 @@ export const EditMetricModal: React.FC<EditMetricModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const num = parseFloat(val);
+    const normalizedVal = (val || '').trim().replace(',', '.');
+    const num = parseFloat(normalizedVal);
 
     const updateObj: Partial<Vehicle> = {};
     if (metricType === 'kml') updateObj.customAvgKml = isNaN(num) ? undefined : num;

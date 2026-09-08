@@ -22,6 +22,8 @@ import {
 import { useAppStore } from '../../estado/useAppStore';
 import { authService } from '../../servicos/authService';
 import { BioCyberLogo } from '../estrutura/BioCyberLogo';
+import { VerifyCodeForm } from './VerifyCodeForm';
+import { ResetPasswordForm } from './ResetPasswordForm';
 
 export const AuthModal: React.FC = () => {
   const {
@@ -40,6 +42,7 @@ export const AuthModal: React.FC = () => {
   const [socialLoading, setSocialLoading] = useState<'google' | 'facebook' | 'linkedin' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [simulatedToken, setSimulatedToken] = useState<string | null>(null);
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -103,7 +106,8 @@ export const AuthModal: React.FC = () => {
     setError(null);
 
     try {
-      await authService.register({ name, email, password });
+      const newUser = await authService.register({ name, email, password });
+      setSimulatedToken(newUser.verificationToken || null);
       setSuccessMessage(`Cadastro realizado! Enviamos um código de ativação para ${email}. Confirme-o para ativar seu acesso.`);
       setAuthMode('verify');
     } catch (err: unknown) {
@@ -125,8 +129,10 @@ export const AuthModal: React.FC = () => {
     setError(null);
 
     try {
-      await authService.requestPasswordReset(email);
-      setSuccessMessage(`Enviamos as instruções de redefinição para o email: ${email}`);
+      const res = await authService.requestPasswordReset(email);
+      setSimulatedToken(res.resetToken);
+      setSuccessMessage(`Enviamos o código de redefinição para ${email}. Digite-o abaixo para definir sua nova senha.`);
+      setAuthMode('reset_password');
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -507,11 +513,50 @@ export const AuthModal: React.FC = () => {
                   </motion.button>
                 </motion.form>
               )}
+
+              {/* VERIFY CODE FORM */}
+              {authMode === 'verify' && (
+                <VerifyCodeForm
+                  email={email}
+                  simulatedToken={simulatedToken}
+                  onSuccess={(verifiedUser) => {
+                    setUser(verifiedUser);
+                    setSuccessMessage(`E-mail verificado com sucesso! Bem-vindo, ${verifiedUser.name}!`);
+                    timeoutRef.current = setTimeout(() => {
+                      handleClose();
+                    }, 800);
+                  }}
+                  onError={setError}
+                  onResendSuccess={(newCode, msg) => {
+                    setSimulatedToken(newCode);
+                    setSuccessMessage(msg);
+                  }}
+                  onChangeEmail={() => setAuthMode('register')}
+                />
+              )}
+
+              {/* RESET PASSWORD FORM */}
+              {authMode === 'reset_password' && (
+                <ResetPasswordForm
+                  email={email}
+                  simulatedToken={simulatedToken}
+                  onSuccess={(updatedUser) => {
+                    setUser(updatedUser);
+                    setSuccessMessage(`Senha redefinida com sucesso! Bem-vindo, ${updatedUser.name}!`);
+                    timeoutRef.current = setTimeout(() => {
+                      handleClose();
+                    }, 800);
+                  }}
+                  onError={setError}
+                  onBackToLogin={() => setAuthMode('login')}
+                />
+              )}
             </AnimatePresence>
 
-            {/* Social Logins */}
-            <div className="pt-4 border-t border-slate-800/80">
-              <p className="text-center text-xs font-semibold text-slate-400 mb-3">Ou conecte com sua rede social</p>
+            {/* Social Logins (apenas para login/cadastro) */}
+            {['login', 'register'].includes(authMode) && (
+              <div className="pt-4 border-t border-slate-800/80">
+                <p className="text-center text-xs font-semibold text-slate-400 mb-3">Ou conecte com sua rede social</p>
               <div className="grid grid-cols-3 gap-3">
                 <motion.button
                   whileHover={{ scale: 1.05, y: -2 }}
@@ -567,6 +612,7 @@ export const AuthModal: React.FC = () => {
                 </motion.button>
               </div>
             </div>
+            )}
 
             {/* Guest / Offline Mode Note */}
             <div className="pt-2 flex items-center justify-between text-xs text-slate-500 font-medium">

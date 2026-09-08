@@ -202,7 +202,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
     setTransactionModalOpen(true);
   };
 
-  // Exportação CSV
+  // Exportação CSV segura via Blob
   const handleExportCSV = () => {
     const sanitizeCsvCell = (val: string) => {
       let clean = val.replace(/"/g, '""');
@@ -223,28 +223,34 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
       tx.amount.toFixed(2),
     ]);
 
-    const csvContent =
-      'data:text/csv;charset=utf-8,\uFEFF' +
-      [headers.join(';'), ...rows.map((e) => e.join(';'))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map((e) => e.join(';'))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute(
-      'download',
-      `extrato_transacoes_nossobolso_${new Date().toISOString().substring(0, 10)}.csv`
-    );
+    link.href = url;
+    link.download = `extrato_transacoes_nossobolso_${new Date().toISOString().substring(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
-  // Impressão em PDF Limpa e Profissional
+  // Impressão em PDF Limpa e Profissional com Sanitização Anti-XSS
   const handlePrintPDF = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       alert('Por favor, permita popups para imprimir o relatório em PDF.');
       return;
     }
+
+    const escapeHtml = (text: string): string => {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    };
 
     const periodDescription =
       filterPeriodMode === 'month'
@@ -259,12 +265,12 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
       .map(
         (tx) => `
         <tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 8px 10px; font-size: 11px;">${formatDate(tx.date)}</td>
-          <td style="padding: 8px 10px; font-size: 11px; font-weight: 600;">${tx.description}</td>
-          <td style="padding: 8px 10px; font-size: 11px; color: #475569;">${tx.category}</td>
-          <td style="padding: 8px 10px; font-size: 11px; color: #475569;">${
+          <td style="padding: 8px 10px; font-size: 11px;">${escapeHtml(formatDate(tx.date))}</td>
+          <td style="padding: 8px 10px; font-size: 11px; font-weight: 600;">${escapeHtml(tx.description)}</td>
+          <td style="padding: 8px 10px; font-size: 11px; color: #475569;">${escapeHtml(tx.category)}</td>
+          <td style="padding: 8px 10px; font-size: 11px; color: #475569;">${escapeHtml(
             tx.walletId ? walletMap.get(tx.walletId) || 'Principal' : 'Principal'
-          }</td>
+          )}</td>
           <td style="padding: 8px 10px; font-size: 11px; text-align: center;">
             <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; ${
               tx.type === 'income'
@@ -745,6 +751,17 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                       <p className="text-xs text-[#64748B]">
                         Tente ajustar a busca ou clique em Limpar Filtros para visualizar outros períodos.
                       </p>
+                      {filterPeriodMode === 'month' && transactions.length > 0 && (
+                        <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
+                          <button
+                            type="button"
+                            onClick={() => setFilterPeriodMode('all')}
+                            className="px-3.5 py-1.5 bg-[#06B6D4]/15 hover:bg-[#06B6D4]/25 text-[#06B6D4] border border-[#06B6D4]/40 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+                          >
+                            🌐 Ver Todas as Datas ({transactions.length} lançamentos salvos)
+                          </button>
+                        </div>
+                      )}
                       {activeFiltersCount > 0 && (
                         <Button
                           variant="outline"

@@ -111,10 +111,22 @@ export const CalculatorView: React.FC = () => {
       }
       if (!cleanExpr) return;
 
-      const sanitized = cleanExpr.replace(/×/g, '*').replace(/÷/g, '/').replace(/%/g, '/100');
-      const result = new Function(`"use strict"; return (${sanitized})`)();
+      // Normaliza símbolos visuais para operadores matemáticos padrão
+      let sanitized = cleanExpr.replace(/×/g, '*').replace(/÷/g, '/');
 
-      if (isNaN(result) || !isFinite(result)) {
+      // Substitui porcentagem de forma segura (ex: 50% -> (50/100))
+      sanitized = sanitized.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
+
+      // Validação estrita: somente dígitos, operadores aritméticos, parênteses e pontos
+      if (!/^[0-9+\-*/().\s]+$/.test(sanitized)) {
+        setCalcDisplay('Erro');
+        setIsEvaluated(true);
+        return;
+      }
+
+      const result = Function(`"use strict"; return (${sanitized})`)();
+
+      if (typeof result !== 'number' || isNaN(result) || !isFinite(result)) {
         setCalcDisplay('Erro');
         setIsEvaluated(true);
         return;
@@ -139,10 +151,10 @@ export const CalculatorView: React.FC = () => {
   const [periodType, setPeriodType] = useState<'years' | 'months'>('years');
 
   const compoundResults = useMemo(() => {
-    const pInit = parseFloat(initialAmount) || 0;
-    const pMonth = parseFloat(monthlyDeposit) || 0;
-    const rawRate = parseFloat(rate) || 0;
-    const rawPeriod = parseInt(period) || 0;
+    const pInit = Math.max(parseFloat(initialAmount) || 0, 0);
+    const pMonth = Math.max(parseFloat(monthlyDeposit) || 0, 0);
+    const rawRate = Math.max(parseFloat(rate) || 0, -99.9);
+    const rawPeriod = Math.max(parseInt(period) || 0, 0);
 
     const totalMonths = periodType === 'years' ? rawPeriod * 12 : rawPeriod;
     const monthlyRate = rateType === 'yearly' ? Math.pow(1 + rawRate / 100, 1 / 12) - 1 : rawRate / 100;
@@ -228,23 +240,31 @@ export const CalculatorView: React.FC = () => {
   const [discRate, setDiscRate] = useState('1.2');
 
   const discountResults = useMemo(() => {
-    const pVal = parseFloat(discInstallmentVal) || 0;
-    const count = parseInt(discCount) || 0;
-    const r = (parseFloat(discRate) || 0) / 100;
+    const pVal = Math.max(parseFloat(discInstallmentVal) || 0, 0);
+    const count = Math.max(parseInt(discCount) || 0, 0);
+    const rawRate = parseFloat(discRate) || 0;
+    const safeRate = Math.max(rawRate, -99.9);
+    const r = safeRate / 100;
 
     const nominalTotal = pVal * count;
     let presentValue = 0;
 
-    for (let k = 1; k <= count; k++) {
-      presentValue += pVal / Math.pow(1 + r, k);
+    if (count > 0 && pVal > 0) {
+      if (r === 0) {
+        presentValue = nominalTotal;
+      } else {
+        for (let k = 1; k <= count; k++) {
+          presentValue += pVal / Math.pow(1 + r, k);
+        }
+      }
     }
 
-    const savings = nominalTotal - presentValue;
+    const savings = Math.max(nominalTotal - presentValue, 0);
 
     return {
       nominalTotal,
-      presentValue,
-      savings,
+      presentValue: Math.round(presentValue * 100) / 100,
+      savings: Math.round(savings * 100) / 100,
     };
   }, [discInstallmentVal, discCount, discRate]);
 

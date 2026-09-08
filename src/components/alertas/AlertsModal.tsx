@@ -80,34 +80,43 @@ export const AlertsModal: React.FC = () => {
   }, [transactions, recurring]);
 
   const handleMarkAsPaid = async (alertItem: typeof upcomingAlerts[number]) => {
-    const targetWalletId = alertItem.walletId || (wallets.length > 0 ? wallets[0].id : 'w1');
+    const targetWalletId = alertItem.walletId || (wallets.length > 0 ? wallets[0].id : '');
+    const todayStr = new Date().toISOString().substring(0, 10);
 
-    // Registra o pagamento no banco
-    await db.transactions.add({
-      id: `paid_${Date.now()}`,
-      description: `[Pago ⚡] ${alertItem.title}`,
-      amount: alertItem.amount,
-      date: new Date().toISOString().substring(0, 10),
-      type: 'expense',
-      category: alertItem.category,
-      walletId: targetWalletId,
-      createdAt: new Date().toISOString(),
-    });
-
-    // Debitar da carteira
-    const wallet = await db.wallets.get(targetWalletId);
-    if (wallet) {
-      await db.wallets.update(targetWalletId, { balance: wallet.balance - alertItem.amount });
-    }
-
-    // Se for conta recorrente, atualiza lastGeneratedMonth
     if (alertItem.type === 'recurring') {
+      // Cria a transação do mês para o item recorrente
+      await db.transactions.add({
+        id: `rec_paid_${Date.now()}`,
+        description: `[Pago ⚡] ${alertItem.title}`,
+        amount: alertItem.amount,
+        date: todayStr,
+        type: 'expense',
+        category: alertItem.category,
+        walletId: targetWalletId,
+        createdAt: new Date().toISOString(),
+      });
+
       const recId = alertItem.id.replace('rec_', '');
       const recItem = await db.recurringTransactions.get(recId);
       if (recItem) {
         await db.recurringTransactions.update(recId, {
           lastGeneratedMonth: new Date().toISOString().substring(0, 7),
         });
+      }
+    } else {
+      // A transação já existe no banco: atualiza para o dia de hoje e confirma o pagamento sem duplicidade
+      await db.transactions.update(alertItem.id, {
+        description: alertItem.title.startsWith('[Pago') ? alertItem.title : `[Pago ⚡] ${alertItem.title}`,
+        date: todayStr,
+        walletId: targetWalletId || undefined,
+      });
+    }
+
+    // Debitar da carteira se existir
+    if (targetWalletId) {
+      const wallet = await db.wallets.get(targetWalletId);
+      if (wallet) {
+        await db.wallets.update(targetWalletId, { balance: wallet.balance - alertItem.amount });
       }
     }
 

@@ -47,18 +47,22 @@ export const BudgetModal: React.FC = () => {
   };
 
   const handleSave = async () => {
-    // Apaga orçamentos antigos e salva os novos informados
-    await db.budgets.clear();
-    const newBudgets = Object.entries(budgetValues)
-      .filter(([_, val]) => parseFloat(val) > 0)
-      .map(([catName, val]) => ({
-        id: `budget_${catName}`,
-        category: catName,
-        monthlyLimit: parseFloat(val),
-      }));
+    // Atualiza ou remove pontualmente apenas as categorias manipuladas, preservando os demais orçamentos
+    for (const [catName, valStr] of Object.entries(budgetValues)) {
+      const parsedVal = parseFloat(valStr);
+      const existing = existingBudgets.find((b) => b.category === catName);
+      const budgetId = existing?.id || `budget_${catName.toLowerCase().replace(/\s+/g, '_')}`;
 
-    if (newBudgets.length > 0) {
-      await db.budgets.bulkAdd(newBudgets);
+      if (!isNaN(parsedVal) && parsedVal > 0) {
+        await db.budgets.put({
+          id: budgetId,
+          category: catName,
+          monthlyLimit: parsedVal,
+        });
+      } else if (existing && (!valStr || parsedVal === 0)) {
+        // Se o usuário zerou ou limpou o valor, remove apenas o teto daquela categoria específica
+        await db.budgets.delete(existing.id);
+      }
     }
     setBudgetModalOpen(false);
   };

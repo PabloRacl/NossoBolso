@@ -28,12 +28,15 @@ export const VehicleMaintenanceAlerts: React.FC = () => {
     vehicles.forEach((v) => {
       const currentKm = v.odometerKm || 45000;
 
-      // Buscar última manutenção registrada
-      const lastOilRecord = records.find(
-        (r) => r.vehicleId === v.id && r.type === 'maintenance' && (r.description || '').toLowerCase().includes('óleo')
-      );
+      // Buscar última manutenção de óleo registrada (ordem decrescente de odômetro e data)
+      const vehicleOilRecords = records
+        .filter(
+          (r) => r.vehicleId === v.id && r.type === 'maintenance' && (r.description || '').toLowerCase().includes('óleo')
+        )
+        .sort((a, b) => (b.odometerKm || 0) - (a.odometerKm || 0) || new Date(b.date).getTime() - new Date(a.date).getTime());
 
-      const lastOilKm = lastOilRecord?.odometerKm || currentKm - 8500;
+      const lastOilRecord = vehicleOilRecords[0];
+      const lastOilKm = lastOilRecord?.odometerKm || currentKm;
       const nextOilKm = lastOilKm + 10000;
       const remainingOilKm = nextOilKm - currentKm;
 

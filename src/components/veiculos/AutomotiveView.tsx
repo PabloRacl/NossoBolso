@@ -153,7 +153,9 @@ export const AutomotiveView: React.FC = () => {
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       const lastRecord = catRecords[0];
-      const lastKm = spec?.lastKmOverride !== undefined ? spec.lastKmOverride : (lastRecord ? lastRecord.odometerKm : (currentOdometer > 0 ? currentOdometer : 0));
+      const lastKm = spec?.lastKmOverride !== undefined 
+        ? spec.lastKmOverride 
+        : (lastRecord ? lastRecord.odometerKm : (currentOdometer > 0 ? Math.max(0, currentOdometer - (currentOdometer % kmInterval)) : 0));
       const kmRun = currentOdometer > 0 ? Math.max(currentOdometer - lastKm, 0) : 0;
       const pctUsed = Math.min(Math.round((kmRun / kmInterval) * 100), 100);
 
@@ -224,6 +226,25 @@ export const AutomotiveView: React.FC = () => {
 
   const handleDeleteRecord = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir este registro automotivo?')) {
+      const record = await db.vehicleRecords.get(id);
+      if (record) {
+        // Estornar saldo na carteira se houver despesa vinculada
+        if (record.walletId && record.totalCost > 0) {
+          const wallet = await db.wallets.get(record.walletId);
+          if (wallet) {
+            await db.wallets.update(record.walletId, { balance: wallet.balance + record.totalCost });
+          }
+        }
+        // Remove a transação correspondente lançada pelo registro
+        const relatedTx = await db.transactions
+          .filter(
+            (t) => t.date === record.date && t.amount === record.totalCost && t.description.includes(record.vehicleName)
+          )
+          .first();
+        if (relatedTx) {
+          await db.transactions.delete(relatedTx.id);
+        }
+      }
       await db.vehicleRecords.delete(id);
     }
   };
@@ -257,9 +278,9 @@ export const AutomotiveView: React.FC = () => {
         defaultKmInterval={COMPONENT_KM_LIMITS[selectedCategoryToEdit]?.kmInterval || 10000}
         defaultPart={COMPONENT_KM_LIMITS[selectedCategoryToEdit]?.recommendedPart || ''}
         currentLastKm={
-          records
+          vehicleRecords
             .filter((r) => r.type === 'maintenance' && r.componentCategory === selectedCategoryToEdit)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.odometerKm || 35400
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.odometerKm || (currentOdometer > 0 ? currentOdometer : 0)
         }
         existingSpec={customSpecs.find((s) => s.vehicleId === (currentVehicle?.id || 'veh_onix') && s.category === selectedCategoryToEdit)}
       />

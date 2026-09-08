@@ -153,9 +153,9 @@ export const VehicleRecordModal: React.FC<VehicleRecordModalProps> = ({
       setDate(new Date().toISOString().substring(0, 10));
       setOdometerKm('45400');
       handleComponentCategoryChange('oil');
-      if (wallets[0]?.id) setSelectedWalletId(wallets[0].id);
+      if (!selectedWalletId && wallets.length > 0) setSelectedWalletId(wallets[0].id);
     }
-  }, [editingRecord, isOpen, wallets, currentVehicleName]);
+  }, [editingRecord, isOpen, currentVehicleName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,6 +168,35 @@ export const VehicleRecordModal: React.FC<VehicleRecordModalProps> = ({
     if (cost < 0 || km <= 0) return;
 
     if (editingRecord) {
+      // Sincronização contábil: estorna valor anterior e debita novo valor
+      if (editingRecord.walletId && editingRecord.totalCost > 0) {
+        const prevWallet = await db.wallets.get(editingRecord.walletId);
+        if (prevWallet) {
+          await db.wallets.update(editingRecord.walletId, { balance: prevWallet.balance + editingRecord.totalCost });
+        }
+      }
+      if (selectedWalletId && cost > 0) {
+        const newWallet = await db.wallets.get(selectedWalletId);
+        if (newWallet) {
+          await db.wallets.update(selectedWalletId, { balance: newWallet.balance - cost });
+        }
+      }
+
+      // Sincroniza a transação correspondente se existir
+      const existingTx = await db.transactions
+        .filter((t) => t.date === editingRecord.date && t.amount === editingRecord.totalCost && t.description.includes(editingRecord.vehicleName))
+        .first();
+      if (existingTx) {
+        const categoryName = type === 'refuel' ? 'Transporte' : type === 'maintenance' ? 'Manutenção Veículo' : 'Impostos & Taxas';
+        await db.transactions.update(existingTx.id, {
+          amount: cost,
+          date,
+          category: categoryName,
+          walletId: selectedWalletId,
+          description: `[Veículo] ${vehicleName} - ${description.trim() || type}`,
+        });
+      }
+
       // Editar Registro Existente
       await db.vehicleRecords.update(editingRecord.id, {
         vehicleId: currentVehicleId || editingRecord.vehicleId,

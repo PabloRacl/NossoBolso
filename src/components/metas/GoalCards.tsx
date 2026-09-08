@@ -10,6 +10,7 @@ import { formatDate } from '../../utilidades/dateUtils';
 import { useAppStore } from '../../estado/useAppStore';
 import { Plus, Target, Trash2, Edit2 } from 'lucide-react';
 import { db } from '../../servicos/db';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { motion } from 'framer-motion';
 
 import { GoalCalculatorWidget } from './GoalCalculatorWidget';
@@ -30,7 +31,8 @@ const containerVariants = {
 };
 
 export const GoalCards: React.FC<GoalCardsProps> = ({ goals }) => {
-  const { setGoalModalOpen, setEditingGoalId, setBudgetModalOpen } = useAppStore();
+  const { setGoalModalOpen, setEditingGoalId, setBudgetModalOpen, isPrivacyMode } = useAppStore();
+  const wallets = useLiveQuery(() => db.wallets.toArray(), []) || [];
 
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [contribAmount, setContribAmount] = useState('');
@@ -46,9 +48,31 @@ export const GoalCards: React.FC<GoalCardsProps> = ({ goals }) => {
     const val = parseFloat(contribAmount);
     if (isNaN(val) || val <= 0) return;
 
+    // 1. Atualiza valor acumulado na meta
     await db.goals.update(selectedGoal.id, {
       currentAmount: selectedGoal.currentAmount + val,
     });
+
+    // 2. Lança transação financeira de aporte
+    const targetWallet = wallets.find((w) => w.type !== 'credit') || wallets[0];
+    const targetWalletId = targetWallet?.id;
+    const todayStr = new Date().toISOString().substring(0, 10);
+
+    await db.transactions.add({
+      id: `goal_contrib_${Date.now()}`,
+      description: `[Aporte Meta] ${selectedGoal.name}`,
+      amount: val,
+      date: todayStr,
+      type: 'expense',
+      category: 'Investimentos & Metas',
+      walletId: targetWalletId,
+      createdAt: new Date().toISOString(),
+    });
+
+    // 3. Debita da carteira correspondente
+    if (targetWallet && targetWalletId) {
+      await db.wallets.update(targetWalletId, { balance: targetWallet.balance - val });
+    }
 
     setSelectedGoal(null);
     setContribAmount('');
@@ -147,8 +171,8 @@ export const GoalCards: React.FC<GoalCardsProps> = ({ goals }) => {
                   </div>
 
                   <div className="flex justify-between items-baseline mb-2">
-                    <span className="text-xl font-extrabold text-[#00FF88]">{formatBRL(g.currentAmount)}</span>
-                    <span className="text-xs text-[#94A3B8]">de {formatBRL(g.targetAmount)}</span>
+                    <span className="text-xl font-extrabold text-[#00FF88]">{formatBRL(g.currentAmount, isPrivacyMode)}</span>
+                    <span className="text-xs text-[#94A3B8]">de {formatBRL(g.targetAmount, isPrivacyMode)}</span>
                   </div>
 
                   {/* Progress Bar Padronizada */}

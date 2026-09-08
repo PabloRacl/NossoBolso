@@ -51,7 +51,8 @@ export const HistoryDrawer: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     const tx = await db.transactions.get(id);
-    if (tx && tx.walletId) {
+    const hoje = new Date().toISOString().substring(0, 10);
+    if (tx && tx.walletId && tx.date <= hoje) {
       const wallet = await db.wallets.get(tx.walletId);
       if (wallet) {
         const revertDelta = tx.type === 'income' ? -tx.amount : tx.amount;

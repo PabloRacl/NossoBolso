@@ -14,6 +14,7 @@ import { PantryWizardTab } from './PantryWizardTab';
 import { PantryShoppingTab } from './PantryShoppingTab';
 import { PantryTab, PriceCalculationMode } from './pantryTypes';
 import { formatBRL } from '../../utilidades/formatters';
+import { addMonthsPreservingDay } from '../../utilidades/dateUtils';
 
 export const PantryView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<PantryTab>('stock');
@@ -338,7 +339,7 @@ export const PantryView: React.FC = () => {
   };
 
   const handleOpenFinishModal = () => {
-    if (shoppingSummary.checkedCount === 0 || shoppingSummary.totalSpent <= 0) return;
+    if (shoppingSummary.checkedCount === 0 || shoppingSummary.netTotalSpent <= 0) return;
     setIsFinishModalOpen(true);
   };
 
@@ -349,6 +350,7 @@ export const PantryView: React.FC = () => {
     description: string;
   }) => {
     const { walletId, paymentMethod, installmentsCount, description } = paymentDetails;
+    const finalAmount = Math.round(shoppingSummary.netTotalSpent * 100) / 100;
 
     // 1. Repor estoque dos itens marcados no carrinho
     for (const item of neededItems) {
@@ -366,25 +368,24 @@ export const PantryView: React.FC = () => {
     }
 
     // 2. Lançar Transação(ões) no NossoBolso de acordo com a forma de pagamento selecionada
-    if (shoppingSummary.totalSpent > 0) {
+    if (finalAmount > 0) {
       if (paymentMethod === 'credit' && installmentsCount > 1) {
         // Lançamento Parcelado no Cartão de Crédito
-        const instAmount = Math.round((shoppingSummary.totalSpent / installmentsCount) * 100) / 100;
+        const baseInstAmount = Math.floor((finalAmount / installmentsCount) * 100) / 100;
+        const remainder = Math.round((finalAmount - (baseInstAmount * installmentsCount)) * 100) / 100;
         const batchId = Date.now();
         const batchTxs = [];
         const today = new Date();
 
         for (let i = 1; i <= installmentsCount; i++) {
-          const d = new Date(today.getFullYear(), today.getMonth() + (i - 1), today.getDate());
-          const yyyy = d.getFullYear();
-          const mm = String(d.getMonth() + 1).padStart(2, '0');
-          const dd = String(d.getDate()).padStart(2, '0');
+          const installmentDate = addMonthsPreservingDay(today, i - 1);
+          const currentInstAmount = i === 1 ? Math.round((baseInstAmount + remainder) * 100) / 100 : baseInstAmount;
 
           batchTxs.push({
             id: `feira_${batchId}_${i}`,
             description: `${description} (${i}/${installmentsCount})`,
-            amount: instAmount,
-            date: `${yyyy}-${mm}-${dd}`,
+            amount: currentInstAmount,
+            date: installmentDate,
             type: 'expense' as const,
             category: 'Alimentação',
             walletId,
@@ -398,17 +399,18 @@ export const PantryView: React.FC = () => {
 
         await db.transactions.bulkAdd(batchTxs);
 
-        // Debitar valor da 1ª parcela no saldo do mês atual
+        // Debitar valor da 1ª parcela no saldo da fatura/cartão
+        const firstInstAmount = Math.round((baseInstAmount + remainder) * 100) / 100;
         const wallet = await db.wallets.get(walletId);
         if (wallet) {
-          await db.wallets.update(walletId, { balance: wallet.balance - instAmount });
+          await db.wallets.update(walletId, { balance: wallet.balance - firstInstAmount });
         }
       } else {
         // Lançamento À Vista / Débito / 1x no Cartão
         await db.transactions.add({
           id: `feira_${Date.now()}`,
           description,
-          amount: shoppingSummary.totalSpent,
+          amount: finalAmount,
           date: new Date().toISOString().substring(0, 10),
           type: 'expense',
           category: 'Alimentação',
@@ -416,10 +418,10 @@ export const PantryView: React.FC = () => {
           createdAt: new Date().toISOString(),
         });
 
-        // Debitar valor total do saldo da carteira
+        // Debitar valor líquido total do saldo da carteira
         const wallet = await db.wallets.get(walletId);
         if (wallet) {
-          await db.wallets.update(walletId, { balance: wallet.balance - shoppingSummary.totalSpent });
+          await db.wallets.update(walletId, { balance: wallet.balance - finalAmount });
         }
       }
     }

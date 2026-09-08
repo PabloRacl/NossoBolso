@@ -18,7 +18,8 @@ export const IndependenceSimulatorModal: React.FC<{ isOpen: boolean; onClose: ()
   // 1. Número FIRE (Patrimônio Necessário para Viver de Renda)
   const requiredFireNumber = useMemo(() => {
     const annualIncome = desiredMonthlyIncome * 12;
-    return annualIncome / (swrPercent / 100);
+    const safeRate = Math.max(swrPercent, 0.1);
+    return annualIncome / (safeRate / 100);
   }, [desiredMonthlyIncome, swrPercent]);
 
   // 2. Projeção Ano a Ano até Atingir a Liberdade Financeira

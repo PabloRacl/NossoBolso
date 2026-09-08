@@ -1,6 +1,7 @@
 import React from 'react';
 import { Flame, Sparkles, Fuel, Wrench, Trash2 } from 'lucide-react';
 import { formatBRL } from '../../utilidades/formatters';
+import { formatDate } from '../../utilidades/dateUtils';
 import { VehicleRecord } from '../../tipos';
 
 interface VehicleFuelTabProps {
@@ -112,7 +113,7 @@ export const VehicleFuelTab: React.FC<VehicleFuelTabProps> = ({
             <tbody className="divide-y divide-[#1E2330]">
               {refuelRecords.map((item) => (
                 <tr key={item.id} className="hover:bg-[#162032]/50 transition-colors">
-                  <td className="p-2.5 font-bold text-[#F8FAFC]">{new Date(item.date).toLocaleDateString('pt-BR')}</td>
+                  <td className="p-2.5 font-bold text-[#F8FAFC]">{formatDate(item.date)}</td>
                   <td className="p-2.5 font-bold text-[#00FF88]">{item.odometerKm.toLocaleString('pt-BR')} KM</td>
                   <td className="p-2.5">{item.liters ? `${item.liters.toFixed(2)} L` : '-'}</td>
                   <td className="p-2.5">{item.pricePerLiter ? formatBRL(item.pricePerLiter, isPrivacyMode) : '-'}</td>

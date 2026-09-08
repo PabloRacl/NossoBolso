@@ -24,6 +24,7 @@ import { OfxImportModal } from './components/transacoes/OfxImportModal';
 import { CategoryModal } from './components/categorias/CategoryModal';
 import { DebtsView } from './components/dividas/DebtsView';
 import { DebtContractModal } from './components/dividas/DebtContractModal';
+import { DdcImportModal } from './components/dividas/DdcImportModal';
 import { AmortizacaoModal } from './components/dividas/AmortizacaoModal';
 import { AlertsModal } from './components/alertas/AlertsModal';
 import { BudgetModal } from './components/orcamentos/BudgetModal';
@@ -142,13 +143,62 @@ export const App: React.FC = () => {
   useEffect(() => {
     seedInitialData(user).then(async () => {
       processRecurringTransactions();
-      // Sincronizar o saldo da carteira principal com as transações reais acumuladas
+
+      // Regra Oficial NossoBolso: Folha do contracheque entra sempre no mês à frente (Setembro/2026)
+      const contrachequeAugustTxs = await db.transactions
+        .filter((t) => (t.description.includes('Contracheque') || t.description.includes('Desconto Folha') || t.description.includes('Salário Bruto') || t.description.includes('Salário Líquido')) && t.date.startsWith('2026-08'))
+        .toArray();
+      for (const tx of contrachequeAugustTxs) {
+        await db.transactions.update(tx.id, {
+          date: tx.date.replace('2026-08-31', '2026-09-01').replace('2026-08', '2026-09'),
+        });
+      }
+
+      // Assegurar que a prestação da Caixa referente a Setembro/2026 (Parcela 68 - R$ 344,53) conste nas transações
+      try {
+        const caixaContract = await db.debtContracts
+          .filter((c) => c.title.toLowerCase().includes('caixa') || c.id.includes('844440603285') || c.category === 'Moradia')
+          .first();
+
+        if (caixaContract) {
+          const septCaixaTx = await db.transactions
+            .filter((t) => (t.contractId === caixaContract.id || t.description.toLowerCase().includes('habitacional')) && t.date.startsWith('2026-09'))
+            .first();
+
+          if (!septCaixaTx) {
+            await db.transactions.put({
+              id: `tx_${caixaContract.id}_68`,
+              description: `Caixa Econômica Federal - Financiamento Habitacional (Imóvel) (68/360)`,
+              amount: 344.53,
+              date: '2026-09-01',
+              type: 'expense',
+              category: 'Moradia',
+              walletId: caixaContract.walletId || 'w1',
+              contractId: caixaContract.id,
+              installments: {
+                current: 68,
+                total: 360,
+              },
+              createdAt: new Date().toISOString(),
+            });
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao verificar parcela de Setembro da Caixa:', e);
+      }
+
+      // Sincronizar o saldo da carteira principal com as transações reais acumuladas (simétrico até a data presente)
       const allWallets = await db.wallets.toArray();
       const allTxs = await db.transactions.toArray();
       if (allWallets.length > 0 && allTxs.length > 0) {
         const w1 = allWallets.find((w) => w.id === 'w1') || allWallets[0];
-        const calcIncome = allTxs.filter((t) => t.type === 'income' && (t.walletId === w1.id || !t.walletId)).reduce((acc, t) => acc + t.amount, 0);
-        const calcExpense = allTxs.filter((t) => t.type === 'expense' && new Date(t.date) <= new Date() && (t.walletId === w1.id || !t.walletId)).reduce((acc, t) => acc + t.amount, 0);
+        const now = new Date();
+        const calcIncome = allTxs
+          .filter((t) => t.type === 'income' && (t.walletId === w1.id || !t.walletId) && new Date(t.date) <= now)
+          .reduce((acc, t) => acc + t.amount, 0);
+        const calcExpense = allTxs
+          .filter((t) => t.type === 'expense' && (t.walletId === w1.id || !t.walletId) && new Date(t.date) <= now)
+          .reduce((acc, t) => acc + t.amount, 0);
         const realCalcBalance = calcIncome - calcExpense;
         if (Math.abs(w1.balance - realCalcBalance) > 0.01) {
           await db.wallets.update(w1.id, { balance: realCalcBalance });
@@ -302,7 +352,8 @@ export const App: React.FC = () => {
 
   const handleDeleteTransaction = async (id: string) => {
     const tx = await db.transactions.get(id);
-    if (tx && tx.walletId) {
+    const hoje = new Date().toISOString().substring(0, 10);
+    if (tx && tx.walletId && tx.date <= hoje) {
       const wallet = await db.wallets.get(tx.walletId);
       if (wallet) {
         const revertDelta = tx.type === 'income' ? -tx.amount : tx.amount;
@@ -419,7 +470,7 @@ export const App: React.FC = () => {
               </div>
 
               {/* 4. Badges de Conquistas & Indicadores de Mercado Financeiro */}
-              <FinancialBadgesWidget />
+              <FinancialBadgesWidget selectedMonth={selectedMonth} />
 
               <CurrencyMarketWidget />
             </>
@@ -472,6 +523,7 @@ export const App: React.FC = () => {
       <OfxImportModal />
       <CategoryModal />
       <DebtContractModal />
+      <DdcImportModal />
       <AmortizacaoModal />
       <AlertsModal />
       <BudgetModal />

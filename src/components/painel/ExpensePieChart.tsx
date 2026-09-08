@@ -127,13 +127,14 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
       return data || [];
     }
 
-    const todayStr = new Date().toISOString().substring(0, 10);
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     let filtered = transactions.filter((t) => t.type === txType);
 
     if (periodFilter === 'month' && selectedMonth && selectedMonth !== 'all') {
       filtered = filtered.filter((t) => t.date && t.date.startsWith(selectedMonth));
-    } else if (txType === 'expense') {
-      // No histórico geral de despesas, considerar lançamentos realizados (date <= hoje)
+    } else {
+      // No histórico geral, considerar apenas lançamentos realizados até hoje (simétrico para despesas e receitas)
       filtered = filtered.filter((t) => t.date && t.date <= todayStr);
     }
 

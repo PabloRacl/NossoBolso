@@ -8,7 +8,27 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { formatBRL, formatPercent } from '../../utilidades/formatters';
 import { formatDate } from '../../utilidades/dateUtils';
 import { useAppStore } from '../../estado/useAppStore';
-import { Plus, Car, CreditCard, ShieldAlert, CheckCircle2, Calendar, Trash2, Zap, Pencil, ShieldCheck, Sparkles, Filter, Search } from 'lucide-react';
+import {
+  Plus,
+  Landmark,
+  CreditCard,
+  ShieldAlert,
+  CheckCircle2,
+  Calendar,
+  Trash2,
+  Zap,
+  Pencil,
+  ShieldCheck,
+  Sparkles,
+  Filter,
+  Search,
+  FileText,
+  Home,
+  ChevronDown,
+  ChevronUp,
+  Layers,
+  ArrowUpRight,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const containerVariants = {
@@ -25,6 +45,7 @@ const containerVariants = {
 export const DebtsView: React.FC = () => {
   const { 
     setDebtContractModalOpen, 
+    setDdcModalOpen,
     setAmortizacaoModalOpen, 
     setAmortizacaoContractId,
     setEditingDebtContractId,
@@ -37,6 +58,7 @@ export const DebtsView: React.FC = () => {
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
 
   const [expandedContractId, setExpandedContractId] = useState<string | null>(null);
+  const [activeCategoryTab, setActiveCategoryTab] = useState<'all' | 'moradia' | 'outros'>('all');
   
   // Filtros individuais de busca e escopo para o cronograma de cada contrato
   const [scheduleSearch, setScheduleSearch] = useState<Record<string, string>>({});
@@ -91,6 +113,12 @@ export const DebtsView: React.FC = () => {
     const totalDoneCount = initialPaidCount + amortizedCount;
     const progressPct = originalTotal > 0 ? (totalDoneCount / originalTotal) * 100 : 0;
 
+    // Identificar próxima parcela a vencer
+    const nextTx = contractTxs.find((t) => (t.installments?.current ?? 0) >= startInstallment) || contractTxs[0];
+    const nextDueDate = nextTx ? nextTx.date : '';
+    const nextDueAmount = nextTx ? nextTx.amount : singleVal;
+    const nextNumber = nextTx?.installments?.current ?? startInstallment;
+
     return {
       contract: c,
       contractTxs,
@@ -104,12 +132,25 @@ export const DebtsView: React.FC = () => {
       amortizedAmountSaved,
       paidCount,
       progressPct,
+      nextDueDate,
+      nextDueAmount,
+      nextNumber,
     };
   });
 
   const totalPaid = contractStats.reduce((acc, s) => acc + s.initialPaidAmount, 0);
   const totalAmortizedSaved = contractStats.reduce((acc, s) => acc + s.amortizedAmountSaved, 0);
   const totalRemaining = contractStats.reduce((acc, s) => acc + s.remainingAmount, 0);
+
+  const moradiaCount = contractStats.filter(s => /casa|apartamento|habitação|imóvel|lote|terreno/i.test(s.contract.title) || s.contract.category === 'Moradia').length;
+  const otherCount = contractStats.length - moradiaCount;
+
+  const filteredStats = contractStats.filter(s => {
+    const isMoradia = /casa|apartamento|habitação|imóvel|lote|terreno/i.test(s.contract.title) || s.contract.category === 'Moradia';
+    if (activeCategoryTab === 'moradia') return isMoradia;
+    if (activeCategoryTab === 'outros') return !isMoradia;
+    return true;
+  });
 
   const handleEditContract = (id: string) => {
     setEditingDebtContractId(id);
@@ -139,18 +180,31 @@ export const DebtsView: React.FC = () => {
   return (
     <div className="flex flex-col gap-6">
       {/* Header Toolbar */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-xl font-extrabold text-[#F8FAFC]">Financiamentos & Dívidas Contratadas</h3>
           <p className="text-xs text-[#94A3B8] font-medium">
-            Gerencie contratos de longo prazo (Veículos 36x, Consórcios, Empréstimos 360x)
+            Gestão inteligente de contratos imobiliários (SFH/SAC), consignados e financiamentos veiculares
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => useAppStore.getState().setPmpeConsignadoModalOpen(true)}>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button
+            variant="outline"
+            onClick={() => useAppStore.getState().setPmpeConsignadoModalOpen(true)}
+            className="border-[#00FF88]/30 hover:border-[#00FF88] text-[#F8FAFC]"
+          >
             <ShieldCheck className="w-4 h-4 text-[#00FF88]" />
-            <span>Margem Consignável PMPE</span>
+            <span>Simulador de Margem PMPE</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={() => setDdcModalOpen(true)}
+            className="border-[#06B6D4]/40 hover:border-[#06B6D4] text-[#F8FAFC] hover:text-[#06B6D4] bg-[#06B6D4]/5"
+          >
+            <FileText className="w-4 h-4 text-[#06B6D4]" />
+            <span>Importar Contrato / DDC (PDF)</span>
           </Button>
 
           <Button variant="primary" onClick={() => setDebtContractModalOpen(true)}>
@@ -170,10 +224,12 @@ export const DebtsView: React.FC = () => {
         <Card className="border-l-4 border-l-[#38BDF8]">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold uppercase text-[#94A3B8]">Custo Total Contratado</span>
-            <Car className="w-5 h-5 text-[#38BDF8]" />
+            <Landmark className="w-5 h-5 text-[#38BDF8]" />
           </div>
           <div className="text-2xl font-black text-[#38BDF8]">{formatBRL(totalFinanced)}</div>
-          <p className="text-xs text-[#64748B] mt-1">{contracts.length} Contrato(s) Cadastrado(s)</p>
+          <p className="text-xs text-[#64748B] mt-1">
+            {contracts.length} Contrato(s) • {moradiaCount} Imobiliário(s)
+          </p>
         </Card>
 
         <Card className="border-l-4 border-l-[#10B981]">
@@ -182,16 +238,16 @@ export const DebtsView: React.FC = () => {
             <CheckCircle2 className="w-5 h-5 text-[#10B981]" />
           </div>
           <div className="text-2xl font-black text-[#10B981]">{formatBRL(totalPaid)}</div>
-          <p className="text-xs text-[#64748B] mt-1">Parcelas quitadas até a data atual</p>
+          <p className="text-xs text-[#64748B] mt-1">Parcelas quitadas no fluxo regular</p>
         </Card>
 
         <Card className="border-l-4 border-l-[#00FF88] shadow-[0_0_15px_rgba(0,255,136,0.1)]">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold uppercase text-[#94A3B8]">Economizado com Amortização</span>
+            <span className="text-xs font-bold uppercase text-[#94A3B8]">Economizado em Amortizações</span>
             <Zap className="w-5 h-5 text-[#00FF88] animate-pulse" />
           </div>
           <div className="text-2xl font-black text-[#00FF88]">{formatBRL(totalAmortizedSaved)}</div>
-          <p className="text-xs text-[#00FF88]/80 font-semibold mt-1">Juros e parcelas eliminadas</p>
+          <p className="text-xs text-[#00FF88]/80 font-semibold mt-1">Juros futuros eliminados com antecipações</p>
         </Card>
 
         <Card className="border-l-4 border-l-[#F59E0B]">
@@ -200,9 +256,52 @@ export const DebtsView: React.FC = () => {
             <ShieldAlert className="w-5 h-5 text-[#F59E0B]" />
           </div>
           <div className="text-2xl font-black text-[#F59E0B]">{formatBRL(totalRemaining)}</div>
-          <p className="text-xs text-[#64748B] mt-1">Valor pendente a ser quitado no futuro</p>
+          <p className="text-xs text-[#64748B] mt-1">Total pendente no cronograma a vencer</p>
         </Card>
       </motion.div>
+
+      {/* Seletor de Abas por Categoria */}
+      {contracts.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1E2330] pb-2">
+          <div className="flex items-center gap-2 overflow-x-auto py-1">
+            <button
+              onClick={() => setActiveCategoryTab('all')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+                activeCategoryTab === 'all'
+                  ? 'bg-[#00FF88] text-[#090D16] shadow-sm shadow-[#00FF88]/20'
+                  : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#12141A]'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Todos os Contratos ({contractStats.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveCategoryTab('moradia')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+                activeCategoryTab === 'moradia'
+                  ? 'bg-[#06B6D4] text-[#090D16] shadow-sm shadow-[#06B6D4]/20'
+                  : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#12141A]'
+              }`}
+            >
+              <Home className="w-3.5 h-3.5" />
+              <span>Moradia & Habitação ({moradiaCount})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveCategoryTab('outros')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+                activeCategoryTab === 'outros'
+                  ? 'bg-[#A855F7] text-[#090D16] shadow-sm shadow-[#A855F7]/20'
+                  : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#12141A]'
+              }`}
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>Consignados & Veículos ({otherCount})</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Contracts List */}
       {contracts.length === 0 ? (
@@ -212,7 +311,7 @@ export const DebtsView: React.FC = () => {
           </div>
           <h4 className="text-base font-bold text-[#F8FAFC]">Nenhum financiamento cadastrado</h4>
           <p className="text-xs text-[#94A3B8] max-w-sm mt-1 mb-4">
-            Cadastre contratos de parcelamento de longo prazo (como o financiamento do carro em 36x) para acompanhar o saldo devedor e parcelas futuras.
+            Cadastre contratos de parcelamento de longo prazo (habitação, veículos ou consignados) para acompanhar o saldo devedor e cronogramas de amortização.
           </p>
           <Button variant="primary" onClick={() => setDebtContractModalOpen(true)}>
             <Plus className="w-4 h-4" />
@@ -226,7 +325,7 @@ export const DebtsView: React.FC = () => {
           animate="visible"
           className="flex flex-col gap-4"
         >
-          {contractStats.map(({ 
+          {filteredStats.map(({ 
             contract, 
             contractTxs, 
             originalTotal,
@@ -237,10 +336,14 @@ export const DebtsView: React.FC = () => {
             remainingAmount, 
             amortizedCount,
             amortizedAmountSaved,
-            progressPct 
+            progressPct,
+            nextDueDate,
+            nextDueAmount,
+            nextNumber,
           }) => {
             const isHouse = /casa|apartamento|apê|habitação|imóvel|lote|terreno/i.test(contract.title) || contract.category === 'Moradia';
-            const emoji = isHouse ? '🏠' : '🚗';
+            const emoji = isHouse ? '🏠' : (contract.title.toLowerCase().includes('consignado') ? '💼' : '🚗');
+            const displayTitle = contract.title.replace(/\s*\(\.\)\s*/g, '').replace(/\(\s*\)/g, '').trim();
 
             let colors = {
               text: 'text-[#F59E0B]',
@@ -275,57 +378,92 @@ export const DebtsView: React.FC = () => {
                       {emoji}
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-base font-extrabold text-[#F8FAFC]">{contract.title}</h4>
-                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${colors.bg} ${colors.text} border ${colors.border}`}>
-                          {contract.amortizationSystem ? contract.amortizationSystem.toUpperCase() : 'PRICE'}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="text-base font-extrabold text-[#F8FAFC]">{displayTitle}</h4>
+                        <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
+                          contract.amortizationSystem === 'sac'
+                            ? 'bg-[#06B6D4]/15 text-[#06B6D4] border-[#06B6D4]/30'
+                            : 'bg-[#F59E0B]/15 text-[#F59E0B] border-[#F59E0B]/30'
+                        }`}>
+                          {contract.amortizationSystem ? `SISTEMA ${contract.amortizationSystem.toUpperCase()}` : 'TABELA PRICE'}
                         </span>
                         {amortizedCount > 0 && (
-                          <Badge variant="success" size="sm" className="flex items-center gap-1">
+                          <Badge variant="success" size="sm" className="flex items-center gap-1 font-black">
                             <Sparkles className="w-3 h-3 text-[#00FF88]" />
-                            <span>{amortizedCount} AMORTIZADA(S)</span>
+                            <span>✨ {amortizedCount} AMORTIZADA(S)</span>
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-[#94A3B8] font-medium mt-0.5">
-                        Prazo Contratado: <span className="font-bold text-[#F8FAFC]">{originalTotal}x</span> ({remainingPendingCount} Restantes • {amortizedCount} Eliminadas) • {contract.category}
+
+                      <p className="text-xs text-[#94A3B8] font-medium mt-1">
+                        Prazo Contratado: <span className="font-bold text-[#F8FAFC]">{originalTotal}x</span> ({remainingPendingCount} Restantes • {amortizedCount} Eliminadas) • <span className="text-[#F8FAFC]">{isHouse ? 'Habitação (SFH)' : contract.category}</span>
                       </p>
+
+                      {contract.notes && contract.notes.includes('Imóvel:') && (
+                        <div className="flex items-center gap-1.5 text-xs text-[#94A3B8] mt-1.5 bg-[#0A0B0E] px-2.5 py-1 rounded-lg border border-[#1E293B] w-fit">
+                          <Home className="w-3.5 h-3.5 text-[#00FF88] shrink-0" />
+                          <span className="font-semibold text-[#F8FAFC]">
+                            {contract.notes.split('|')[0].replace('Imóvel:', '').trim()}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       onClick={() => handleAmortizeContract(contract.id)}
-                      className="px-3 py-1.5 text-xs font-extrabold text-[#090D16] bg-[#00FF88] hover:bg-[#00E577] rounded-xl flex items-center gap-1.5 transition-all shadow-[0_0_12px_rgba(0,255,136,0.2)]"
-                      title="Simular ou Executar Amortização Extraordinária"
+                      className="px-3.5 py-2 text-xs font-black text-[#090D16] bg-[#00FF88] hover:bg-[#00E577] rounded-xl flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(0,255,136,0.25)] hover:scale-[1.02] active:scale-[0.98]"
+                      title="Simular ou Executar Amortização Antecipada com FGTS ou Recursos"
                     >
-                      <Zap className="w-3.5 h-3.5" />
-                      <span>Amortizar / Antecipar</span>
+                      <Zap className="w-4 h-4 fill-current" />
+                      <span>Simular / Antecipar Amortização</span>
                     </button>
 
                     <button
                       onClick={() => handleEditContract(contract.id)}
                       className="p-2 text-[#64748B] hover:text-[#00FF88] hover:bg-[#1E2330] rounded-xl transition-colors"
-                      title="Editar Financiamento Geral"
+                      title="Editar Informações do Contrato"
                     >
-                      <Pencil className="w-5 h-5" />
+                      <Pencil className="w-4 h-4" />
                     </button>
 
                     <button
                       onClick={() => handleDeleteContract(contract.id)}
                       className="p-2 text-[#64748B] hover:text-red-400 hover:bg-[#1E2330] rounded-xl transition-colors"
-                      title="Excluir Financiamento"
+                      title="Excluir Contrato e Parcelas"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
+                {/* Próxima Parcela em Destaque */}
+                {nextDueDate && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 text-xs bg-[#090D18] px-3.5 py-2.5 rounded-xl border border-[#1E293B]">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-[#00FF88]" />
+                      <span className="text-[#94A3B8]">
+                        Próxima Parcela: <strong className="text-[#F8FAFC]">Nº {nextNumber} de {originalTotal}</strong>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <span className="text-[#94A3B8]">
+                        Vencimento: <strong className="text-[#F8FAFC]">{formatDate(nextDueDate)}</strong>
+                      </span>
+                      <span className="text-[#94A3B8]">
+                        Valor: <strong className="text-[#00FF88] text-sm">{formatBRL(nextDueAmount)}</strong>
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Progress Bar */}
-                <div className="flex flex-col gap-1.5 pt-2 border-t border-[#1E2330]">
+                <div className="flex flex-col gap-1.5 pt-1 border-t border-[#1E2330]">
                   <div className="flex items-center justify-between text-xs font-bold">
                     <span className="text-[#94A3B8]">
-                      Progresso de Quitação: <span className="text-[#F8FAFC]">{initialPaidCount + amortizedCount} de {originalTotal} parcelas pagas/abatidas</span> ({formatBRL(initialPaidAmount + amortizedAmountSaved)})
+                      Progresso de Quitação: <span className="text-[#F8FAFC]">{initialPaidCount + amortizedCount} de {originalTotal} parcelas quitadas/abatidas</span> ({formatBRL(initialPaidAmount + amortizedAmountSaved)})
                     </span>
                     <span className="text-[#00FF88]">{formatPercent(progressPct)}</span>
                   </div>
@@ -336,14 +474,23 @@ export const DebtsView: React.FC = () => {
                   />
                 </div>
 
-                {/* Toggle Details */}
+                {/* Toggle Details com Botão Mais Claro e Indicativo */}
                 <div className="flex justify-end pt-1">
                   <button
                     onClick={() => setExpandedContractId(expandedContractId === contract.id ? null : contract.id)}
-                    className="text-xs font-bold text-[#06B6D4] hover:underline flex items-center gap-1"
+                    className="px-3 py-1.5 text-xs font-extrabold rounded-xl border border-[#2E3B52] bg-[#0D1424] text-[#06B6D4] hover:bg-[#06B6D4]/10 hover:border-[#06B6D4] flex items-center gap-1.5 transition-all"
                   >
-                    <Calendar className="w-3.5 h-3.5" />
-                    {expandedContractId === contract.id ? 'Ocultar Cronograma de Parcelas' : 'Ver Cronograma & Editar Parcela do Mês X'}
+                    <Calendar className="w-3.5 h-3.5 text-[#06B6D4]" />
+                    <span>
+                      {expandedContractId === contract.id
+                        ? 'Ocultar Cronograma de Parcelas'
+                        : `Ver Cronograma de Parcelas (${remainingPendingCount} Restantes)`}
+                    </span>
+                    {expandedContractId === contract.id ? (
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    )}
                   </button>
                 </div>
 
@@ -498,20 +645,20 @@ export const DebtsView: React.FC = () => {
                               <div className="flex flex-col">
                                 <span className="text-xs font-black text-[#F8FAFC]">
                                   {inst.isPaid
-                                    ? 'Parcela Paga'
+                                    ? 'Parcela Quitada'
                                     : inst.isNext
-                                    ? 'Próxima Parcela'
+                                    ? '⚡ Próximo Vencimento'
                                     : inst.isAmortized
-                                    ? '⚡ Parcela Antecipada'
-                                    : 'Parcela Futura'}
+                                    ? '⚡ Amortizada Antecipadamente'
+                                    : 'Parcela a Vencer'}
                                 </span>
                                 <span className="text-[11px] text-[#94A3B8] font-medium">
                                   {inst.date
                                     ? formatDate(inst.date)
                                     : inst.isPaid
-                                    ? 'Paga antes da contratação'
+                                    ? 'Quitada no fluxo regular'
                                     : inst.isAmortized
-                                    ? 'Abatida por Amortização'
+                                    ? 'Eliminada por amortização'
                                     : 'A agendar'}
                                 </span>
                               </div>

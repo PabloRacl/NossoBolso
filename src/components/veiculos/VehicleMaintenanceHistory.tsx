@@ -1,6 +1,7 @@
 import React from 'react';
 import { Wrench, FileText, Trash2 } from 'lucide-react';
 import { formatBRL } from '../../utilidades/formatters';
+import { formatDate } from '../../utilidades/dateUtils';
 import { VehicleRecord } from '../../tipos';
 
 interface VehicleMaintenanceHistoryProps {
@@ -48,7 +49,7 @@ export const VehicleMaintenanceHistory: React.FC<VehicleMaintenanceHistoryProps>
                     <span className="text-[10px] text-[#00FF88] font-bold">Peça: {rec.partNumber}</span>
                   )}
                   <span className="text-[11px] text-[#94A3B8]">
-                    {rec.odometerKm.toLocaleString('pt-BR')} KM • {new Date(rec.date).toLocaleDateString('pt-BR')}
+                    {rec.odometerKm.toLocaleString('pt-BR')} KM • {formatDate(rec.date)}
                     {rec.nextDueKm ? ` • Próxima: ${rec.nextDueKm.toLocaleString('pt-BR')} KM` : ''}
                   </span>
                 </div>

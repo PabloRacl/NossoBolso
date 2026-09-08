@@ -4,6 +4,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../servicos/db';
 import { Trophy, ShieldCheck, Zap, Car, ShoppingCart, CreditCard, Award, Lock, Sparkles, CheckCircle2 } from 'lucide-react';
 
+import { useAppStore } from '../../estado/useAppStore';
+
 interface BadgeItem {
   id: string;
   title: string;
@@ -14,7 +16,14 @@ interface BadgeItem {
   unlockedText: string;
 }
 
-export const FinancialBadgesWidget: React.FC = () => {
+interface FinancialBadgesWidgetProps {
+  selectedMonth?: string;
+}
+
+export const FinancialBadgesWidget: React.FC<FinancialBadgesWidgetProps> = ({ selectedMonth: propMonth }) => {
+  const storeMonth = useAppStore((state) => state.selectedMonth);
+  const selectedMonth = propMonth || storeMonth;
+
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
   const wallets = useLiveQuery(() => db.wallets.toArray(), []) || [];
   const pantryItems = useLiveQuery(() => db.pantryItems.toArray(), []) || [];
@@ -30,8 +39,12 @@ export const FinancialBadgesWidget: React.FC = () => {
     const savingsProgress = Math.min(Math.round((savingsBalance / 10000) * 100), 100);
 
     // 2. Retenção de Elite (Salvação no Mês > 20%)
-    const income = transactions.filter((t) => t.type === 'income').reduce((a, b) => a + b.amount, 0);
-    const expense = transactions.filter((t) => t.type === 'expense').reduce((a, b) => a + b.amount, 0);
+    const monthTxs = transactions.filter((t) => {
+      if (!selectedMonth || selectedMonth === 'all') return true;
+      return t.date && t.date.startsWith(selectedMonth);
+    });
+    const income = monthTxs.filter((t) => t.type === 'income').reduce((a, b) => a + b.amount, 0);
+    const expense = monthTxs.filter((t) => t.type === 'expense').reduce((a, b) => a + b.amount, 0);
     const retentionRate = income > 0 ? ((income - expense) / income) * 100 : 0;
     const retentionUnlocked = retentionRate >= 20;
 

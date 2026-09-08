@@ -38,6 +38,8 @@ interface AppStore {
   setCategoryModalOpen: (open: boolean) => void;
   isDebtContractModalOpen: boolean;
   setDebtContractModalOpen: (open: boolean) => void;
+  isDdcModalOpen: boolean;
+  setDdcModalOpen: (open: boolean) => void;
   isAmortizacaoModalOpen: boolean;
   setAmortizacaoModalOpen: (open: boolean) => void;
   amortizacaoContractId: string | null;
@@ -150,6 +152,8 @@ export const useAppStore = create<AppStore>((set) => ({
   setCategoryModalOpen: (open) => set({ isCategoryModalOpen: open }),
   isDebtContractModalOpen: false,
   setDebtContractModalOpen: (open) => set({ isDebtContractModalOpen: open }),
+  isDdcModalOpen: false,
+  setDdcModalOpen: (open) => set({ isDdcModalOpen: open }),
   isAmortizacaoModalOpen: false,
   setAmortizacaoModalOpen: (open) => set({ isAmortizacaoModalOpen: open }),
   amortizacaoContractId: null,

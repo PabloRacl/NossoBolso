@@ -8,7 +8,7 @@ import { db } from '../../servicos/db';
 import { Compass, Sparkles, TrendingUp, TrendingDown, ArrowRight, ShieldCheck, Zap } from 'lucide-react';
 
 export const WhatIfSimulatorModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
-  const { isPrivacyMode } = useAppStore();
+  const { isPrivacyMode, selectedMonth } = useAppStore();
 
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
   const wallets = useLiveQuery(() => db.wallets.toArray(), []) || [];
@@ -18,8 +18,19 @@ export const WhatIfSimulatorModal: React.FC<{ isOpen: boolean; onClose: () => vo
   const currentDebt = debtContracts.reduce((acc, d) => acc + (d.totalAmount || d.installmentAmount * d.totalInstallments), 0);
   const currentNetWorth = currentBalance - currentDebt;
 
-  const currentIncome = transactions.filter((t) => t.type === 'income').reduce((a, b) => a + b.amount, 0);
-  const currentExpense = transactions.filter((t) => t.type === 'expense').reduce((a, b) => a + b.amount, 0);
+  // Filtra transações da competência mensal (selectedMonth) para obter valores mensais reais
+  const monthlyTransactions = useMemo(() => {
+    const filtered = transactions.filter((t) => t.date && t.date.startsWith(selectedMonth));
+    if (filtered.length > 0) return filtered;
+    // Se o mês selecionado não tiver lançamentos, filtra pelos últimos 30 dias
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const isoThirty = thirtyDaysAgo.toISOString().substring(0, 10);
+    return transactions.filter((t) => t.date && t.date >= isoThirty);
+  }, [transactions, selectedMonth]);
+
+  const currentIncome = monthlyTransactions.filter((t) => t.type === 'income').reduce((a, b) => a + b.amount, 0);
+  const currentExpense = monthlyTransactions.filter((t) => t.type === 'expense').reduce((a, b) => a + b.amount, 0);
 
   // Parâmetros de Simulação "E Se?"
   const [assetSaleAmount, setAssetSaleAmount] = useState<number>(0);

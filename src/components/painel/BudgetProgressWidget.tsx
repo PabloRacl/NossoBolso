@@ -39,9 +39,11 @@ export const BudgetProgressWidget: React.FC<BudgetProgressWidgetProps> = ({ sele
     return acc;
   }, {} as Record<string, number>);
 
-  // Totais Consolidados de Tetos
+  // Totais Consolidados de Tetos e Despesas Gerais
   const totalBudgetLimit = budgets.reduce((acc, b) => acc + b.monthlyLimit, 0);
   const totalSpentInBudgets = budgets.reduce((acc, b) => acc + (spendingByCategory[b.category] || 0), 0);
+  const totalAllExpenses = monthlyExpenses.reduce((acc, tx) => acc + tx.amount, 0);
+  const spentOutsideBudgets = Math.max(0, totalAllExpenses - totalSpentInBudgets);
   const remainingBudgetTotal = Math.max(totalBudgetLimit - totalSpentInBudgets, 0);
   const totalBudgetUsagePercent = totalBudgetLimit > 0 ? (totalSpentInBudgets / totalBudgetLimit) * 100 : 0;
 
@@ -102,14 +104,14 @@ export const BudgetProgressWidget: React.FC<BudgetProgressWidgetProps> = ({ sele
       {budgets.length > 0 && (
         <div className="grid grid-cols-3 gap-2 p-3 bg-[#090D18]/90 border border-[#1E293B] rounded-xl text-center">
           <div className="flex flex-col">
-            <span className="text-[9px] font-black text-[#94A3B8] uppercase">Teto Estipulado</span>
+            <span className="text-[9px] font-black text-[#94A3B8] uppercase">Teto Monitorado</span>
             <span className="text-xs font-black text-[#F8FAFC] mt-0.5">
               {formatBRL(totalBudgetLimit, isPrivacyMode)}
             </span>
           </div>
 
           <div className="flex flex-col border-x border-[#1E293B]">
-            <span className="text-[9px] font-black text-[#94A3B8] uppercase">Gasto Executado</span>
+            <span className="text-[9px] font-black text-[#94A3B8] uppercase">Gasto nos Tetos</span>
             <span
               className={`text-xs font-black mt-0.5 ${
                 totalSpentInBudgets > totalBudgetLimit ? 'text-[#FF4D6D]' : 'text-[#00FF88]'
@@ -120,11 +122,18 @@ export const BudgetProgressWidget: React.FC<BudgetProgressWidgetProps> = ({ sele
           </div>
 
           <div className="flex flex-col">
-            <span className="text-[9px] font-black text-[#94A3B8] uppercase">Saldo Livre Restante</span>
+            <span className="text-[9px] font-black text-[#94A3B8] uppercase">Disponível nos Tetos</span>
             <span className="text-xs font-black text-[#00FF88] mt-0.5">
               {formatBRL(remainingBudgetTotal, isPrivacyMode)}
             </span>
           </div>
+
+          {spentOutsideBudgets > 0 && (
+            <div className="col-span-3 mt-1 pt-2 border-t border-[#1E293B] flex flex-wrap items-center justify-between text-[10px] text-[#94A3B8] px-1 gap-1">
+              <span>Gastos fora dos tetos: <strong className="text-[#F8FAFC]">{formatBRL(spentOutsideBudgets, isPrivacyMode)}</strong></span>
+              <span>Total geral de despesas do mês: <strong className="text-[#F59E0B]">{formatBRL(totalAllExpenses, isPrivacyMode)}</strong></span>
+            </div>
+          )}
         </div>
       )}
 

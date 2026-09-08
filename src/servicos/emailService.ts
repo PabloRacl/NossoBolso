@@ -33,7 +33,7 @@ export const emailService = {
 
     if (serviceId && publicKey) {
       try {
-        console.log(`[EmailJS] Enviando e-mail real para ${toEmail} com o código ${code}...`);
+        console.log(`[EmailJS] Enviando e-mail de verificação para ${toEmail}...`);
         
         const response = await emailjs.send(
           serviceId,

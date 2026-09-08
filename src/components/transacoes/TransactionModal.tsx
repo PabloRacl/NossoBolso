@@ -7,7 +7,7 @@ import { useAppStore } from '../../estado/useAppStore';
 import { db } from '../../servicos/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { TransactionType } from '../../tipos';
-import { getTodayStr } from '../../utilidades/dateUtils';
+import { getTodayStr, addMonthsPreservingDay } from '../../utilidades/dateUtils';
 import { Repeat, Calendar, Layers } from 'lucide-react';
 
 export const TransactionModal: React.FC = () => {
@@ -75,6 +75,8 @@ export const TransactionModal: React.FC = () => {
     const selectedWalletId = walletId || (wallets ? wallets[0]?.id ?? 'w1' : 'w1');
     const selectedCategory = category || (filteredCategories[0]?.name ?? 'Geral');
 
+    const hoje = getTodayStr();
+
     if (isRepeatEnabled && repeatMode === 'installments' && !editingTransactionId) {
       const instTotal = parseInt(installmentCount) || 12;
       const baseDate = new Date(date + 'T12:00:00');
@@ -82,17 +84,13 @@ export const TransactionModal: React.FC = () => {
       const batchTxs = [];
 
       for (let i = 1; i <= instTotal; i++) {
-        const txDate = new Date(baseDate);
-        txDate.setMonth(baseDate.getMonth() + (i - 1));
-        const yyyy = txDate.getFullYear();
-        const mm = String(txDate.getMonth() + 1).padStart(2, '0');
-        const dd = String(txDate.getDate()).padStart(2, '0');
+        const installmentDate = addMonthsPreservingDay(baseDate, i - 1);
 
         batchTxs.push({
           id: `tx_${batchId}_${i}`,
           description: `${description.trim()} (${i}/${instTotal})`,
           amount: parsedAmount,
-          date: `${yyyy}-${mm}-${dd}`,
+          date: installmentDate,
           type,
           category: selectedCategory,
           walletId: selectedWalletId,
@@ -106,11 +104,15 @@ export const TransactionModal: React.FC = () => {
 
       await db.transactions.bulkAdd(batchTxs);
 
-      // Update wallet balance for current month
-      const wallet = await db.wallets.get(selectedWalletId);
-      if (wallet) {
-        const delta = type === 'income' ? parsedAmount : -parsedAmount;
-        await db.wallets.update(selectedWalletId, { balance: wallet.balance + delta });
+      // Debita/credita no saldo presente apenas as parcelas já vencidas até a presente data
+      const pastOrTodayTxs = batchTxs.filter((t) => t.date <= hoje);
+      if (pastOrTodayTxs.length > 0) {
+        const wallet = await db.wallets.get(selectedWalletId);
+        if (wallet) {
+          const totalPastAmount = pastOrTodayTxs.reduce((acc, t) => acc + t.amount, 0);
+          const delta = type === 'income' ? totalPastAmount : -totalPastAmount;
+          await db.wallets.update(selectedWalletId, { balance: wallet.balance + delta });
+        }
       }
     } else {
       // Single / Regular transaction
@@ -127,13 +129,22 @@ export const TransactionModal: React.FC = () => {
       };
 
       if (editingTransactionId) {
+        // Estorna o valor da transação anterior na sua carteira original se afetou saldo
+        const oldTx = await db.transactions.get(editingTransactionId);
+        if (oldTx && oldTx.walletId && oldTx.date <= hoje) {
+          const oldWallet = await db.wallets.get(oldTx.walletId);
+          if (oldWallet) {
+            const oldDelta = oldTx.type === 'income' ? oldTx.amount : -oldTx.amount;
+            await db.wallets.update(oldTx.walletId, { balance: oldWallet.balance - oldDelta });
+          }
+        }
         await db.transactions.put(txData);
       } else {
         await db.transactions.add(txData);
       }
 
-      // Update wallet balance
-      if (selectedWalletId) {
+      // Aplica o novo saldo na carteira selecionada se vence até hoje
+      if (selectedWalletId && date <= hoje) {
         const wallet = await db.wallets.get(selectedWalletId);
         if (wallet) {
           const delta = type === 'income' ? parsedAmount : -parsedAmount;

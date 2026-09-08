@@ -17,6 +17,17 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 /**
+ * Gera um código OTP criptograficamente seguro usando Web Crypto API.
+ */
+export function generateSecureOTP(length: number = 6): string {
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map((b) => (b % 10).toString())
+    .join('');
+}
+
+/**
  * Verifica se a senha informada corresponde ao hash SHA-256 armazenado.
  */
 export async function verifyPassword(password: string, storedHash: string): Promise<boolean> {

@@ -42,7 +42,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals })
 
   // --- 1. CÁLCULO DA REGRA 50/30/20 ---
   const rule503020Metrics = useMemo(() => {
-    let needs = 0; // 50% Necessidades (Alimentação, Moradia, Saúde, Transporte, SISMEPE, Consignado)
+    let needs = 0; // 50% Necessidades (Alimentação, Moradia, Saúde, Transporte, SISMEPE, Consignado, etc.)
     let wants = 0; // 30% Desejos (Lazer, Compras, Restaurantes)
     let savings = 0; // 20% Investimentos & Metas
 
@@ -69,19 +69,24 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals })
       }
     });
 
-    const incomeBase = totalIncome > 0 ? totalIncome : 8659.00; // Saldo base PMPE se sem receitas no mês
-    const needsPct = Math.round((needs / incomeBase) * 100);
-    const wantsPct = Math.round((wants / incomeBase) * 100);
-    const savingsPct = Math.round(((incomeBase - totalExpense + savings) / incomeBase) * 100);
+    const incomeBase = totalIncome;
+    const hasIncome = incomeBase > 0;
+    const unspentSurplus = Math.max(totalIncome - totalExpense, 0);
+    const totalAllocatedToSavings = savings + unspentSurplus;
+
+    const needsPct = hasIncome ? Math.round((needs / incomeBase) * 100) : 0;
+    const wantsPct = hasIncome ? Math.round((wants / incomeBase) * 100) : 0;
+    const savingsPct = hasIncome ? Math.round((totalAllocatedToSavings / incomeBase) * 100) : 0;
 
     return {
       needs,
       wants,
-      savings,
+      savings: totalAllocatedToSavings,
       incomeBase,
       needsPct,
       wantsPct,
       savingsPct,
+      hasIncome,
     };
   }, [transactions, totalIncome, totalExpense]);
 
@@ -91,18 +96,40 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals })
       .filter((w) => w.type !== 'credit')
       .reduce((acc, w) => acc + Math.max(w.balance, 0), 0);
 
-    const totalDebtsAndFinancing = debtContracts.reduce((acc, d) => acc + (d.totalAmount || (d.installmentAmount * d.totalInstallments)), 0);
-    const totalVehiclesEstimated = vehicles.length > 0 ? 85000.00 : 0;
+    const totalDebtsAndFinancing = debtContracts.reduce(
+      (acc, d) => acc + (d.totalAmount || d.installmentAmount * d.totalInstallments),
+      0
+    );
+
+    // Soma do valor de mercado ou referência dos veículos cadastrados
+    const totalVehiclesEstimated = vehicles.reduce((acc, v) => {
+      const val = typeof (v as unknown as { marketValue?: number }).marketValue === 'number'
+        ? (v as unknown as { marketValue: number }).marketValue
+        : 0;
+      return acc + val;
+    }, 0);
+
+    // Rendimentos calculados com base nas transações reais do usuário
+    const grossIncomeAnnual = totalIncome > 0 ? totalIncome * 12 : 0;
+
+    // Tributos e deduções a partir de despesas reais cadastradas
+    const irrfAnnual = transactions
+      .filter((t) => t.type === 'expense' && (t.category.toLowerCase().includes('irrf') || t.description.toLowerCase().includes('irrf') || t.description.toLowerCase().includes('imposto de renda')))
+      .reduce((acc, t) => acc + t.amount, 0);
+
+    const previdenciaAnnual = transactions
+      .filter((t) => t.type === 'expense' && (t.category.toLowerCase().includes('previd') || t.description.toLowerCase().includes('previd') || t.description.toLowerCase().includes('inss') || t.description.toLowerCase().includes('sismepe')))
+      .reduce((acc, t) => acc + t.amount, 0);
 
     return {
       totalBankAccounts,
       totalDebtsAndFinancing,
       totalVehiclesEstimated,
-      grossIncomeAnnual: 8659.00 * 12, // PMPE Salário Bruto Anual
-      irrfAnnual: 461.59 * 12,
-      previdenciamilitarAnnual: 650.30 * 12,
+      grossIncomeAnnual,
+      irrfAnnual,
+      previdenciamilitarAnnual: previdenciaAnnual,
     };
-  }, [wallets, debtContracts, vehicles]);
+  }, [wallets, debtContracts, vehicles, transactions, totalIncome]);
 
   const handleExportJSON = () => {
     const data = {
@@ -131,14 +158,16 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals })
       tx.amount.toFixed(2),
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(';'), ...rows.map((e) => e.join(';'))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map((e) => e.join(';'))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `relatorio_nossobolso_${new Date().toISOString().substring(0, 10)}.csv`);
+    link.href = url;
+    link.download = `relatorio_nossobolso_${new Date().toISOString().substring(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handlePrintPDF = () => {
@@ -150,11 +179,11 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals })
 -----------------------------------------
 FICHA BENS E DIREITOS:
 - Contas Bancárias e Investimentos: ${formatBRL(irpfData.totalBankAccounts, false)}
-- Veículos Automotores: ${formatBRL(irpfData.totalVehiclesEstimated, false)}
+- Veículos Registrados: ${formatBRL(irpfData.totalVehiclesEstimated, false)}
 
-FICHA RENDIMENTOS TRIBUTÁVEIS (PMPE):
+FICHA RENDIMENTOS TRIBUTÁVEIS:
 - Rendimentos Brutos Anuais: ${formatBRL(irpfData.grossIncomeAnnual, false)}
-- Previdência / Proteção Social Militar Retida: ${formatBRL(irpfData.previdenciamilitarAnnual, false)}
+- Previdência Social / Oficial Retida: ${formatBRL(irpfData.previdenciamilitarAnnual, false)}
 - IRRF Retido na Fonte: ${formatBRL(irpfData.irrfAnnual, false)}
 
 FICHA DÍVIDAS E ÔNUS REAIS:
@@ -310,6 +339,13 @@ FICHA DÍVIDAS E ÔNUS REAIS:
               </p>
             </div>
 
+            {!rule503020Metrics.hasIncome && (
+              <div className="p-3 bg-[#0D1424] border border-[#38BDF8]/30 rounded-xl flex items-center gap-3 text-xs text-[#94A3B8] mt-2">
+                <AlertTriangle className="w-5 h-5 text-[#38BDF8] shrink-0" />
+                <span>Nenhuma receita registrada neste período. Os percentuais da Regra 50/30/20 serão calculados automaticamente assim que houver receitas cadastradas.</span>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
               {/* 50% Necessidades */}
               <div className="p-4 bg-[#0A0B0E] border border-[#2E3B52] rounded-xl flex flex-col gap-3">
@@ -410,10 +446,10 @@ FICHA DÍVIDAS E ÔNUS REAIS:
                 </div>
               </div>
 
-              {/* Ficha 2: Rendimentos PMPE */}
+              {/* Ficha 2: Rendimentos Tributáveis */}
               <div className="p-4 bg-[#0A0B0E] border border-[#2E3B52] rounded-xl flex flex-col gap-3">
                 <h4 className="text-xs font-black uppercase text-[#38BDF8] border-b border-[#2E3B52] pb-2">
-                  2. Rendimentos Tributáveis (PMPE)
+                  2. Rendimentos Tributáveis
                 </h4>
                 <div className="flex flex-col gap-2 text-xs">
                   <div className="flex justify-between">
@@ -421,7 +457,7 @@ FICHA DÍVIDAS E ÔNUS REAIS:
                     <strong className="text-[#00FF88]">{formatBRL(irpfData.grossIncomeAnnual, isPrivacyMode)}</strong>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[#94A3B8]">Previdência Militar Anual:</span>
+                    <span className="text-[#94A3B8]">Previdência Social / Oficial Anual:</span>
                     <strong className="text-[#F59E0B]">{formatBRL(irpfData.previdenciamilitarAnnual, isPrivacyMode)}</strong>
                   </div>
                   <div className="flex justify-between">

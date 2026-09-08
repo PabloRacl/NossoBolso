@@ -107,6 +107,9 @@ export function calculateAmortizationComparison(params: {
   };
 }
 
+import { addMonthsPreservingDay } from './dateUtils';
+export { addMonthsPreservingDay };
+
 /**
  * Gera o cronograma completo de parcelas (SAC ou PRICE) para criação ou auditoria de contratos.
  */
@@ -131,44 +134,50 @@ export function generateDebtSchedule(params: DebtContractScheduleParams): {
   let totalContractCost = 0;
 
   if (system === 'price') {
-    const singleVal = fixedInstallmentAmount + insuranceAmount;
-    totalContractCost = totalInstallments * singleVal;
+    // Calcula a parcela PRICE pura se não fornecida explicitamente
+    let basePmt = fixedInstallmentAmount;
+    if (basePmt <= 0 && financedAmount > 0 && totalInstallments > 0) {
+      if (monthlyRate > 0) {
+        basePmt =
+          (financedAmount * (monthlyRate * Math.pow(1 + monthlyRate, totalInstallments))) /
+          (Math.pow(1 + monthlyRate, totalInstallments) - 1);
+      } else {
+        basePmt = financedAmount / totalInstallments;
+      }
+    }
+
+    let runningBalance = financedAmount;
 
     for (let currentNum = 1; currentNum <= totalInstallments; currentNum++) {
       const offsetMonths = currentNum - startInstallmentNum;
-      const txDate = new Date(baseDate);
-      txDate.setMonth(baseDate.getMonth() + offsetMonths);
+      const formattedDate = addMonthsPreservingDay(baseDate, offsetMonths);
 
-      const yyyy = txDate.getFullYear();
-      const mm = String(txDate.getMonth() + 1).padStart(2, '0');
-      const dd = String(txDate.getDate()).padStart(2, '0');
-      const formattedDate = `${yyyy}-${mm}-${dd}`;
+      const periodInterest = runningBalance > 0 ? runningBalance * monthlyRate : 0;
+      const periodAmortization = Math.min(Math.max(basePmt - periodInterest, 0), runningBalance > 0 ? runningBalance : basePmt);
+      const installmentVal = basePmt + insuranceAmount;
+
+      runningBalance = Math.max(runningBalance - periodAmortization, 0);
+      totalContractCost += installmentVal;
 
       items.push({
         installmentNumber: currentNum,
         offsetMonths,
         dueDate: formattedDate,
-        installmentAmount: singleVal,
-        amortization: fixedInstallmentAmount,
-        interest: 0,
+        installmentAmount: Math.round(installmentVal * 100) / 100,
+        amortization: Math.round(periodAmortization * 100) / 100,
+        interest: Math.round(periodInterest * 100) / 100,
         insurance: insuranceAmount,
-        remainingBalance: 0,
+        remainingBalance: Math.round(runningBalance * 100) / 100,
       });
     }
   } else {
     // Sistema SAC
-    const monthlyAmortization = financedAmount / totalInstallments;
+    const monthlyAmortization = totalInstallments > 0 ? financedAmount / totalInstallments : 0;
     let runningBalance = financedAmount;
 
     for (let currentNum = 1; currentNum <= totalInstallments; currentNum++) {
       const offsetMonths = currentNum - startInstallmentNum;
-      const txDate = new Date(baseDate);
-      txDate.setMonth(baseDate.getMonth() + offsetMonths);
-
-      const yyyy = txDate.getFullYear();
-      const mm = String(txDate.getMonth() + 1).padStart(2, '0');
-      const dd = String(txDate.getDate()).padStart(2, '0');
-      const formattedDate = `${yyyy}-${mm}-${dd}`;
+      const formattedDate = addMonthsPreservingDay(baseDate, offsetMonths);
 
       const periodInterest = runningBalance * monthlyRate;
       const periodTotal = monthlyAmortization + periodInterest + insuranceAmount;
@@ -179,8 +188,8 @@ export function generateDebtSchedule(params: DebtContractScheduleParams): {
         offsetMonths,
         dueDate: formattedDate,
         installmentAmount: roundedTotal,
-        amortization: monthlyAmortization,
-        interest: periodInterest,
+        amortization: Math.round(monthlyAmortization * 100) / 100,
+        interest: Math.round(periodInterest * 100) / 100,
         insurance: insuranceAmount,
         remainingBalance: Math.max(runningBalance - monthlyAmortization, 0),
       });
