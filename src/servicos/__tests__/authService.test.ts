@@ -72,4 +72,45 @@ describe('authService — Segurança e Autenticação', () => {
       })
     ).rejects.toThrow('Esta conta utiliza uma senha legada descontinuada');
   });
+
+  it('deve realizar login social criando nova conta com e-mail verificado', async () => {
+    const user = await authService.loginSocial({
+      provider: 'google',
+      name: 'Pablo Ricardo',
+      email: 'pablo.novo@nossobolso.app',
+    });
+
+    expect(user.id).toBeDefined();
+    expect(user.email).toBe('pablo.novo@nossobolso.app');
+    expect(user.provider).toBe('google');
+    expect(user.isEmailVerified).toBe(true);
+  });
+
+  it('deve permitir login social mesmo se o e-mail já foi registrado via credenciais', async () => {
+    // Registra conta prévia
+    const priorUser = {
+      id: 'usr_preexistente',
+      name: 'Pablo Preexistente',
+      email: 'pablo.existente@nossobolso.app',
+      provider: 'credentials',
+      role: 'user',
+      isEmailVerified: true,
+      passwordHash: 'pbkdf2$hashvalido123',
+      createdAt: new Date().toISOString(),
+    };
+    localStorage.setItem('nossobolso_registered_users', JSON.stringify([priorUser]));
+
+    // Conecta via Google com o mesmo e-mail
+    const user = await authService.loginSocial({
+      provider: 'google',
+      name: 'Pablo Atualizado',
+      email: 'pablo.existente@nossobolso.app',
+    });
+
+    expect(user.id).toBe('usr_preexistente');
+    expect(user.email).toBe('pablo.existente@nossobolso.app');
+    expect(user.isEmailVerified).toBe(true);
+    // Senha pré-existente preservada
+    expect(user.passwordHash).toBe('pbkdf2$hashvalido123');
+  });
 });

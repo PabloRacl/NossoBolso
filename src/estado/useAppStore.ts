@@ -106,6 +106,15 @@ interface AppStore {
     title?: string;
   } | null;
   triggerTransactionAnimation: (type: 'income' | 'expense', amount?: number, title?: string) => void;
+
+  // Session Timeout & Auto-Lock (15 minutos para proteção de dados sensíveis)
+  isAppLocked: boolean;
+  sessionSecondsRemaining: number;
+  setIsAppLocked: (locked: boolean) => void;
+  setSessionSecondsRemaining: (seconds: number) => void;
+  extendSession: () => void;
+  lockSessionNow: () => void;
+  unlockSession: () => void;
 }
 
 export const getCurrentMonthKey = () => {
@@ -217,5 +226,39 @@ export const useAppStore = create<AppStore>((set) => ({
     setTimeout(() => {
       set({ activeParticleAnimation: null });
     }, 2800);
+  },
+
+  // Session Timeout & Auto-Lock (15 minutos)
+  isAppLocked: typeof window !== 'undefined' ? sessionStorage.getItem('nossobolso_app_locked') === 'true' : false,
+  sessionSecondsRemaining: 15 * 60,
+  setIsAppLocked: (locked) => {
+    if (typeof window !== 'undefined') {
+      if (locked) {
+        sessionStorage.setItem('nossobolso_app_locked', 'true');
+      } else {
+        sessionStorage.removeItem('nossobolso_app_locked');
+      }
+    }
+    set({ isAppLocked: locked });
+  },
+  setSessionSecondsRemaining: (seconds) => set({ sessionSecondsRemaining: Math.max(0, seconds) }),
+  extendSession: () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('nossobolso_last_active_at', Date.now().toString());
+    }
+    set({ sessionSecondsRemaining: 15 * 60 });
+  },
+  lockSessionNow: () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('nossobolso_app_locked', 'true');
+    }
+    set({ isAppLocked: true, sessionSecondsRemaining: 0 });
+  },
+  unlockSession: () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('nossobolso_app_locked');
+      sessionStorage.setItem('nossobolso_last_active_at', Date.now().toString());
+    }
+    set({ isAppLocked: false, sessionSecondsRemaining: 15 * 60 });
   },
 }));

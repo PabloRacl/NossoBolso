@@ -24,6 +24,7 @@ import { VerifyCodeForm } from './VerifyCodeForm';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
 import { ResetPasswordForm } from './ResetPasswordForm';
 import { SocialLoginModal } from './SocialLoginModal';
+import { getErrorMessage } from '../../utilidades/errorUtils';
 
 export const AuthScreen: React.FC = () => {
   const { setUser, authMode, setAuthMode } = useAppStore();
@@ -159,8 +160,9 @@ export const AuthScreen: React.FC = () => {
       });
       setSocialModalProvider(null);
       transitionToSystem(user, `Conectado com sucesso via ${provider}!`);
-    } catch {
-      setError(`Falha na conexão com ${provider}. Tente novamente.`);
+    } catch (err: unknown) {
+      const msg = getErrorMessage(err, `Falha na conexão com ${provider}. Tente novamente.`);
+      setError(msg);
     } finally {
       setSocialLoading(null);
     }

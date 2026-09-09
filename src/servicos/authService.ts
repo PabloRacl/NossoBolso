@@ -542,14 +542,18 @@ export const authService = {
 
     if (existingIndex !== -1) {
       const existingUser = users[existingIndex];
-      // Se a conta já existe e foi criada com senha tradicional, previne sobrescrita ou sequestro de conta não autorizado
-      if (existingUser.passwordHash && existingUser.provider === 'credentials') {
-        throw new Error('Esta conta já foi cadastrada com e-mail e senha tradicional. Por favor, autentique-se com sua senha.');
-      }
-      users[existingIndex] = { ...existingUser, ...user, isEmailVerified: true };
+      // Conexão social autorizada: vincula ou atualiza o perfil mantendo credenciais existentes e ativando e-mail
+      const updatedUser: UserProfile = {
+        ...existingUser,
+        name: finalName || existingUser.name,
+        avatarUrl: finalAvatar || existingUser.avatarUrl,
+        provider: existingUser.provider === 'credentials' ? 'credentials' : provider,
+        isEmailVerified: true,
+      };
+      users[existingIndex] = updatedUser;
       localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
-      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(users[existingIndex]));
-      return users[existingIndex];
+      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updatedUser));
+      return updatedUser;
     }
 
     users.push(user);
@@ -563,7 +567,7 @@ export const authService = {
   async loginWithOAuthProvider(provider: 'google' | 'twitter' | 'linkedin'): Promise<{ error?: string }> {
     if (!isSupabaseConfigured) {
       return {
-        error: 'O Supabase não está configurado no arquivo .env (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).',
+        error: 'O Supabase não está configurado nas variáveis de ambiente deste servidor/deploy.',
       };
     }
 
@@ -575,11 +579,11 @@ export const authService = {
     const pName = providerNames[provider] || provider;
 
     try {
+      const redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : '';
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: window.location.origin,
-          skipBrowserRedirect: true,
+          redirectTo: redirectUrl,
         },
       });
 
@@ -590,29 +594,14 @@ export const authService = {
           error.message.includes('validation_failed')
         ) {
           return {
-            error: `O provedor ${pName} ainda não foi ativado no painel do Supabase. Para abrir a tela oficial do ${pName}, ative o ${pName} em Authentication > Providers no painel da Supabase.`,
+            error: `O provedor ${pName} ainda não foi ativado no painel do Supabase. Utilize a Conexão Social Segura do NossoBolso.`,
           };
         }
         return { error: error.message };
       }
 
       if (data?.url) {
-        // Pré-validar a URL para evitar jogar o usuário na tela branca de erro do Supabase se o provedor não estiver ativo
-        try {
-          const checkRes = await fetch(data.url, { method: 'GET', redirect: 'manual' });
-          if (checkRes.status === 400) {
-            const errJson = await checkRes.json();
-            if (errJson.msg?.includes('provider is not enabled') || errJson.msg?.includes('Unsupported provider')) {
-              return {
-                error: `O provedor ${pName} ainda não foi ativado no painel do Supabase. Para que a tela do ${pName} abra, ative o ${pName} em Authentication > Providers no painel da Supabase.`,
-              };
-            }
-          }
-        } catch {
-          // Se falhar CORS ou redirect opaco, significa que pode redirecionar normalmente
-        }
-
-        // Redireciona o navegador para a tela oficial de login do provedor
+        // Redireciona o navegador diretamente para a tela oficial sem requisição fetch Ajax (evitando bloqueio CORS)
         window.location.href = data.url;
       }
       return {};

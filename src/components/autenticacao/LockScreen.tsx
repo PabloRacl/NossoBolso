@@ -17,9 +17,12 @@ export const LockScreen: React.FC<LockScreenProps> = ({ user, onUnlock, onLogout
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const hasPassword = Boolean(user.passwordHash);
+
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!password) {
+
+    if (hasPassword && !password) {
       setError('Por favor, informe a senha para desbloquear.');
       return;
     }
@@ -28,8 +31,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ user, onUnlock, onLogout
     setError(null);
 
     try {
-      // Se a conta tiver senha cadastrada localmente
-      if (user.passwordHash) {
+      if (hasPassword && user.passwordHash) {
         const isValid = await verifyPassword(password, user.passwordHash);
         if (!isValid) {
           setError('Senha incorreta. Tente novamente.');
@@ -37,8 +39,8 @@ export const LockScreen: React.FC<LockScreenProps> = ({ user, onUnlock, onLogout
           return;
         }
       } else {
-        // Se for conta social/oauth sem passwordHash local, tenta autenticar ou permite desbloqueio
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        // Para contas sociais conectadas sem senha cadastrada
+        await new Promise((resolve) => setTimeout(resolve, 350));
       }
 
       onUnlock();
@@ -77,7 +79,15 @@ export const LockScreen: React.FC<LockScreenProps> = ({ user, onUnlock, onLogout
           NossoBolso Bloqueado
         </h3>
         <p className="text-xs text-[#94A3B8] mb-6">
-          Sessão pausada por inatividade. Digite sua senha para continuar como <span className="text-white font-medium">{user.name}</span>.
+          {hasPassword ? (
+            <>
+              Sessão pausada por inatividade (15 min). Digite sua senha para continuar como <span className="text-white font-medium">{user.name}</span>.
+            </>
+          ) : (
+            <>
+              Sessão pausada por inatividade (15 min). Seus dados financeiros estão protegidos. Clique abaixo para reativar seu acesso como <span className="text-white font-medium">{user.name}</span>.
+            </>
+          )}
         </p>
 
         {error && (
@@ -92,24 +102,26 @@ export const LockScreen: React.FC<LockScreenProps> = ({ user, onUnlock, onLogout
         )}
 
         <form onSubmit={handleUnlock} className="w-full space-y-4">
-          <div className="relative text-left">
-            <label htmlFor="lock-password" className="block text-xs font-semibold text-[#94A3B8] mb-1.5">
-              Senha de Acesso
-            </label>
-            <div className="relative">
-              <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
-              <input
-                id="lock-password"
-                type="password"
-                autoFocus
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Sua senha secreta"
-                disabled={isLoading}
-                className="w-full pl-10 pr-4 py-2.5 bg-[#070A12] border border-[#1E293B] focus:border-[#00FF88] focus:ring-1 focus:ring-[#00FF88] rounded-xl text-sm text-white placeholder-[#475569] outline-none transition-all"
-              />
+          {hasPassword ? (
+            <div className="relative text-left">
+              <label htmlFor="lock-password" className="block text-xs font-semibold text-[#94A3B8] mb-1.5">
+                Senha de Acesso
+              </label>
+              <div className="relative">
+                <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
+                <input
+                  id="lock-password"
+                  type="password"
+                  autoFocus
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Sua senha secreta"
+                  disabled={isLoading}
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#070A12] border border-[#1E293B] focus:border-[#00FF88] focus:ring-1 focus:ring-[#00FF88] rounded-xl text-sm text-white placeholder-[#475569] outline-none transition-all"
+                />
+              </div>
             </div>
-          </div>
+          ) : null}
 
           <button
             type="submit"
@@ -121,7 +133,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ user, onUnlock, onLogout
             ) : (
               <>
                 <Unlock className="w-4 h-4" />
-                Desbloquear Acesso
+                {hasPassword ? 'Desbloquear Acesso' : `Continuar como ${user.name.split(' ')[0]}`}
               </>
             )}
           </button>

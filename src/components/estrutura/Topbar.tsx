@@ -9,6 +9,7 @@ import { requestNotificationPermission } from '../../servicos/notificationServic
 
 import { calculateFinancialHealthScore } from '../../utilidades/financialScore';
 import { UserAvatar } from '../ui/UserAvatar';
+import { SessionTimerBadge } from './SessionTimerBadge';
 
 export const Topbar: React.FC = () => {
   const {
@@ -239,6 +240,9 @@ export const Topbar: React.FC = () => {
           <span className="hidden sm:inline font-mono">{liveScore}</span>
           <span className="text-[10px] uppercase tracking-wider font-extrabold bg-[#00FF88]/20 px-1 py-0.5 rounded text-[#00FF88]">PTS</span>
         </button>
+
+        {/* Cronômetro Regressivo de Expiração de Sessão por Inatividade (15 min) */}
+        <SessionTimerBadge />
 
         {/* Botão de Comando por Voz (IA) */}
         <button
