@@ -31,13 +31,18 @@ async function trimCache() {
   }
 }
 
-// Instalação: Pré-carrega o shell da aplicação
+// Ouve o comando de atualização vindo do UpdateBanner
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+// Instalação: Pré-carrega o shell da aplicação (permanece em waiting até o usuário atualizar)
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(PRECACHE_ASSETS);
-    }).then(() => {
-      return self.skipWaiting();
     })
   );
 });
