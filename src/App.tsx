@@ -14,50 +14,99 @@ import { FinancialBadgesWidget } from './components/painel/FinancialBadgesWidget
 import { TransactionTable } from './components/transacoes/TransactionTable';
 import { WalletCards } from './components/carteiras/WalletCards';
 import { GoalCards } from './components/metas/GoalCards';
-import { ReportsView } from './components/relatorios/ReportsView';
-import { CalculatorView } from './components/calculadora/CalculatorView';
-import { SettingsView } from './components/configuracoes/SettingsView';
 import { TransactionModal } from './components/transacoes/TransactionModal';
 import { WalletModal } from './components/carteiras/WalletModal';
 import { GoalModal } from './components/metas/GoalModal';
 import { OfxImportModal } from './components/transacoes/OfxImportModal';
 import { CategoryModal } from './components/categorias/CategoryModal';
-import { DebtsView } from './components/dividas/DebtsView';
 import { DebtContractModal } from './components/dividas/DebtContractModal';
 import { AmortizacaoModal } from './components/dividas/AmortizacaoModal';
 import { AlertsModal } from './components/alertas/AlertsModal';
 import { BudgetModal } from './components/orcamentos/BudgetModal';
-import { CommandPalette } from './components/estrutura/CommandPalette';
 import { TransactionParticleAnimation } from './components/estrutura/TransactionParticleAnimation';
 import { HistoryDrawer } from './components/estrutura/HistoryDrawer';
-import { BackupModal } from './components/configuracoes/BackupModal';
-import { PantryView } from './components/despensa/PantryView';
-import { AutomotiveView } from './components/veiculos/AutomotiveView';
-import { CashFlowCalendarView } from './components/calendario/CashFlowCalendarView';
 import { CurrencyMarketWidget } from './components/modulos/CurrencyMarketWidget';
-import { VoiceCommandModal } from './components/voz/VoiceCommandModal';
-import { QrCodeScannerModal } from './components/comprovantes/QrCodeScannerModal';
-import { WhatIfSimulatorModal } from './components/simulador/WhatIfSimulatorModal';
-import { IndependenceSimulatorModal } from './components/calculadora/IndependenceSimulatorModal';
-import { ScoreModal } from './components/pontuacao/ScoreModal';
 import { UserProfileModal } from './components/autenticacao/UserProfileModal';
 import { AuthScreen } from './components/autenticacao/AuthScreen';
+import { LockScreen } from './components/autenticacao/LockScreen';
+import { useAutoLock } from './estado/useAutoLock';
 import { authService } from './servicos/authService';
-import { supabase } from './servicos/supabase';
-import { ThemeSelectorModal } from './components/tema/ThemeSelectorModal';
-import { ReceiptGeneratorModal } from './components/comprovantes/ReceiptGeneratorModal';
-import { ShortcutsModal } from './components/estrutura/ShortcutsModal';
-import { PmpeConsignadoSimulatorModal } from './components/calculadora/PmpeConsignadoSimulatorModal';
-import { InstallPwaModal } from './components/configuracoes/InstallPwaModal';
+import { supabase, isSupabaseConfigured } from './servicos/supabase';
 import { ConfirmModal } from './components/ui/ConfirmModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const DdcImportModal = React.lazy(() =>
-  import('./components/dividas/DdcImportModal').then((module) => ({ default: module.DdcImportModal }))
+// Code-Splitting: Views Pesadas e Módulos Secundários carregados sob demanda via React.lazy
+const ReportsView = React.lazy(() =>
+  import('./components/relatorios/ReportsView').then((m) => ({ default: m.ReportsView }))
+);
+const CalculatorView = React.lazy(() =>
+  import('./components/calculadora/CalculatorView').then((m) => ({ default: m.CalculatorView }))
+);
+const DebtsView = React.lazy(() =>
+  import('./components/dividas/DebtsView').then((m) => ({ default: m.DebtsView }))
+);
+const PantryView = React.lazy(() =>
+  import('./components/despensa/PantryView').then((m) => ({ default: m.PantryView }))
+);
+const AutomotiveView = React.lazy(() =>
+  import('./components/veiculos/AutomotiveView').then((m) => ({ default: m.AutomotiveView }))
+);
+const CashFlowCalendarView = React.lazy(() =>
+  import('./components/calendario/CashFlowCalendarView').then((m) => ({ default: m.CashFlowCalendarView }))
+);
+const SettingsView = React.lazy(() =>
+  import('./components/configuracoes/SettingsView').then((m) => ({ default: m.SettingsView }))
+);
+const CommandPalette = React.lazy(() =>
+  import('./components/estrutura/CommandPalette').then((m) => ({ default: m.CommandPalette }))
 );
 
+// Modais Secundários Lazy-loaded
+const BackupModal = React.lazy(() =>
+  import('./components/configuracoes/BackupModal').then((m) => ({ default: m.BackupModal }))
+);
+const ShortcutsModal = React.lazy(() =>
+  import('./components/estrutura/ShortcutsModal').then((m) => ({ default: m.ShortcutsModal }))
+);
+const ThemeSelectorModal = React.lazy(() =>
+  import('./components/tema/ThemeSelectorModal').then((m) => ({ default: m.ThemeSelectorModal }))
+);
+const ReceiptGeneratorModal = React.lazy(() =>
+  import('./components/comprovantes/ReceiptGeneratorModal').then((m) => ({ default: m.ReceiptGeneratorModal }))
+);
+const VoiceCommandModal = React.lazy(() =>
+  import('./components/voz/VoiceCommandModal').then((m) => ({ default: m.VoiceCommandModal }))
+);
+const QrCodeScannerModal = React.lazy(() =>
+  import('./components/comprovantes/QrCodeScannerModal').then((m) => ({ default: m.QrCodeScannerModal }))
+);
+const WhatIfSimulatorModal = React.lazy(() =>
+  import('./components/simulador/WhatIfSimulatorModal').then((m) => ({ default: m.WhatIfSimulatorModal }))
+);
+const IndependenceSimulatorModal = React.lazy(() =>
+  import('./components/calculadora/IndependenceSimulatorModal').then((m) => ({ default: m.IndependenceSimulatorModal }))
+);
+const PmpeConsignadoSimulatorModal = React.lazy(() =>
+  import('./components/calculadora/PmpeConsignadoSimulatorModal').then((m) => ({ default: m.PmpeConsignadoSimulatorModal }))
+);
+const InstallPwaModal = React.lazy(() =>
+  import('./components/configuracoes/InstallPwaModal').then((m) => ({ default: m.InstallPwaModal }))
+);
+const ScoreModal = React.lazy(() =>
+  import('./components/pontuacao/ScoreModal').then((m) => ({ default: m.ScoreModal }))
+);
+const DdcImportModal = React.lazy(() =>
+  import('./components/dividas/DdcImportModal').then((m) => ({ default: m.DdcImportModal }))
+);
 const ContrachequeModal = React.lazy(() =>
-  import('./components/transacoes/ContrachequeModal').then((module) => ({ default: module.ContrachequeModal }))
+  import('./components/transacoes/ContrachequeModal').then((m) => ({ default: m.ContrachequeModal }))
+);
+
+const ViewLoadingFallback = () => (
+  <div className="w-full min-h-[350px] flex flex-col items-center justify-center p-8 rounded-2xl bg-[#0B0F19]/40 border border-[#1E293B]/40 animate-pulse">
+    <div className="w-8 h-8 border-2 border-[#00FF88] border-t-transparent rounded-full animate-spin mb-3" />
+    <span className="text-xs font-mono text-[#94A3B8]">Carregando módulo financeiro...</span>
+  </div>
 );
 
 const pageTransitionVariants = {
@@ -109,9 +158,27 @@ export const App: React.FC = () => {
     isContrachequeModalOpen,
   } = useAppStore();
 
+  const { isLocked, unlock } = useAutoLock();
+
+  // Prefetch ocioso de módulos pesados para navegação fluida
+  useEffect(() => {
+    const prefetchTimer = setTimeout(() => {
+      import('./components/relatorios/ReportsView');
+      import('./components/calculadora/CalculatorView');
+      import('./components/dividas/DebtsView');
+    }, 2500);
+
+    return () => clearTimeout(prefetchTimer);
+  }, []);
+
   // Sincronizar sessão OAuth do Supabase sem flicker inicial
   useEffect(() => {
     let isMounted = true;
+
+    if (!isSupabaseConfigured) {
+      setIsCheckingAuth(false);
+      return;
+    }
 
     const initAuth = async () => {
       try {
@@ -493,38 +560,114 @@ export const App: React.FC = () => {
             />
           )}
 
-          {activePage === 'calendar' && <CashFlowCalendarView />}
+          {activePage === 'calendar' && (
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <CashFlowCalendarView />
+            </Suspense>
+          )}
 
           {activePage === 'wallets' && <WalletCards wallets={wallets} />}
 
-          {activePage === 'debts' && <DebtsView />}
+          {activePage === 'debts' && (
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <DebtsView />
+            </Suspense>
+          )}
 
           {activePage === 'goals' && <GoalCards goals={goals} />}
 
-          {activePage === 'pantry' && <PantryView />}
+          {activePage === 'pantry' && (
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <PantryView />
+            </Suspense>
+          )}
 
-          {activePage === 'vehicles' && <AutomotiveView />}
+          {activePage === 'vehicles' && (
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <AutomotiveView />
+            </Suspense>
+          )}
 
-          {activePage === 'reports' && <ReportsView transactions={transactions} goals={goals} />}
+          {activePage === 'reports' && (
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <ReportsView transactions={transactions} goals={goals} />
+            </Suspense>
+          )}
 
-          {activePage === 'calculator' && <CalculatorView />}
+          {activePage === 'calculator' && (
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <CalculatorView />
+            </Suspense>
+          )}
 
-          {activePage === 'settings' && <SettingsView />}
+          {activePage === 'settings' && (
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <SettingsView />
+            </Suspense>
+          )}
         </motion.div>
       </AnimatePresence>
 
       {/* Global Modals & Side Drawers */}
       <HistoryDrawer />
-      <BackupModal />
-      <ShortcutsModal isOpen={isShortcutsModalOpen} onClose={() => setShortcutsModalOpen(false)} />
-      <ThemeSelectorModal isOpen={isThemeModalOpen} onClose={() => setThemeModalOpen(false)} />
-      <ReceiptGeneratorModal isOpen={isReceiptModalOpen} onClose={() => setReceiptModalOpen(false)} />
-      <VoiceCommandModal isOpen={isVoiceModalOpen} onClose={() => setVoiceModalOpen(false)} />
-      <QrCodeScannerModal isOpen={isQrCodeModalOpen} onClose={() => setQrCodeModalOpen(false)} />
-      <WhatIfSimulatorModal isOpen={isWhatIfModalOpen} onClose={() => setWhatIfModalOpen(false)} />
-      <IndependenceSimulatorModal isOpen={isFireModalOpen} onClose={() => setFireModalOpen(false)} />
-      <PmpeConsignadoSimulatorModal isOpen={isPmpeConsignadoModalOpen} onClose={() => setPmpeConsignadoModalOpen(false)} />
-      <InstallPwaModal isOpen={isPwaModalOpen} onClose={() => setPwaModalOpen(false)} />
+      <Suspense fallback={null}>
+        <BackupModal />
+      </Suspense>
+
+      {isShortcutsModalOpen && (
+        <Suspense fallback={null}>
+          <ShortcutsModal isOpen={isShortcutsModalOpen} onClose={() => setShortcutsModalOpen(false)} />
+        </Suspense>
+      )}
+
+      {isThemeModalOpen && (
+        <Suspense fallback={null}>
+          <ThemeSelectorModal isOpen={isThemeModalOpen} onClose={() => setThemeModalOpen(false)} />
+        </Suspense>
+      )}
+
+      {isReceiptModalOpen && (
+        <Suspense fallback={null}>
+          <ReceiptGeneratorModal isOpen={isReceiptModalOpen} onClose={() => setReceiptModalOpen(false)} />
+        </Suspense>
+      )}
+
+      {isVoiceModalOpen && (
+        <Suspense fallback={null}>
+          <VoiceCommandModal isOpen={isVoiceModalOpen} onClose={() => setVoiceModalOpen(false)} />
+        </Suspense>
+      )}
+
+      {isQrCodeModalOpen && (
+        <Suspense fallback={null}>
+          <QrCodeScannerModal isOpen={isQrCodeModalOpen} onClose={() => setQrCodeModalOpen(false)} />
+        </Suspense>
+      )}
+
+      {isWhatIfModalOpen && (
+        <Suspense fallback={null}>
+          <WhatIfSimulatorModal isOpen={isWhatIfModalOpen} onClose={() => setWhatIfModalOpen(false)} />
+        </Suspense>
+      )}
+
+      {isFireModalOpen && (
+        <Suspense fallback={null}>
+          <IndependenceSimulatorModal isOpen={isFireModalOpen} onClose={() => setFireModalOpen(false)} />
+        </Suspense>
+      )}
+
+      {isPmpeConsignadoModalOpen && (
+        <Suspense fallback={null}>
+          <PmpeConsignadoSimulatorModal isOpen={isPmpeConsignadoModalOpen} onClose={() => setPmpeConsignadoModalOpen(false)} />
+        </Suspense>
+      )}
+
+      {isPwaModalOpen && (
+        <Suspense fallback={null}>
+          <InstallPwaModal isOpen={isPwaModalOpen} onClose={() => setPwaModalOpen(false)} />
+        </Suspense>
+      )}
+
       <TransactionParticleAnimation />
       <TransactionModal />
       <WalletModal />
@@ -545,10 +688,33 @@ export const App: React.FC = () => {
       <AmortizacaoModal />
       <AlertsModal />
       <BudgetModal />
-      <ScoreModal isOpen={isScoreModalOpen} onClose={() => setScoreModalOpen(false)} />
-      <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
+
+      {isScoreModalOpen && (
+        <Suspense fallback={null}>
+          <ScoreModal isOpen={isScoreModalOpen} onClose={() => setScoreModalOpen(false)} />
+        </Suspense>
+      )}
+
+      {isCommandPaletteOpen && (
+        <Suspense fallback={null}>
+          <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
+        </Suspense>
+      )}
+
       <UserProfileModal />
       <ConfirmModal />
+
+      {/* Tela de Bloqueio por Inatividade */}
+      {isLocked && user && (
+        <LockScreen
+          user={user}
+          onUnlock={unlock}
+          onLogout={() => {
+            useAppStore.getState().setUser(null);
+            unlock();
+          }}
+        />
+      )}
     </AppLayout>
         </motion.div>
       )}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShieldCheck, ArrowRight, Loader2, Facebook, Linkedin } from 'lucide-react';
+import { getSafeDicebearAvatar } from '../../utilidades/avatarUtils';
 
 interface SocialLoginModalProps {
   provider: 'google' | 'facebook' | 'linkedin' | 'twitter' | null;
@@ -85,8 +86,9 @@ export const SocialLoginModal: React.FC<SocialLoginModalProps> = ({
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shrink-0 shadow-lg shadow-emerald-500/20">
                     <img
-                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(socialEmailInput || 'pablo')}`}
+                      src={getSafeDicebearAvatar(socialEmailInput || 'pablo')}
                       alt="Avatar"
+                      referrerPolicy="no-referrer"
                       className="w-full h-full rounded-full bg-slate-900"
                     />
                   </div>

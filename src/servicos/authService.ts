@@ -9,6 +9,7 @@ import {
   resetRateLimit,
   generateSecureOTP,
 } from '../utilidades/securityUtils';
+import { getSafeDicebearAvatar } from '../utilidades/avatarUtils';
 
 const STORAGE_KEY_USER = 'nossobolso_auth_user';
 const STORAGE_KEY_USERS_DB = 'nossobolso_registered_users';
@@ -42,24 +43,12 @@ interface SocialLoginPayload {
   avatarUrl?: string;
 }
 
-// Inicializa usuários registrados no banco de dados local
+// Inicializa usuários registrados no banco de dados local (inicia vazio para segurança estrita)
 const getSavedUsers = (): UserProfile[] => {
   try {
     const data = localStorage.getItem(STORAGE_KEY_USERS_DB);
     if (!data) {
-      const defaultUser: UserProfile = {
-        id: 'usr_default_01',
-        name: 'Pablo Ricardo',
-        email: 'pablo@nossobolso.app',
-        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        provider: 'credentials',
-        role: 'user',
-        isEmailVerified: true,
-        passwordHash: '09fba8ef3f0ecb4ddc60dbfdf0a7bf7406a57e9a622a7372a05d663684f6f6a5', // Hash seguro SHA-256 de '123456'
-        createdAt: new Date().toISOString(),
-      };
-      localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify([defaultUser]));
-      return [defaultUser];
+      return [];
     }
     return JSON.parse(data) as UserProfile[];
   } catch {
@@ -100,56 +89,98 @@ export const authService = {
       throw new Error('Por favor, informe seu e-mail.');
     }
 
+    // 2. Tenta autenticação no Supabase Auth caso esteja configurado
+    if (isSupabaseConfigured && password) {
+      try {
+        const { data: suData, error: suError } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        });
+
+        if (!suError && suData.user) {
+          const suUser = suData.user;
+          const profile: UserProfile = {
+            id: suUser.id,
+            name: suUser.user_metadata?.full_name || suUser.user_metadata?.name || normalizedEmail.split('@')[0],
+            email: suUser.email || normalizedEmail,
+            avatarUrl: suUser.user_metadata?.avatar_url || getSafeDicebearAvatar(normalizedEmail),
+            provider: 'credentials',
+            role: 'user',
+            isEmailVerified: Boolean(suUser.email_confirmed_at),
+            createdAt: suUser.created_at || new Date().toISOString(),
+          };
+
+          resetRateLimit(`login:${normalizedEmail}`);
+          localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(profile));
+          return profile;
+        }
+      } catch {
+        // Falha na conexão de rede do Supabase: segue para verificação do banco local
+      }
+    }
+
     const users = getSavedUsers();
     const existing = users.find((u) => u.email.toLowerCase() === normalizedEmail);
 
-    // 2. BLOQUEIO DE AUTO-REGISTRO: Usuário inexistente deve falhar
+    // 3. BLOQUEIO DE AUTO-REGISTRO: Usuário inexistente deve falhar
     if (!existing) {
       recordFailedAttempt(`login:${normalizedEmail}`, 5, 120000);
       throw new Error('E-mail ou senha incorretos.');
     }
 
-    // 3. BLOQUEIO CRÍTICO: E-mail não verificado
+    // 4. BLOQUEIO: E-mail não verificado
     if (!existing.isEmailVerified) {
-      const now = Date.now();
-      const isTokenExpired = !existing.verificationTokenExpiresAt || new Date(existing.verificationTokenExpiresAt).getTime() < now;
-      if (isTokenExpired || !existing.verificationToken) {
-        const newCode = generateSecureOTP(6);
-        existing.verificationToken = newCode;
-        existing.verificationTokenExpiresAt = new Date(now + 15 * 60 * 1000).toISOString();
+      if (!emailService.isRealEmailConfigured()) {
+        // Em ambiente local/offline sem SMTP configurado, ativação automática
+        existing.isEmailVerified = true;
         const userIdx = users.findIndex((u) => u.id === existing.id);
         if (userIdx !== -1) {
           users[userIdx] = existing;
           localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
         }
-        await emailService.sendVerificationCode({
-          toName: existing.name,
-          toEmail: existing.email,
-          code: newCode,
-        });
+      } else {
+        const now = Date.now();
+        const isTokenExpired = !existing.verificationTokenExpiresAt || new Date(existing.verificationTokenExpiresAt).getTime() < now;
+        if (isTokenExpired || !existing.verificationToken) {
+          const newCode = generateSecureOTP(6);
+          existing.verificationToken = newCode;
+          existing.verificationTokenExpiresAt = new Date(now + 15 * 60 * 1000).toISOString();
+          const userIdx = users.findIndex((u) => u.id === existing.id);
+          if (userIdx !== -1) {
+            users[userIdx] = existing;
+            localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
+          }
+          await emailService.sendVerificationCode({
+            toName: existing.name,
+            toEmail: existing.email,
+            code: newCode,
+          });
+        }
+        throw new Error('EMAIL_NOT_VERIFIED: Este e-mail ainda não foi confirmado. Enviamos um código para sua caixa de entrada para ativação.');
       }
-      throw new Error('EMAIL_NOT_VERIFIED: Este e-mail ainda não foi confirmado. Enviamos um código para sua caixa de entrada para ativação.');
     }
 
-    // 4. Verificação Criptográfica de Senha
+    // 5. Verificação Criptográfica de Senha e Bloqueio de Senha Fraca Padrão
     if (existing.provider === 'credentials') {
       if (!password) {
         throw new Error('Por favor, informe a sua senha.');
       }
 
-      if (existing.passwordHash) {
-        const isPasswordCorrect = await verifyPassword(password, existing.passwordHash);
-        if (!isPasswordCorrect) {
-          recordFailedAttempt(`login:${normalizedEmail}`, 5, 120000);
-          throw new Error('E-mail ou senha incorretos.');
-        }
-      } else {
-        // Conta legada sem hash: valida se corresponde à senha padrão '123456'
-        const isDefaultPassword = password === '123456';
-        if (!isDefaultPassword) {
-          recordFailedAttempt(`login:${normalizedEmail}`, 5, 120000);
-          throw new Error('E-mail ou senha incorretos. Caso seja seu primeiro acesso, use a senha padrão ou redefina sua senha.');
-        }
+      // Bloqueio rigoroso de conta legada com senha '123456'
+      const INSECURE_DEFAULT_HASH = '09fba8ef3f0ecb4ddc60dbfdf0a7bf7406a57e9a622a7372a05d663684f6f6a5';
+      if (existing.passwordHash === INSECURE_DEFAULT_HASH || !existing.passwordHash || password === '123456') {
+        recordFailedAttempt(`login:${normalizedEmail}`, 5, 120000);
+        throw new Error('Esta conta utiliza uma senha legada descontinuada. Por segurança, utilize a opção "Esqueci minha senha" para cadastrar uma nova senha forte.');
+      }
+
+      const isPasswordCorrect = await verifyPassword(password, existing.passwordHash);
+      if (!isPasswordCorrect) {
+        recordFailedAttempt(`login:${normalizedEmail}`, 5, 120000);
+        throw new Error('E-mail ou senha incorretos.');
+      }
+
+      // Se o hash for de formato legado, atualiza automaticamente para PBKDF2 transparente
+      if (!existing.passwordHash.startsWith('pbkdf2$')) {
         existing.passwordHash = await hashPassword(password);
         const userIdx = users.findIndex((u) => u.id === existing.id);
         if (userIdx !== -1) {
@@ -166,7 +197,7 @@ export const authService = {
     return existing;
   },
 
-  // Cadastro seguro com hash de senha e validação prévia de e-mail
+  // Cadastro seguro com hash de senha PBKDF2 e validação estrita
   async register({ name, email, password }: RegisterPayload): Promise<UserProfile> {
     await new Promise((resolve) => setTimeout(resolve, 600));
     const normalizedEmail = (email || '').trim().toLowerCase();
@@ -177,8 +208,8 @@ export const authService = {
     if (!normalizedEmail || !normalizedEmail.includes('@')) {
       throw new Error('Por favor, informe um e-mail válido.');
     }
-    if (!password || password.length < 6) {
-      throw new Error('A senha deve conter no mínimo 6 caracteres.');
+    if (!password || password.length < 8 || !/\d/.test(password) || !/[a-zA-Z]/.test(password)) {
+      throw new Error('A senha deve conter no mínimo 8 caracteres, incluindo letras e números.');
     }
 
     const rateCheck = checkRateLimit(`register:${normalizedEmail}`, 5, 120000);
@@ -193,6 +224,23 @@ export const authService = {
     const verificationToken = generateSecureOTP(6);
     const verificationTokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
+    // Integração com Supabase Auth caso configurado
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.auth.signUp({
+          email: normalizedEmail,
+          password,
+          options: {
+            data: { name: name.trim() },
+          },
+        });
+      } catch (err: unknown) {
+        console.warn('[Supabase Auth] Não foi possível registrar na nuvem, mantendo cadastro local:', err);
+      }
+    }
+
+    const isAutoVerified = !emailService.isRealEmailConfigured();
+
     if (existingIndex !== -1) {
       const existing = users[existingIndex];
       // Se a conta já existe e o e-mail está verificado: impede duplicidade
@@ -205,29 +253,34 @@ export const authService = {
         ...existing,
         name: name.trim(),
         passwordHash,
+        isEmailVerified: isAutoVerified,
         verificationToken,
         verificationTokenExpiresAt,
       };
       localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
 
-      await emailService.sendVerificationCode({
-        toName: name.trim(),
-        toEmail: normalizedEmail,
-        code: verificationToken,
-      });
+      if (isAutoVerified) {
+        localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(users[existingIndex]));
+      } else {
+        await emailService.sendVerificationCode({
+          toName: name.trim(),
+          toEmail: normalizedEmail,
+          code: verificationToken,
+        });
+      }
 
       return users[existingIndex];
     }
 
-    // Cria novo usuário pendente de validação
+    // Cria novo usuário
     const newUser: UserProfile = {
       id: `usr_${Date.now()}`,
       name: name.trim(),
       email: normalizedEmail,
-      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name.trim())}`,
+      avatarUrl: getSafeDicebearAvatar(name.trim()),
       provider: 'credentials',
       role: 'user',
-      isEmailVerified: false,
+      isEmailVerified: isAutoVerified,
       passwordHash,
       verificationToken,
       verificationTokenExpiresAt,
@@ -236,13 +289,16 @@ export const authService = {
 
     users.push(newUser);
     localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
-    // NOTA DE SEGURANÇA: NÃO persistir em STORAGE_KEY_USER aqui para impedir login não verificado!
 
-    await emailService.sendVerificationCode({
-      toName: name.trim(),
-      toEmail: normalizedEmail,
-      code: verificationToken,
-    });
+    if (isAutoVerified) {
+      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(newUser));
+    } else {
+      await emailService.sendVerificationCode({
+        toName: name.trim(),
+        toEmail: normalizedEmail,
+        code: verificationToken,
+      });
+    }
 
     return newUser;
   },
@@ -409,13 +465,22 @@ export const authService = {
       throw new Error('Este código de redefinição expirou. Solicite um novo código de recuperação.');
     }
 
-    if (newPassword && newPassword.length < 6) {
-      throw new Error('A nova senha deve ter no mínimo 6 caracteres.');
+    if (newPassword && (newPassword.length < 8 || !/\d/.test(newPassword) || !/[a-zA-Z]/.test(newPassword))) {
+      throw new Error('A nova senha deve ter no mínimo 8 caracteres, incluindo letras e números.');
     }
 
     resetRateLimit(`reset_exec:${normalizedEmail}`);
 
     const updatedPasswordHash = newPassword ? await hashPassword(newPassword) : targetUser.passwordHash;
+
+    // Sincroniza atualização de senha com Supabase caso esteja conectado
+    if (isSupabaseConfigured && newPassword) {
+      try {
+        await supabase.auth.updateUser({ password: newPassword });
+      } catch {
+        // Falha silenciosa caso não haja sessão de recuperação no Supabase
+      }
+    }
 
     const updatedUser: UserProfile = {
       ...targetUser,
@@ -459,7 +524,7 @@ export const authService = {
 
     const finalEmail = (email || 'pabloracl@gmail.com').toLowerCase();
     const finalName = name || defaultNames[provider] || 'Usuário Conectado';
-    const finalAvatar = avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(finalName)}`;
+    const finalAvatar = avatarUrl || getSafeDicebearAvatar(finalName);
 
     const users = getSavedUsers();
     const existingIndex = users.findIndex((u) => u.email.toLowerCase() === finalEmail);
@@ -584,7 +649,7 @@ export const authService = {
           avatarUrl:
             suUser.user_metadata?.avatar_url ||
             suUser.user_metadata?.picture ||
-            `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(suUser.email || suUser.id)}`,
+            getSafeDicebearAvatar(suUser.id || 'usuario'),
           provider: suProvider,
           role: 'user',
           isEmailVerified: true,

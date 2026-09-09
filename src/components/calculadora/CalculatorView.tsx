@@ -12,6 +12,7 @@ import { SacVsPriceComparisonTab } from './SacVsPriceComparisonTab';
 import { EarlyDiscountTab } from './EarlyDiscountTab';
 import { StandardCalculatorTab } from './StandardCalculatorTab';
 import { calculateAmortizationComparison } from '../../utilidades/debtCalculations';
+import { evaluateMathExpression } from '../../utilidades/mathEvaluator';
 
 type TabType = 'compound' | 'fire' | 'comparison' | 'discount' | 'standard';
 
@@ -111,26 +112,8 @@ export const CalculatorView: React.FC = () => {
       }
       if (!cleanExpr) return;
 
-      // Normaliza símbolos visuais para operadores matemáticos padrão
-      let sanitized = cleanExpr.replace(/×/g, '*').replace(/÷/g, '/');
-
-      // Substitui porcentagem de forma segura (ex: 50% -> (50/100))
-      sanitized = sanitized.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
-
-      // Validação estrita: somente dígitos, operadores aritméticos, parênteses e pontos
-      if (!/^[0-9+\-*/().\s]+$/.test(sanitized)) {
-        setCalcDisplay('Erro');
-        setIsEvaluated(true);
-        return;
-      }
-
-      const result = Function(`"use strict"; return (${sanitized})`)();
-
-      if (typeof result !== 'number' || isNaN(result) || !isFinite(result)) {
-        setCalcDisplay('Erro');
-        setIsEvaluated(true);
-        return;
-      }
+      // Avaliação determinística e segura sem Function() ou eval()
+      const result = evaluateMathExpression(cleanExpr);
 
       const formattedResult = String(Math.round(result * 10000) / 10000);
       setCalcDisplay(formattedResult);

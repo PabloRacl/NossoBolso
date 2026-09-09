@@ -379,19 +379,19 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
         <div class="footer">
           Gerado pelo Sistema Inteligente NossoBolso Finance OS. Todos os dados permanecem protegidos sob criptografia e controle exclusivo do usuário.
         </div>
-
-        <script>
-          window.onload = function() {
-            window.print();
-          };
-        </script>
       </body>
       </html>
     `;
 
-    printWindow.document.open();
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
+    printWindow.document.documentElement.innerHTML = htmlContent;
+    printWindow.focus();
+    setTimeout(() => {
+      try {
+        printWindow.print();
+      } catch {
+        // Ignora caso a janela tenha sido fechada pelo usuário
+      }
+    }, 300);
   };
 
   return (

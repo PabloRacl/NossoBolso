@@ -23,7 +23,7 @@ export const VerifyCodeForm: React.FC<VerifyCodeFormProps> = ({
   onResendSuccess,
   onChangeEmail,
 }) => {
-  const [verificationCode, setVerificationCode] = useState('');
+  const [verificationCode, setVerificationCode] = useState(simulatedToken || '');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -83,13 +83,18 @@ export const VerifyCodeForm: React.FC<VerifyCodeFormProps> = ({
         <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs space-y-1.5 backdrop-blur-md">
           <div className="flex items-center gap-2 font-bold text-amber-400">
             <Mail className="w-4 h-4 shrink-0" />
-            <span>Simulação de E-mail Enviado para {email}</span>
+            <span>Código de Ativação da sua Conta</span>
           </div>
           <p className="text-[11px] text-slate-300 leading-relaxed">
-            Seu código de verificação de 6 dígitos é:{' '}
-            <strong className="text-emerald-400 text-sm font-black tracking-widest bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30">
+            Como o servidor de e-mails está em modo local, o código de 6 dígitos gerado para <strong>{email}</strong> é:{' '}
+            <button
+              type="button"
+              onClick={() => simulatedToken && setVerificationCode(simulatedToken)}
+              className="text-emerald-400 text-sm font-black tracking-widest bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30 hover:bg-emerald-500/30 transition-all cursor-pointer"
+              title="Clique para preencher o código automaticamente"
+            >
               {simulatedToken || '849201'}
-            </strong>
+            </button>
           </p>
         </div>
       )}

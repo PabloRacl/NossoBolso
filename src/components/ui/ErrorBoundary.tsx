@@ -34,11 +34,25 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private handleEmergencyExport = (): void => {
     try {
-      const dump: Record<string, string> = {};
+      // Lista de chaves restritas para não expor credenciais ou tokens em dumps de resgate
+      const SENSITIVE_KEYS = new Set([
+        'nossobolso_registered_users',
+        'nossobolso_auth_user',
+        'nossobolso_auth_token',
+        'nossobolso_users_db',
+        'nossobolso_oauth_state',
+      ]);
+
+      const dump: Record<string, unknown> = {};
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && key.startsWith('nossobolso_')) {
-          dump[key] = localStorage.getItem(key) || '';
+        if (key && key.startsWith('nossobolso_') && !SENSITIVE_KEYS.has(key)) {
+          const val = localStorage.getItem(key) || '';
+          try {
+            dump[key] = JSON.parse(val);
+          } catch {
+            dump[key] = val;
+          }
         }
       }
       const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });

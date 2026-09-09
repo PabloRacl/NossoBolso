@@ -397,6 +397,10 @@ export const AuthScreen: React.FC = () => {
               {authMode === 'register' && (
                 <RegisterForm
                   onSuccess={(newUser, emailRegistered) => {
+                    if (newUser.isEmailVerified) {
+                      transitionToSystem(newUser, 'Conta criada com sucesso! Acessando seu painel financeiro...');
+                      return;
+                    }
                     setRegisteredEmail(emailRegistered);
                     setSimulatedToken(newUser.verificationToken || '849201');
                     setSuccessMessage(`🎉 Cadastro efetuado com sucesso! Código enviado para ${emailRegistered}`);

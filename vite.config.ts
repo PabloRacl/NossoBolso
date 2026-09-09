@@ -29,7 +29,8 @@ export default defineConfig({
             if (id.includes('recharts')) return 'vendor-charts';
             if (id.includes('framer-motion')) return 'vendor-motion';
             if (id.includes('lucide-react')) return 'vendor-icons';
-            if (id.includes('dexie') || id.includes('supabase')) return 'vendor-db';
+            if (id.includes('dexie')) return 'vendor-db';
+            if (id.includes('supabase')) return 'vendor-cloud';
             if (id.includes('pdfjs-dist')) return undefined;
             return 'vendor-core';
           }

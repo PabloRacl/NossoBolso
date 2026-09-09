@@ -26,5 +26,8 @@ jobs:
       - name: Executar Testes Unitários (Vitest)
         run: npx vitest run
 
+      - name: Auditoria de Segurança de Dependências (Supply Chain Security)
+        run: npm audit --audit-level=high
+
       - name: Validar Compilação TypeScript e Build de Produção
         run: npm run build

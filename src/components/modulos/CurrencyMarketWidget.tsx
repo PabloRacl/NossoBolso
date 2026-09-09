@@ -29,39 +29,73 @@ export const CurrencyMarketWidget: React.FC = () => {
     { code: 'BTC', name: 'Bitcoin (BTC)', bid: 365000.00, pctChange: 2.45, icon: <Bitcoin className="w-4 h-4 text-[#F59E0B]" /> },
   ]);
 
+  const CACHE_KEY = 'nossobolso_currency_rates_cache';
+  const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchRates = async () => {
+  const fetchRates = async (force: boolean = false) => {
+    // 1. Verifica cache local se não for forçado
+    if (!force) {
+      try {
+        const cachedRaw = sessionStorage.getItem(CACHE_KEY);
+        if (cachedRaw) {
+          const { timestamp, data } = JSON.parse(cachedRaw);
+          if (Date.now() - timestamp < CACHE_TTL_MS && Array.isArray(data)) {
+            setRates([
+              { ...data[0], icon: <DollarSign className="w-4 h-4 text-[#00FF88]" /> },
+              { ...data[1], icon: <Globe className="w-4 h-4 text-[#06B6D4]" /> },
+              { ...data[2], icon: <Bitcoin className="w-4 h-4 text-[#F59E0B]" /> },
+            ]);
+            return;
+          }
+        }
+      } catch {
+        // Segue para fetch se o cache falhar
+      }
+    }
+
     try {
       setIsLoading(true);
       const res = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL,BTC-BRL');
       if (res.ok) {
         const data = await res.json();
-        setRates([
+        const newRates = [
           {
             code: 'USD',
             name: 'Dólar Comercial',
             bid: parseFloat(data.USDBRL?.bid || '5.48'),
             pctChange: parseFloat(data.USDBRL?.pctChange || '0'),
-            icon: <DollarSign className="w-4 h-4 text-[#00FF88]" />,
           },
           {
             code: 'EUR',
             name: 'Euro',
             bid: parseFloat(data.EURBRL?.bid || '6.12'),
             pctChange: parseFloat(data.EURBRL?.pctChange || '0'),
-            icon: <Globe className="w-4 h-4 text-[#06B6D4]" />,
           },
           {
             code: 'BTC',
             name: 'Bitcoin (BTC)',
             bid: parseFloat(data.BTCBRL?.bid || '365000'),
             pctChange: parseFloat(data.BTCBRL?.pctChange || '0'),
-            icon: <Bitcoin className="w-4 h-4 text-[#F59E0B]" />,
           },
+        ];
+
+        sessionStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({
+            timestamp: Date.now(),
+            data: newRates,
+          })
+        );
+
+        setRates([
+          { ...newRates[0], icon: <DollarSign className="w-4 h-4 text-[#00FF88]" /> },
+          { ...newRates[1], icon: <Globe className="w-4 h-4 text-[#06B6D4]" /> },
+          { ...newRates[2], icon: <Bitcoin className="w-4 h-4 text-[#F59E0B]" /> },
         ]);
       }
-    } catch (err) {
+    } catch {
       console.warn('Usando cotações locais em cache.');
     } finally {
       setIsLoading(false);
@@ -69,7 +103,7 @@ export const CurrencyMarketWidget: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchRates();
+    fetchRates(false);
   }, []);
 
   const usdBid = rates.find((r) => r.code === 'USD')?.bid || 5.48;
@@ -92,7 +126,7 @@ export const CurrencyMarketWidget: React.FC = () => {
         </div>
 
         <button
-          onClick={fetchRates}
+          onClick={() => fetchRates(true)}
           disabled={isLoading}
           className="p-2 bg-[#162032] border border-[#2E3B52] hover:border-[#06B6D4]/40 text-[#94A3B8] hover:text-[#06B6D4] rounded-xl transition-all cursor-pointer"
           title="Atualizar Cotações ao Vivo"

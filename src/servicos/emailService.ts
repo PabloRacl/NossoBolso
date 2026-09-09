@@ -70,9 +70,23 @@ export const emailService = {
       }
     }
 
+    // Em ambiente de produção, nunca vaza códigos OTP se o provedor de e-mail não estiver configurado
+    if (import.meta.env.PROD) {
+      return {
+        success: false,
+        message: 'Serviço de envio de e-mails indisponível. Entre em contato com o suporte ou tente novamente mais tarde.',
+        isReal: false,
+      };
+    }
+
+    // Em ambiente de desenvolvimento (DEV), registra no console para facilitar testes locais
+    if (import.meta.env.DEV) {
+      console.info(`[Dev Simulation] Código de verificação para ${toEmail}: ${code}`);
+    }
+
     return {
       success: true,
-      message: `[Modo Simulação] O código de verificação é: ${code}`,
+      message: `[Modo Desenvolvimento] Código simulado: ${code}`,
       isReal: false,
     };
   },

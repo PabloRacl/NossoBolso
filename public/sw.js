@@ -4,7 +4,7 @@
  * e suporte a PWA instalável.
  */
 
-const CACHE_NAME = 'nosso-bolso-v2.0.0';
+const CACHE_NAME = 'nosso-bolso-v2.1.0';
 
 // Limite de entradas em cache para evitar crescimento descontrolado em builds sucessivos
 const MAX_CACHE_ITEMS = 120;
@@ -14,9 +14,10 @@ const PRECACHE_ASSETS = [
   '/index.html',
   '/manifest.json',
   '/favicon.svg',
-  '/icon.svg',
   '/pwa-192x192.png',
   '/pwa-512x512.png',
+  '/pwa-maskable-512x512.png',
+  '/apple-touch-icon.png',
 ];
 
 // Remove as entradas mais antigas quando o cache excede o limite estabelecido

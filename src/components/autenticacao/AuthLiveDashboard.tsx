@@ -46,6 +46,11 @@ export const AuthLiveDashboard: React.FC = () => {
 
       {/* Mini-Dashboard Flutuante (Glassmorphism Live Preview) */}
       <div className="relative pt-2">
+        <div className="flex items-center justify-center gap-1.5 text-[10px] font-semibold text-slate-400 bg-slate-900/70 border border-slate-800 rounded-full px-3 py-1 w-fit mx-auto mb-3 backdrop-blur-md">
+          <Sparkles className="w-3 h-3 text-emerald-400 shrink-0" />
+          <span>Vitrine de recursos • Novas contas iniciam 100% limpas e zeradas</span>
+        </div>
+
         {/* Pílula Flutuante Superior 1 (Despensa) */}
         <motion.div
           animate={{ y: [-4, 4, -4] }}
