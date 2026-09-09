@@ -3,6 +3,7 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Camera, X, Check, Search } from 'lucide-react';
 import { PantryItem } from '../../tipos';
+import { useAlert } from '../../estado/useConfirmStore';
 
 interface BarcodeScannerModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   items,
   onSelectFoundItem,
 }) => {
+  const showAlert = useAlert();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -63,7 +65,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     setIsCameraActive(false);
   };
 
-  const handleManualSearch = (e: React.FormEvent) => {
+  const handleManualSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualCode.trim()) return;
 
@@ -76,7 +78,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       onSelectFoundItem(found);
       onClose();
     } else {
-      alert(`Nenhum item em estoque encontrado para "${manualCode}".`);
+      await showAlert('Item Não Localizado', `Nenhum item em estoque encontrado para o termo "${manualCode}".`, 'warning');
     }
   };
 

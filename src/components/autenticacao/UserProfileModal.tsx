@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../../estado/useAppStore';
 import { authService } from '../../servicos/authService';
+import { UserAvatar } from '../ui/UserAvatar';
 
 export const UserProfileModal: React.FC = () => {
   const {
@@ -98,14 +99,12 @@ export const UserProfileModal: React.FC = () => {
           {/* Header */}
           <div className="p-6 pb-4 flex items-center justify-between border-b border-slate-800/60">
             <div className="flex items-center gap-3">
-              <div className="relative">
-                <img
-                  src={user.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user'}
-                  alt={user.name}
-                  className="w-12 h-12 rounded-2xl object-cover border-2 border-emerald-500/40 shadow-lg shadow-emerald-500/20"
-                />
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-slate-900 rounded-full" />
-              </div>
+              <UserAvatar
+                src={user.avatarUrl}
+                name={user.name}
+                size="lg"
+                showOnlineBadge
+              />
               <div>
                 <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
                   {user.name}

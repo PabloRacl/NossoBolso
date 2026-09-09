@@ -4,61 +4,15 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../servicos/db';
 import { Activity, ShieldCheck, TrendingUp, AlertCircle, Award, Sparkles, CheckCircle2 } from 'lucide-react';
 
+import { calculateFinancialHealthScore } from '../../utilidades/financialScore';
+
 export const FinancialHealthScoreWidget: React.FC = () => {
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
   const wallets = useLiveQuery(() => db.wallets.toArray(), []) || [];
   const debtContracts = useLiveQuery(() => db.debtContracts.toArray(), []) || [];
 
   const { score, level, levelColor, breakdown } = useMemo(() => {
-    // 1. Reserva de Emergência (300 pts)
-    const savingsBalance = wallets.reduce((acc, w) => acc + (w.balance || 0), 0);
-    const totalExpenses = transactions.filter((t) => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
-    const monthlyExpensesEst = Math.max(totalExpenses, 3000);
-    const monthsOfReserve = savingsBalance / monthlyExpensesEst;
-    const reserveScore = Math.min(Math.round((monthsOfReserve / 6) * 300), 300);
-
-    // 2. Comprometimento de Dívida (300 pts)
-    const totalDebt = debtContracts.reduce((acc, d) => acc + (d.totalAmount || d.installmentAmount * d.totalInstallments), 0);
-    const debtRatio = savingsBalance > 0 ? (totalDebt / savingsBalance) : 1;
-    let debtScore = 300;
-    if (debtRatio > 2) debtScore = 50;
-    else if (debtRatio > 1) debtScore = 150;
-    else if (debtRatio > 0.5) debtScore = 220;
-
-    // 3. Taxa de Retenção de Poupança (200 pts)
-    const income = transactions.filter((t) => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-    const savingsRate = income > 0 ? Math.max((income - totalExpenses) / income, 0) : 0.15;
-    const savingsScore = Math.min(Math.round((savingsRate / 0.3) * 200), 200);
-
-    // 4. Diversificação de Carteiras (200 pts)
-    const walletScore = Math.min(wallets.length * 66, 200);
-
-    const totalScore = Math.min(reserveScore + debtScore + savingsScore + walletScore, 1000);
-
-    let lvl = 'EXCELENTE';
-    let color = '#00FF88';
-    if (totalScore < 500) {
-      lvl = 'CRITICO';
-      color = '#FF4D6D';
-    } else if (totalScore < 700) {
-      lvl = 'ATENCAO';
-      color = '#F59E0B';
-    } else if (totalScore < 850) {
-      lvl = 'BOM';
-      color = '#06B6D4';
-    }
-
-    return {
-      score: totalScore,
-      level: lvl,
-      levelColor: color,
-      breakdown: {
-        reserveScore,
-        debtScore,
-        savingsScore,
-        walletScore,
-      },
-    };
+    return calculateFinancialHealthScore(transactions, wallets, debtContracts);
   }, [transactions, wallets, debtContracts]);
 
   const levelBadgeStyles: Record<string, string> = {

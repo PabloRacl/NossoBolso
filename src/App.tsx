@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, seedInitialData, processRecurringTransactions } from './servicos/db';
 import { useAppStore } from './estado/useAppStore';
@@ -24,11 +24,9 @@ import { OfxImportModal } from './components/transacoes/OfxImportModal';
 import { CategoryModal } from './components/categorias/CategoryModal';
 import { DebtsView } from './components/dividas/DebtsView';
 import { DebtContractModal } from './components/dividas/DebtContractModal';
-import { DdcImportModal } from './components/dividas/DdcImportModal';
 import { AmortizacaoModal } from './components/dividas/AmortizacaoModal';
 import { AlertsModal } from './components/alertas/AlertsModal';
 import { BudgetModal } from './components/orcamentos/BudgetModal';
-import { ContrachequeModal } from './components/transacoes/ContrachequeModal';
 import { CommandPalette } from './components/estrutura/CommandPalette';
 import { TransactionParticleAnimation } from './components/estrutura/TransactionParticleAnimation';
 import { HistoryDrawer } from './components/estrutura/HistoryDrawer';
@@ -51,7 +49,16 @@ import { ReceiptGeneratorModal } from './components/comprovantes/ReceiptGenerato
 import { ShortcutsModal } from './components/estrutura/ShortcutsModal';
 import { PmpeConsignadoSimulatorModal } from './components/calculadora/PmpeConsignadoSimulatorModal';
 import { InstallPwaModal } from './components/configuracoes/InstallPwaModal';
+import { ConfirmModal } from './components/ui/ConfirmModal';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const DdcImportModal = React.lazy(() =>
+  import('./components/dividas/DdcImportModal').then((module) => ({ default: module.DdcImportModal }))
+);
+
+const ContrachequeModal = React.lazy(() =>
+  import('./components/transacoes/ContrachequeModal').then((module) => ({ default: module.ContrachequeModal }))
+);
 
 const pageTransitionVariants = {
   hidden: { opacity: 0 },
@@ -98,6 +105,8 @@ export const App: React.FC = () => {
     setPwaModalOpen,
     isScoreModalOpen,
     setScoreModalOpen,
+    isDdcModalOpen,
+    isContrachequeModalOpen,
   } = useAppStore();
 
   // Sincronizar sessão OAuth do Supabase sem flicker inicial
@@ -523,14 +532,23 @@ export const App: React.FC = () => {
       <OfxImportModal />
       <CategoryModal />
       <DebtContractModal />
-      <DdcImportModal />
+      {isDdcModalOpen && (
+        <Suspense fallback={null}>
+          <DdcImportModal />
+        </Suspense>
+      )}
+      {isContrachequeModalOpen && (
+        <Suspense fallback={null}>
+          <ContrachequeModal />
+        </Suspense>
+      )}
       <AmortizacaoModal />
       <AlertsModal />
       <BudgetModal />
-      <ContrachequeModal />
       <ScoreModal isOpen={isScoreModalOpen} onClose={() => setScoreModalOpen(false)} />
       <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
       <UserProfileModal />
+      <ConfirmModal />
     </AppLayout>
         </motion.div>
       )}

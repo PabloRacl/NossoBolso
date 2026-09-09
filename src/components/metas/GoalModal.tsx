@@ -4,6 +4,7 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { useAppStore } from '../../estado/useAppStore';
 import { db } from '../../servicos/db';
+import { generateId } from '../../utilidades/idUtils';
 
 export const GoalModal: React.FC = () => {
   const { isGoalModalOpen, setGoalModalOpen, editingGoalId, setEditingGoalId } = useAppStore();
@@ -52,7 +53,7 @@ export const GoalModal: React.FC = () => {
     } else {
       // Criar Nova Meta
       await db.goals.add({
-        id: Math.random().toString(36).substring(2, 9),
+        id: generateId('goal'),
         name,
         targetAmount: target,
         currentAmount: parseFloat(currentAmount) || 0,

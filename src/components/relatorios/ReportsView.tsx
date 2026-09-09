@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   Copy
 } from 'lucide-react';
+import { useAlert } from '../../estado/useConfirmStore';
 
 interface ReportsViewProps {
   transactions: Transaction[];
@@ -29,6 +30,7 @@ interface ReportsViewProps {
 type ReportTab = 'summary' | 'rule503020' | 'irpf';
 
 export const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals }) => {
+  const showAlert = useAlert();
   const { isPrivacyMode } = useAppStore();
   const [activeTab, setActiveTab] = useState<ReportTab>('summary');
 
@@ -174,7 +176,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals })
     window.print();
   };
 
-  const handleCopyIRPFText = () => {
+  const handleCopyIRPFText = async () => {
     const text = `DECLARE IRPF 2026 - NOSSOBOLSO
 -----------------------------------------
 FICHA BENS E DIREITOS:
@@ -190,7 +192,7 @@ FICHA DÍVIDAS E ÔNUS REAIS:
 - Saldo Devedor em Empréstimos e Financiamentos: ${formatBRL(irpfData.totalDebtsAndFinancing, false)}`;
 
     navigator.clipboard.writeText(text);
-    alert('📋 Dados formatados para a Declaração de Imposto de Renda copiados para a área de transferência!');
+    await showAlert('Relatório IRPF Copiado!', 'Os dados formatados para a Declaração de Imposto de Renda foram copiados para sua área de transferência.', 'info');
   };
 
   return (

@@ -1,23 +1,23 @@
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Configuração do worker do PDF.js
-try {
-  if (typeof window !== 'undefined') {
-    // Configura o worker utilizando o bundle compilado do pdfjs-dist
-    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-      'pdfjs-dist/build/pdf.worker.min.mjs',
-      import.meta.url
-    ).toString();
-  }
-} catch {
-  // Fallback silencioso caso URL não possa ser resolvida no ambiente de teste
-}
-
 /**
  * Extrai o texto completo de um arquivo PDF no cliente (navegador).
+ * Carrega a biblioteca pdfjs-dist sob demanda (lazy loading) para manter o bundle inicial ultraleve.
  * Processa página a página e une os blocos de texto mantendo linhas.
  */
 export async function extractTextFromPdf(file: File): Promise<string> {
+  const pdfjsLib = await import('pdfjs-dist');
+
+  // Configuração sob demanda do worker do PDF.js
+  try {
+    if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+        'pdfjs-dist/build/pdf.worker.min.mjs',
+        import.meta.url
+      ).toString();
+    }
+  } catch {
+    // Fallback silencioso para ambiente de testes
+  }
+
   const arrayBuffer = await file.arrayBuffer();
   const loadingTask = pdfjsLib.getDocument({
     data: new Uint8Array(arrayBuffer),

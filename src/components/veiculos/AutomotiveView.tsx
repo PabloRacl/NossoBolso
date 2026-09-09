@@ -13,6 +13,7 @@ import { VehicleComponentHealth, ComponentHealthItem } from './VehicleComponentH
 import { VehicleFuelTab } from './VehicleFuelTab';
 import { VehicleMaintenanceHistory } from './VehicleMaintenanceHistory';
 import { useAppStore } from '../../estado/useAppStore';
+import { useConfirm } from '../../estado/useConfirmStore';
 
 // Recomendações de Troca em KM para cada componente padrão do Chevrolet Onix 1.0 LT (2017/2018)
 const COMPONENT_KM_LIMITS: Record<ComponentCategory, { name: string; icon: string; kmInterval: number; recommendedPart: string }> = {
@@ -194,13 +195,23 @@ export const AutomotiveView: React.FC = () => {
     return { ratio, recommend };
   }, [gasolinePrice, ethanolPrice]);
 
+  const confirm = useConfirm();
+
   const handleEditRecord = (record: VehicleRecord) => {
     setEditingRecord(record);
     setIsModalOpen(true);
   };
 
   const handleDeleteVehicle = async (id: string, name: string) => {
-    if (confirm(`Tem certeza que deseja excluir o veículo "${name}" e todo o seu histórico da garagem?`)) {
+    const isConfirmed = await confirm({
+      title: 'Excluir Veículo da Garagem',
+      message: `Tem certeza que deseja excluir o veículo "${name}" e todo o seu histórico da garagem?`,
+      confirmText: 'Excluir Veículo',
+      variant: 'danger',
+    });
+    if (!isConfirmed) return;
+
+    await db.transaction('rw', [db.vehicles, db.vehicleRecords, db.componentSpecs], async () => {
       await db.vehicles.delete(id);
       const recs = await db.vehicleRecords.filter((r) => r.vehicleId === id || r.vehicleName === name).toArray();
       for (const r of recs) {
@@ -210,22 +221,39 @@ export const AutomotiveView: React.FC = () => {
       for (const s of specs) {
         await db.componentSpecs.delete(s.id);
       }
-      const remaining = vehiclesList.filter((v) => v.id !== id);
-      setSelectedVehicleId(remaining.length > 0 ? remaining[0].id : '');
-    }
+    });
+
+    const remaining = vehiclesList.filter((v) => v.id !== id);
+    setSelectedVehicleId(remaining.length > 0 ? remaining[0].id : '');
   };
 
   const handleClearAllVehicles = async () => {
-    if (confirm('Tem certeza que deseja apagar TODOS os veículos e históricos da sua garagem?')) {
+    const isConfirmed = await confirm({
+      title: 'Apagar Toda a Garagem',
+      message: 'Tem certeza que deseja apagar TODOS os veículos e históricos da sua garagem? Esta ação não pode ser desfeita.',
+      confirmText: 'Apagar Garagem',
+      variant: 'danger',
+    });
+    if (!isConfirmed) return;
+
+    await db.transaction('rw', [db.vehicles, db.vehicleRecords, db.componentSpecs], async () => {
       await db.vehicles.clear();
       await db.vehicleRecords.clear();
       await db.componentSpecs.clear();
-      setSelectedVehicleId('');
-    }
+    });
+    setSelectedVehicleId('');
   };
 
   const handleDeleteRecord = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este registro automotivo?')) {
+    const isConfirmed = await confirm({
+      title: 'Excluir Registro Automotivo',
+      message: 'Tem certeza que deseja excluir este registro automotivo? Caso haja despesa vinculada, o saldo será estornado.',
+      confirmText: 'Excluir Registro',
+      variant: 'danger',
+    });
+    if (!isConfirmed) return;
+
+    await db.transaction('rw', [db.vehicleRecords, db.wallets, db.transactions], async () => {
       const record = await db.vehicleRecords.get(id);
       if (record) {
         // Estornar saldo na carteira se houver despesa vinculada
@@ -246,7 +274,7 @@ export const AutomotiveView: React.FC = () => {
         }
       }
       await db.vehicleRecords.delete(id);
-    }
+    });
   };
 
   return (

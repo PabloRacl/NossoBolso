@@ -5,6 +5,9 @@ import { Wallet } from '../../tipos';
 import { db } from '../../servicos/db';
 import { ArrowRight, ArrowLeftRight, CheckCircle2 } from 'lucide-react';
 import { useAppStore } from '../../estado/useAppStore';
+import { generateId } from '../../utilidades/idUtils';
+import { auditLogService } from '../../servicos/auditLogService';
+import { useAlert } from '../../estado/useConfirmStore';
 
 interface TransferBetweenWalletsModalProps {
   isOpen: boolean;
@@ -17,6 +20,7 @@ export const TransferBetweenWalletsModal: React.FC<TransferBetweenWalletsModalPr
   onClose,
   wallets,
 }) => {
+  const showAlert = useAlert();
   const [sourceWalletId, setSourceWalletId] = useState('');
   const [targetWalletId, setTargetWalletId] = useState('');
   const [amount, setAmount] = useState('');
@@ -39,7 +43,11 @@ export const TransferBetweenWalletsModal: React.FC<TransferBetweenWalletsModalPr
     e.preventDefault();
     const val = parseFloat(amount);
     if (!sourceWalletId || !targetWalletId || sourceWalletId === targetWalletId || isNaN(val) || val <= 0) {
-      alert('Selecione duas carteiras diferentes e um valor maior que zero.');
+      await showAlert(
+        'Dados Incompletos',
+        'Por favor, selecione duas carteiras diferentes e informe um valor numérico válido maior que zero.',
+        'warning'
+      );
       return;
     }
 
@@ -48,39 +56,46 @@ export const TransferBetweenWalletsModal: React.FC<TransferBetweenWalletsModalPr
 
     if (!sourceWallet || !targetWallet) return;
 
-    const nowTs = Date.now();
+    // Executar transferência de forma 100% atômica com rollback automático
+    await db.transaction('rw', [db.transactions, db.wallets], async () => {
+      // 1. Saída da Carteira de Origem
+      await db.transactions.add({
+        id: generateId('tr_out'),
+        description: `Transferência ➔ ${targetWallet.name} (${description})`,
+        amount: val,
+        date,
+        type: 'expense',
+        category: 'Transferência',
+        walletId: sourceWallet.id,
+        createdAt: new Date().toISOString(),
+      });
 
-    // 1. Saída da Carteira de Origem
-    await db.transactions.add({
-      id: `tr_out_${nowTs}`,
-      description: `Transferência ➔ ${targetWallet.name} (${description})`,
-      amount: val,
-      date,
-      type: 'expense',
-      category: 'Transferência',
-      walletId: sourceWallet.id,
-      createdAt: new Date().toISOString(),
+      // 2. Entrada na Carteira de Destino
+      await db.transactions.add({
+        id: generateId('tr_in'),
+        description: `Transferência ⬅️ ${sourceWallet.name} (${description})`,
+        amount: val,
+        date,
+        type: 'income',
+        category: 'Transferência',
+        walletId: targetWallet.id,
+        createdAt: new Date().toISOString(),
+      });
+
+      // 3. Atualizar Saldos nas Carteiras
+      const currentSrc = await db.wallets.get(sourceWallet.id);
+      const currentTgt = await db.wallets.get(targetWallet.id);
+      if (currentSrc && currentTgt) {
+        await db.wallets.update(sourceWallet.id, { balance: currentSrc.balance - val });
+        await db.wallets.update(targetWallet.id, { balance: currentTgt.balance + val });
+      }
     });
 
-    // 2. Entrada na Carteira de Destino
-    await db.transactions.add({
-      id: `tr_in_${nowTs}`,
-      description: `Transferência ⬅️ ${sourceWallet.name} (${description})`,
+    auditLogService.log('wallet_transfer', `Transferência de R$ ${val.toFixed(2)} de ${sourceWallet.name} para ${targetWallet.name}`, {
+      sourceWalletId: sourceWallet.id,
+      targetWalletId: targetWallet.id,
       amount: val,
-      date,
-      type: 'income',
-      category: 'Transferência',
-      walletId: targetWallet.id,
-      createdAt: new Date().toISOString(),
     });
-
-    // 3. Atualizar Saldos nas Carteiras de forma concorrente e atômica
-    const currentSrc = await db.wallets.get(sourceWallet.id);
-    const currentTgt = await db.wallets.get(targetWallet.id);
-    if (currentSrc && currentTgt) {
-      await db.wallets.update(sourceWallet.id, { balance: currentSrc.balance - val });
-      await db.wallets.update(targetWallet.id, { balance: currentTgt.balance + val });
-    }
 
     // Disparar Animação de Moeda
     useAppStore.getState().triggerTransactionAnimation('income', val, `Transferência para ${targetWallet.name}`);

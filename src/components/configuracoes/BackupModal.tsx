@@ -5,8 +5,10 @@ import { useAppStore } from '../../estado/useAppStore';
 import { exportDatabaseJSON, importDatabaseJSON } from '../../servicos/backupService';
 import { Download, Upload, ShieldCheck, Database, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { getErrorMessage } from '../../utilidades/errorUtils';
+import { useConfirm } from '../../estado/useConfirmStore';
 
 export const BackupModal: React.FC = () => {
+  const confirm = useConfirm();
   const { isBackupModalOpen, setBackupModalOpen, user } = useAppStore();
   const isGuest = user?.role === 'guest';
   const [isExporting, setIsExporting] = useState(false);
@@ -38,7 +40,14 @@ export const BackupModal: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!confirm('ATENÇÃO: A restauração substituirá os dados atuais pelo conteúdo do backup. Deseja continuar?')) {
+    const isConfirmed = await confirm({
+      title: 'Restaurar Dados do Backup',
+      message: 'ATENÇÃO: A restauração substituirá todos os dados locais atuais pelo conteúdo do arquivo de backup. Deseja realmente prosseguir?',
+      confirmText: 'Restaurar Backup',
+      variant: 'warning',
+    });
+
+    if (!isConfirmed) {
       e.target.value = '';
       return;
     }

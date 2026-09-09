@@ -15,8 +15,12 @@ import { PantryShoppingTab } from './PantryShoppingTab';
 import { PantryTab, PriceCalculationMode } from './pantryTypes';
 import { formatBRL } from '../../utilidades/formatters';
 import { addMonthsPreservingDay } from '../../utilidades/dateUtils';
+import { generateId } from '../../utilidades/idUtils';
+import { useConfirm, useAlert } from '../../estado/useConfirmStore';
 
 export const PantryView: React.FC = () => {
+  const confirm = useConfirm();
+  const showAlert = useAlert();
   const [activeTab, setActiveTab] = useState<PantryTab>('stock');
 
   // Dexie live queries
@@ -93,7 +97,13 @@ export const PantryView: React.FC = () => {
   };
 
   const handleDeleteItem = async (id: string) => {
-    if (confirm('Tem certeza que deseja remover este item do estoque?')) {
+    const isConfirmed = await confirm({
+      title: 'Remover Item do Estoque',
+      message: 'Tem certeza que deseja remover este item da sua despensa?',
+      confirmText: 'Remover Item',
+      variant: 'danger',
+    });
+    if (isConfirmed) {
       await db.pantryItems.delete(id);
     }
   };
@@ -352,81 +362,88 @@ export const PantryView: React.FC = () => {
     const { walletId, paymentMethod, installmentsCount, description } = paymentDetails;
     const finalAmount = Math.round(shoppingSummary.netTotalSpent * 100) / 100;
 
-    // 1. Repor estoque dos itens marcados no carrinho
-    for (const item of neededItems) {
-      if (cartChecked[item.id]) {
-        const qtyBought = getQtyToBuy(item);
-        const effectivePrice = getEffectiveUnitPrice(item);
-        const newStock = Math.round((item.currentQuantity + qtyBought) * 100) / 100;
+    await db.transaction('rw', [db.pantryItems, db.transactions, db.wallets], async () => {
+      // 1. Repor estoque dos itens marcados no carrinho
+      for (const item of neededItems) {
+        if (cartChecked[item.id]) {
+          const qtyBought = getQtyToBuy(item);
+          const effectivePrice = getEffectiveUnitPrice(item);
+          const newStock = Math.round((item.currentQuantity + qtyBought) * 100) / 100;
 
-        await db.pantryItems.update(item.id, {
-          currentQuantity: newStock,
-          lastPrice: effectivePrice,
-          updatedAt: new Date().toISOString(),
-        });
-      }
-    }
-
-    // 2. Lançar Transação(ões) no NossoBolso de acordo com a forma de pagamento selecionada
-    if (finalAmount > 0) {
-      if (paymentMethod === 'credit' && installmentsCount > 1) {
-        // Lançamento Parcelado no Cartão de Crédito
-        const baseInstAmount = Math.floor((finalAmount / installmentsCount) * 100) / 100;
-        const remainder = Math.round((finalAmount - (baseInstAmount * installmentsCount)) * 100) / 100;
-        const batchId = Date.now();
-        const batchTxs = [];
-        const today = new Date();
-
-        for (let i = 1; i <= installmentsCount; i++) {
-          const installmentDate = addMonthsPreservingDay(today, i - 1);
-          const currentInstAmount = i === 1 ? Math.round((baseInstAmount + remainder) * 100) / 100 : baseInstAmount;
-
-          batchTxs.push({
-            id: `feira_${batchId}_${i}`,
-            description: `${description} (${i}/${installmentsCount})`,
-            amount: currentInstAmount,
-            date: installmentDate,
-            type: 'expense' as const,
-            category: 'Alimentação',
-            walletId,
-            installments: {
-              current: i,
-              total: installmentsCount,
-            },
-            createdAt: new Date().toISOString(),
+          await db.pantryItems.update(item.id, {
+            currentQuantity: newStock,
+            lastPrice: effectivePrice,
+            updatedAt: new Date().toISOString(),
           });
         }
+      }
 
-        await db.transactions.bulkAdd(batchTxs);
+      // 2. Lançar Transação(ões) no NossoBolso de acordo com a forma de pagamento selecionada
+      if (finalAmount > 0) {
+        if (paymentMethod === 'credit' && installmentsCount > 1) {
+          // Lançamento Parcelado no Cartão de Crédito
+          const baseInstAmount = Math.floor((finalAmount / installmentsCount) * 100) / 100;
+          const remainder = Math.round((finalAmount - (baseInstAmount * installmentsCount)) * 100) / 100;
+          const batchId = generateId('feira');
+          const batchTxs = [];
+          const today = new Date();
 
-        // Debitar valor da 1ª parcela no saldo da fatura/cartão
-        const firstInstAmount = Math.round((baseInstAmount + remainder) * 100) / 100;
-        const wallet = await db.wallets.get(walletId);
-        if (wallet) {
-          await db.wallets.update(walletId, { balance: wallet.balance - firstInstAmount });
-        }
-      } else {
-        // Lançamento À Vista / Débito / 1x no Cartão
-        await db.transactions.add({
-          id: `feira_${Date.now()}`,
-          description,
-          amount: finalAmount,
-          date: new Date().toISOString().substring(0, 10),
-          type: 'expense',
-          category: 'Alimentação',
-          walletId,
-          createdAt: new Date().toISOString(),
-        });
+          for (let i = 1; i <= installmentsCount; i++) {
+            const installmentDate = addMonthsPreservingDay(today, i - 1);
+            const currentInstAmount = i === 1 ? Math.round((baseInstAmount + remainder) * 100) / 100 : baseInstAmount;
 
-        // Debitar valor líquido total do saldo da carteira
-        const wallet = await db.wallets.get(walletId);
-        if (wallet) {
-          await db.wallets.update(walletId, { balance: wallet.balance - finalAmount });
+            batchTxs.push({
+              id: `tx_${batchId}_${i}`,
+              description: `${description} (${i}/${installmentsCount})`,
+              amount: currentInstAmount,
+              date: installmentDate,
+              type: 'expense' as const,
+              category: 'Alimentação',
+              walletId,
+              installments: {
+                current: i,
+                total: installmentsCount,
+              },
+              createdAt: new Date().toISOString(),
+            });
+          }
+
+          await db.transactions.bulkAdd(batchTxs);
+
+          // Debitar valor da 1ª parcela no saldo da fatura/cartão
+          const firstInstAmount = Math.round((baseInstAmount + remainder) * 100) / 100;
+          const wallet = await db.wallets.get(walletId);
+          if (wallet) {
+            await db.wallets.update(walletId, { balance: wallet.balance - firstInstAmount });
+          }
+        } else {
+          // Lançamento À Vista / Débito / 1x no Cartão
+          await db.transactions.add({
+            id: generateId('tx_feira'),
+            description,
+            amount: finalAmount,
+            date: new Date().toISOString().substring(0, 10),
+            type: 'expense',
+            category: 'Alimentação',
+            walletId,
+            createdAt: new Date().toISOString(),
+          });
+
+          // Debitar valor líquido total do saldo da carteira
+          const wallet = await db.wallets.get(walletId);
+          if (wallet) {
+            await db.wallets.update(walletId, { balance: wallet.balance - finalAmount });
+          }
         }
       }
-    }
+    });
 
-    alert('🎉 Compras finalizadas com sucesso! O estoque foi abastecido e o lançamento financeiro foi organizado no NossoBolso.');
+    await confirm({
+      title: 'Compras Finalizadas com Sucesso!',
+      message: 'O estoque da despensa foi reabastecido e o lançamento financeiro já consta no seu extrato do NossoBolso.',
+      confirmText: 'Excelente!',
+      variant: 'info',
+    });
     setCartChecked({});
     setActiveTab('stock');
   };
@@ -452,9 +469,9 @@ export const PantryView: React.FC = () => {
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
         items={neededItems.length > 0 ? neededItems : items}
-        onSelectFoundItem={(foundItem) => {
+        onSelectFoundItem={async (foundItem) => {
           setCartChecked((prev) => ({ ...prev, [foundItem.id]: true }));
-          alert(`Item "${foundItem.name}" localizado e marcado no carrinho!`);
+          await showAlert('Item Localizado', `"${foundItem.name}" foi adicionado e marcado no carrinho de compras!`, 'info');
         }}
       />
 
@@ -539,8 +556,14 @@ export const PantryView: React.FC = () => {
           shoppingSummary={shoppingSummary}
           isAllChecked={isAllChecked}
           onToggleSelectAll={handleToggleSelectAll}
-          onClearCart={() => {
-            if (confirm('Deseja desmarcar todos os itens do carrinho?')) {
+          onClearCart={async () => {
+            const isConfirmed = await confirm({
+              title: 'Desmarcar Carrinho',
+              message: 'Deseja desmarcar todos os itens selecionados no carrinho de compras?',
+              confirmText: 'Desmarcar Todos',
+              variant: 'warning',
+            });
+            if (isConfirmed) {
               setCartChecked({});
             }
           }}

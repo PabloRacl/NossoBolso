@@ -6,6 +6,9 @@
 
 const CACHE_NAME = 'nosso-bolso-v2.0.0';
 
+// Limite de entradas em cache para evitar crescimento descontrolado em builds sucessivos
+const MAX_CACHE_ITEMS = 120;
+
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -15,6 +18,18 @@ const PRECACHE_ASSETS = [
   '/pwa-192x192.png',
   '/pwa-512x512.png',
 ];
+
+// Remove as entradas mais antigas quando o cache excede o limite estabelecido
+async function trimCache() {
+  const cache = await caches.open(CACHE_NAME);
+  const keys = await cache.keys();
+  if (keys.length > MAX_CACHE_ITEMS) {
+    const toRemove = keys.length - MAX_CACHE_ITEMS;
+    for (let i = 0; i < toRemove; i++) {
+      await cache.delete(keys[i]);
+    }
+  }
+}
 
 // Instalação: Pré-carrega o shell da aplicação
 self.addEventListener('install', (event) => {
@@ -67,7 +82,7 @@ self.addEventListener('fetch', (event) => {
           if (networkResponse && networkResponse.status === 200) {
             const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
+              cache.put(request, responseClone).then(() => trimCache());
             });
           }
           return networkResponse;
@@ -97,7 +112,7 @@ self.addEventListener('fetch', (event) => {
             .then((networkResponse) => {
               if (networkResponse && networkResponse.status === 200) {
                 caches.open(CACHE_NAME).then((cache) => {
-                  cache.put(request, networkResponse);
+                  cache.put(request, networkResponse).then(() => trimCache());
                 });
               }
             })
@@ -111,7 +126,7 @@ self.addEventListener('fetch', (event) => {
           if (networkResponse && networkResponse.status === 200) {
             const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
+              cache.put(request, responseClone).then(() => trimCache());
             });
           }
           return networkResponse;

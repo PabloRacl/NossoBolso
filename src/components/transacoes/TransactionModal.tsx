@@ -8,6 +8,7 @@ import { db } from '../../servicos/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { TransactionType } from '../../tipos';
 import { getTodayStr, addMonthsPreservingDay } from '../../utilidades/dateUtils';
+import { generateId } from '../../utilidades/idUtils';
 import { Repeat, Calendar, Layers } from 'lucide-react';
 
 export const TransactionModal: React.FC = () => {
@@ -77,81 +78,83 @@ export const TransactionModal: React.FC = () => {
 
     const hoje = getTodayStr();
 
-    if (isRepeatEnabled && repeatMode === 'installments' && !editingTransactionId) {
-      const instTotal = parseInt(installmentCount) || 12;
-      const baseDate = new Date(date + 'T12:00:00');
-      const batchId = Math.random().toString(36).substring(2, 9);
-      const batchTxs = [];
+    await db.transaction('rw', [db.transactions, db.wallets], async () => {
+      if (isRepeatEnabled && repeatMode === 'installments' && !editingTransactionId) {
+        const instTotal = parseInt(installmentCount) || 12;
+        const baseDate = new Date(date + 'T12:00:00');
+        const batchId = generateId('batch');
+        const batchTxs = [];
 
-      for (let i = 1; i <= instTotal; i++) {
-        const installmentDate = addMonthsPreservingDay(baseDate, i - 1);
+        for (let i = 1; i <= instTotal; i++) {
+          const installmentDate = addMonthsPreservingDay(baseDate, i - 1);
 
-        batchTxs.push({
-          id: `tx_${batchId}_${i}`,
-          description: `${description.trim()} (${i}/${instTotal})`,
+          batchTxs.push({
+            id: `tx_${batchId}_${i}`,
+            description: `${description.trim()} (${i}/${instTotal})`,
+            amount: parsedAmount,
+            date: installmentDate,
+            type,
+            category: selectedCategory,
+            walletId: selectedWalletId,
+            installments: {
+              current: i,
+              total: instTotal,
+            },
+            createdAt: new Date().toISOString(),
+          });
+        }
+
+        await db.transactions.bulkAdd(batchTxs);
+
+        // Debita/credita no saldo presente apenas as parcelas já vencidas até a presente data
+        const pastOrTodayTxs = batchTxs.filter((t) => t.date <= hoje);
+        if (pastOrTodayTxs.length > 0) {
+          const wallet = await db.wallets.get(selectedWalletId);
+          if (wallet) {
+            const totalPastAmount = pastOrTodayTxs.reduce((acc, t) => acc + t.amount, 0);
+            const delta = type === 'income' ? totalPastAmount : -totalPastAmount;
+            await db.wallets.update(selectedWalletId, { balance: wallet.balance + delta });
+          }
+        }
+      } else {
+        // Single / Regular transaction
+        const txData = {
+          id: editingTransactionId || generateId('tx'),
+          description: description.trim(),
           amount: parsedAmount,
-          date: installmentDate,
+          date,
           type,
           category: selectedCategory,
           walletId: selectedWalletId,
-          installments: {
-            current: i,
-            total: instTotal,
-          },
+          isRecurring: isRepeatEnabled && repeatMode === 'indefinite',
           createdAt: new Date().toISOString(),
-        });
-      }
+        };
 
-      await db.transactions.bulkAdd(batchTxs);
-
-      // Debita/credita no saldo presente apenas as parcelas já vencidas até a presente data
-      const pastOrTodayTxs = batchTxs.filter((t) => t.date <= hoje);
-      if (pastOrTodayTxs.length > 0) {
-        const wallet = await db.wallets.get(selectedWalletId);
-        if (wallet) {
-          const totalPastAmount = pastOrTodayTxs.reduce((acc, t) => acc + t.amount, 0);
-          const delta = type === 'income' ? totalPastAmount : -totalPastAmount;
-          await db.wallets.update(selectedWalletId, { balance: wallet.balance + delta });
+        if (editingTransactionId) {
+          // Estorna o valor da transação anterior na sua carteira original se afetou saldo
+          const oldTx = await db.transactions.get(editingTransactionId);
+          if (oldTx && oldTx.walletId && oldTx.date <= hoje) {
+            const oldWallet = await db.wallets.get(oldTx.walletId);
+            if (oldWallet) {
+              const oldDelta = oldTx.type === 'income' ? oldTx.amount : -oldTx.amount;
+              await db.wallets.update(oldTx.walletId, { balance: oldWallet.balance - oldDelta });
+            }
+          }
+          await db.transactions.put(txData);
+        } else {
+          await db.transactions.add(txData);
         }
-      }
-    } else {
-      // Single / Regular transaction
-      const txData = {
-        id: editingTransactionId || Math.random().toString(36).substring(2, 9),
-        description: description.trim(),
-        amount: parsedAmount,
-        date,
-        type,
-        category: selectedCategory,
-        walletId: selectedWalletId,
-        isRecurring: isRepeatEnabled && repeatMode === 'indefinite',
-        createdAt: new Date().toISOString(),
-      };
 
-      if (editingTransactionId) {
-        // Estorna o valor da transação anterior na sua carteira original se afetou saldo
-        const oldTx = await db.transactions.get(editingTransactionId);
-        if (oldTx && oldTx.walletId && oldTx.date <= hoje) {
-          const oldWallet = await db.wallets.get(oldTx.walletId);
-          if (oldWallet) {
-            const oldDelta = oldTx.type === 'income' ? oldTx.amount : -oldTx.amount;
-            await db.wallets.update(oldTx.walletId, { balance: oldWallet.balance - oldDelta });
+        // Aplica o novo saldo na carteira selecionada se vence até hoje
+        if (selectedWalletId && date <= hoje) {
+          const wallet = await db.wallets.get(selectedWalletId);
+          if (wallet) {
+            const delta = type === 'income' ? parsedAmount : -parsedAmount;
+            await db.wallets.update(selectedWalletId, { balance: wallet.balance + delta });
           }
         }
-        await db.transactions.put(txData);
-      } else {
-        await db.transactions.add(txData);
       }
-
-      // Aplica o novo saldo na carteira selecionada se vence até hoje
-      if (selectedWalletId && date <= hoje) {
-        const wallet = await db.wallets.get(selectedWalletId);
-        if (wallet) {
-          const delta = type === 'income' ? parsedAmount : -parsedAmount;
-          await db.wallets.update(selectedWalletId, { balance: wallet.balance + delta });
-        }
-      }
-    }
+    });
 
     // Disparar animação de moedas no sistema
     useAppStore.getState().triggerTransactionAnimation(type, parsedAmount, description.trim());

@@ -30,6 +30,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useConfirm } from '../../estado/useConfirmStore';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -43,6 +44,7 @@ const containerVariants = {
 };
 
 export const DebtsView: React.FC = () => {
+  const confirm = useConfirm();
   const { 
     setDebtContractModalOpen, 
     setDdcModalOpen,
@@ -169,12 +171,21 @@ export const DebtsView: React.FC = () => {
   };
 
   const handleDeleteContract = async (id: string) => {
-    if (!confirm('Deseja realmente excluir este financiamento e todas as suas parcelas?')) return;
-    await db.debtContracts.delete(id);
-    const txsToDelete = transactions.filter((t) => t.contractId === id);
-    for (const tx of txsToDelete) {
-      await db.transactions.delete(tx.id);
-    }
+    const isConfirmed = await confirm({
+      title: 'Excluir Financiamento / Dívida',
+      message: 'Deseja realmente excluir este contrato e todas as suas parcelas vinculadas? Esta ação é irreversível.',
+      confirmText: 'Excluir Financiamento',
+      variant: 'danger',
+    });
+    if (!isConfirmed) return;
+
+    await db.transaction('rw', [db.debtContracts, db.transactions], async () => {
+      await db.debtContracts.delete(id);
+      const txsToDelete = await db.transactions.where('contractId').equals(id).toArray();
+      for (const tx of txsToDelete) {
+        await db.transactions.delete(tx.id);
+      }
+    });
   };
 
   return (

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAppStore } from '../../estado/useAppStore';
 import { LayoutDashboard, ArrowLeftRight, Wallet, CreditCard, Target, ShoppingCart, Car, FileSpreadsheet, Calculator, Sparkles, PanelLeftClose, PanelLeftOpen, Calendar, Search, Smartphone, Sliders, Compass, Palette, Keyboard, FileText, Database, ChevronDown, ChevronRight, Activity, LogIn, User as UserIcon } from 'lucide-react';
 import { clsx } from 'clsx';
+import { UserAvatar } from '../ui/UserAvatar';
 
 export const Sidebar: React.FC = () => {
   const { user, setUser, setUserProfileModalOpen, setAuthMode, activePage, setActivePage, isSidebarCollapsed, toggleSidebarCollapsed, isMobileMenuOpen, toggleMobileMenu, setCommandPaletteOpen } = useAppStore();
@@ -208,10 +209,10 @@ export const Sidebar: React.FC = () => {
               )}
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <img
-                  src={user.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user'}
-                  alt={user.name}
-                  className="w-7 h-7 rounded-full object-cover border border-[#00FF88]/40 shrink-0"
+                <UserAvatar
+                  src={user.avatarUrl}
+                  name={user.name}
+                  size="sm"
                 />
                 {(!isSidebarCollapsed || isMobileMenuOpen) && (
                   <div className="flex flex-col min-w-0">

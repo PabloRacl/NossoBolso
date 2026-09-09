@@ -12,6 +12,7 @@ import { Plus, Target, Trash2, Edit2 } from 'lucide-react';
 import { db } from '../../servicos/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { motion } from 'framer-motion';
+import { useConfirm } from '../../estado/useConfirmStore';
 
 import { GoalCalculatorWidget } from './GoalCalculatorWidget';
 
@@ -31,6 +32,7 @@ const containerVariants = {
 };
 
 export const GoalCards: React.FC<GoalCardsProps> = ({ goals }) => {
+  const confirm = useConfirm();
   const { setGoalModalOpen, setEditingGoalId, setBudgetModalOpen, isPrivacyMode } = useAppStore();
   const wallets = useLiveQuery(() => db.wallets.toArray(), []) || [];
 
@@ -79,7 +81,13 @@ export const GoalCards: React.FC<GoalCardsProps> = ({ goals }) => {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Deseja realmente excluir esta meta?')) {
+    const isConfirmed = await confirm({
+      title: 'Excluir Meta Financeira',
+      message: 'Deseja realmente excluir esta meta? O histórico e o progresso acumulado não poderão ser recuperados.',
+      confirmText: 'Excluir Meta',
+      variant: 'danger',
+    });
+    if (isConfirmed) {
       await db.goals.delete(id);
     }
   };

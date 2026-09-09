@@ -3,6 +3,7 @@ import { useAppStore, PageType } from '../../estado/useAppStore';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, generateFullTestDataset } from '../../servicos/db';
 import { formatBRL } from '../../utilidades/formatters';
+import { useConfirm } from '../../estado/useConfirmStore';
 import {
   Search,
   Command,
@@ -43,6 +44,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     isPrivacyMode,
   } = useAppStore();
 
+  const confirm = useConfirm();
   const [query, setQuery] = useState('');
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
 
@@ -79,9 +81,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
   const actions = [
     { id: 'act_new_tx', label: 'Nova Transação', icon: <Plus className="w-4 h-4 text-[#00FF88]" />, run: () => setTransactionModalOpen(true) },
     { id: 'act_seed_test_db', label: '🧪 Gerar / Carregar Banco de Dados de Testes', icon: <Sparkles className="w-4 h-4 text-[#00FF88]" />, run: async () => {
-        if (confirm('Deseja carregar a massa completa de dados bancários, contracheque e veículos para teste?')) {
+        const isConfirmed = await confirm({
+          title: 'Carregar Dados de Testes',
+          message: 'Deseja carregar a massa completa de dados bancários, contracheque e veículos para teste?',
+          confirmText: 'Carregar Dados',
+          variant: 'info',
+        });
+        if (isConfirmed) {
+          onClose();
           await generateFullTestDataset();
-          alert('✅ Banco de dados local de testes gerado com sucesso!');
           window.location.reload();
         }
       }

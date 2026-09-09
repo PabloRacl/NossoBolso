@@ -29,6 +29,7 @@ import {
   FileCheck,
   QrCode,
 } from 'lucide-react';
+import { useAlert } from '../../estado/useConfirmStore';
 
 type SortOption = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc' | 'desc-asc';
 
@@ -43,6 +44,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
   selectedMonth,
   onDelete,
 }) => {
+  const showAlert = useAlert();
   const {
     searchQuery,
     setSearchQuery,
@@ -236,10 +238,14 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
   };
 
   // Impressão em PDF Limpa e Profissional com Sanitização Anti-XSS
-  const handlePrintPDF = () => {
+  const handlePrintPDF = async () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      alert('Por favor, permita popups para imprimir o relatório em PDF.');
+      await showAlert(
+        'Popups Bloqueados',
+        'Por favor, permita a abertura de popups neste navegador para imprimir o relatório em PDF.',
+        'warning'
+      );
       return;
     }
 

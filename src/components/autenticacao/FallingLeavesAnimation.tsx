@@ -99,6 +99,12 @@ export const FallingLeavesAnimation: React.FC<FallingLeavesProps> = ({ mode = 'l
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Respeito estrito a Acessibilidade WCAG (prefers-reduced-motion)
+    const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      return;
+    }
+
     let animationFrameId: number;
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);

@@ -6,6 +6,7 @@ import { useAppStore } from '../../estado/useAppStore';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../servicos/db';
 import { formatBRL, formatPercent } from '../../utilidades/formatters';
+import { generateId } from '../../utilidades/idUtils';
 import { Target, AlertTriangle, CheckCircle2, SlidersHorizontal, Plus, ShieldAlert } from 'lucide-react';
 
 interface BudgetProgressWidgetProps {
@@ -53,7 +54,7 @@ export const BudgetProgressWidget: React.FC<BudgetProgressWidgetProps> = ({ sele
       const exists = budgets.some((item) => item.category === b.category);
       if (!exists) {
         await db.budgets.add({
-          id: `b_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          id: generateId('budget'),
           category: b.category,
           monthlyLimit: b.monthlyLimit,
         });

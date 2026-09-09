@@ -1,6 +1,6 @@
 export async function requestNotificationPermission(): Promise<boolean> {
   if (!('Notification' in window)) {
-    alert('Seu navegador não possui suporte para Notificações Web.');
+    console.warn('Seu navegador não possui suporte para Notificações Web.');
     return false;
   }
 

@@ -4,10 +4,13 @@ import { useAppStore } from '../../estado/useAppStore';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../servicos/db';
 import { formatBRL } from '../../utilidades/formatters';
+import { generateId } from '../../utilidades/idUtils';
 import { Bell, Calendar, AlertCircle, CheckCircle2, CreditCard, Zap } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { useAlert } from '../../estado/useConfirmStore';
 
 export const AlertsModal: React.FC = () => {
+  const showAlert = useAlert();
   const { isAlertsModalOpen, setAlertsModalOpen, isPrivacyMode } = useAppStore();
   const transactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
   const recurring = useLiveQuery(() => db.recurringTransactions.toArray(), []) || [];
@@ -83,44 +86,46 @@ export const AlertsModal: React.FC = () => {
     const targetWalletId = alertItem.walletId || (wallets.length > 0 ? wallets[0].id : '');
     const todayStr = new Date().toISOString().substring(0, 10);
 
-    if (alertItem.type === 'recurring') {
-      // Cria a transação do mês para o item recorrente
-      await db.transactions.add({
-        id: `rec_paid_${Date.now()}`,
-        description: `[Pago ⚡] ${alertItem.title}`,
-        amount: alertItem.amount,
-        date: todayStr,
-        type: 'expense',
-        category: alertItem.category,
-        walletId: targetWalletId,
-        createdAt: new Date().toISOString(),
-      });
+    await db.transaction('rw', [db.transactions, db.recurringTransactions, db.wallets], async () => {
+      if (alertItem.type === 'recurring') {
+        // Cria a transação do mês para o item recorrente
+        await db.transactions.add({
+          id: generateId('rec_paid'),
+          description: `[Pago ⚡] ${alertItem.title}`,
+          amount: alertItem.amount,
+          date: todayStr,
+          type: 'expense',
+          category: alertItem.category,
+          walletId: targetWalletId,
+          createdAt: new Date().toISOString(),
+        });
 
-      const recId = alertItem.id.replace('rec_', '');
-      const recItem = await db.recurringTransactions.get(recId);
-      if (recItem) {
-        await db.recurringTransactions.update(recId, {
-          lastGeneratedMonth: new Date().toISOString().substring(0, 7),
+        const recId = alertItem.id.replace('rec_', '');
+        const recItem = await db.recurringTransactions.get(recId);
+        if (recItem) {
+          await db.recurringTransactions.update(recId, {
+            lastGeneratedMonth: new Date().toISOString().substring(0, 7),
+          });
+        }
+      } else {
+        // A transação já existe no banco: atualiza para o dia de hoje e confirma o pagamento sem duplicidade
+        await db.transactions.update(alertItem.id, {
+          description: alertItem.title.startsWith('[Pago') ? alertItem.title : `[Pago ⚡] ${alertItem.title}`,
+          date: todayStr,
+          walletId: targetWalletId || undefined,
         });
       }
-    } else {
-      // A transação já existe no banco: atualiza para o dia de hoje e confirma o pagamento sem duplicidade
-      await db.transactions.update(alertItem.id, {
-        description: alertItem.title.startsWith('[Pago') ? alertItem.title : `[Pago ⚡] ${alertItem.title}`,
-        date: todayStr,
-        walletId: targetWalletId || undefined,
-      });
-    }
 
-    // Debitar da carteira se existir
-    if (targetWalletId) {
-      const wallet = await db.wallets.get(targetWalletId);
-      if (wallet) {
-        await db.wallets.update(targetWalletId, { balance: wallet.balance - alertItem.amount });
+      // Debitar da carteira se existir
+      if (targetWalletId) {
+        const wallet = await db.wallets.get(targetWalletId);
+        if (wallet) {
+          await db.wallets.update(targetWalletId, { balance: wallet.balance - alertItem.amount });
+        }
       }
-    }
+    });
 
-    alert(`⚡ "${alertItem.title}" marcada como paga com sucesso no NossoBolso!`);
+    await showAlert('Conta Marcada Como Paga!', `"${alertItem.title}" foi liquidada e registrada com sucesso no seu extrato.`, 'info');
   };
 
   return (

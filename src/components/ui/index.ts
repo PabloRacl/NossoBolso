@@ -6,3 +6,6 @@ export * from './Card';
 export * from './Badge';
 export * from './ProgressBar';
 export * from './Tabs';
+export * from './UpdateBanner';
+export * from './ConfirmModal';
+export * from './UserAvatar';

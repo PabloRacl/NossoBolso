@@ -9,31 +9,39 @@ import {
 } from '../securityUtils';
 
 describe('securityUtils', () => {
-  describe('hashPassword & verifyPassword', () => {
-    it('deve gerar hash SHA-256 consistente para a mesma senha', async () => {
+  describe('hashPassword & verifyPassword (PBKDF2 & Retrocompatibilidade)', () => {
+    it('deve gerar hash moderno no padrão PBKDF2 com iterações e salt', async () => {
+      const hash = await hashPassword('MinhaSenhaSecreta!123');
+      expect(hash).toMatch(/^pbkdf2\$100000\$[a-f0-9]{32}\$[a-f0-9]{64}$/);
+    });
+
+    it('deve gerar sais diferentes para a mesma senha quando chamado repetidamente', async () => {
       const hash1 = await hashPassword('MinhaSenhaSecreta!123');
       const hash2 = await hashPassword('MinhaSenhaSecreta!123');
-      expect(hash1).toBe(hash2);
-      expect(hash1.length).toBe(64); // 256 bits = 64 caracteres hexadecimais
+      expect(hash1).not.toBe(hash2); // Sais aleatórios de 16 bytes garantem unicidade
     });
 
-    it('deve gerar hashes diferentes para senhas distintas', async () => {
-      const hashA = await hashPassword('SenhaA');
-      const hashB = await hashPassword('SenhaB');
-      expect(hashA).not.toBe(hashB);
-    });
-
-    it('deve verificar senha com sucesso quando confere com o hash', async () => {
+    it('deve verificar senha com sucesso no padrão PBKDF2', async () => {
       const password = 'SenhaCorreta#2026';
       const hash = await hashPassword(password);
       const isMatch = await verifyPassword(password, hash);
       expect(isMatch).toBe(true);
     });
 
-    it('deve rejeitar senha incorreta', async () => {
+    it('deve rejeitar senha incorreta no padrão PBKDF2', async () => {
       const hash = await hashPassword('SenhaCorreta#2026');
       const isMatch = await verifyPassword('SenhaErrada', hash);
       expect(isMatch).toBe(false);
+    });
+
+    it('deve manter 100% de retrocompatibilidade com hashes legados SHA-256', async () => {
+      // Hash SHA-256 legado pré-calculado com o LEGACY_SALT_PEPPER para "123456"
+      const legacyHash123456 = '09fba8ef3f0ecb4ddc60dbfdf0a7bf7406a57e9a622a7372a05d663684f6f6a5';
+      const isMatch = await verifyPassword('123456', legacyHash123456);
+      expect(isMatch).toBe(true);
+
+      const isWrong = await verifyPassword('senha_errada', legacyHash123456);
+      expect(isWrong).toBe(false);
     });
 
     it('deve retornar false se senha ou hash forem vazios', async () => {

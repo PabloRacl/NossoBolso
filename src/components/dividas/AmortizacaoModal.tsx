@@ -9,6 +9,7 @@ import { formatDate } from '../../utilidades/dateUtils';
 import { Zap, Info, Percent } from 'lucide-react';
 import type { Transaction } from '../../tipos';
 import { getMonthsDiff, calcDiscountedValue } from '../../utilidades/debtCalculations';
+import { generateId } from '../../utilidades/idUtils';
 import { AmortizacaoInstallmentsList, InstallmentInfo } from './AmortizacaoInstallmentsList';
 
 export const AmortizacaoModal: React.FC = () => {
@@ -150,18 +151,19 @@ export const AmortizacaoModal: React.FC = () => {
     setIsProcessing(true);
 
     try {
-      if (contract.amortizationSystem === 'sac') {
-        const extraVal = parseFloat(amortizationExtraAmount);
-        if (isNaN(extraVal) || extraVal <= 0) return;
+      await db.transaction('rw', [db.transactions, db.debtContracts], async () => {
+        if (contract.amortizationSystem === 'sac') {
+          const extraVal = parseFloat(amortizationExtraAmount);
+          if (isNaN(extraVal) || extraVal <= 0) return;
 
-        const amortTxId = 'tx_amort_' + Math.random().toString(36).substring(2, 9);
-        const todayStr = new Date().toISOString().split('T')[0];
+          const amortTxId = generateId('tx_amort');
+          const todayStr = new Date().toISOString().split('T')[0];
 
-        await db.transactions.add({
-          id: amortTxId,
-          description: `Amortização Extra (${contract.title})`,
-          amount: extraVal,
-          date: todayStr,
+          await db.transactions.add({
+            id: amortTxId,
+            description: `Amortização Extra (${contract.title})`,
+            amount: extraVal,
+            date: todayStr,
           type: 'expense',
           category: contract.category,
           walletId: contract.walletId,
@@ -274,14 +276,12 @@ export const AmortizacaoModal: React.FC = () => {
             });
           }
         }
-
-        handleClose();
-      } else {
+        } else {
         // Antecipação PRICE com o valor exato pago (cria despesa real com valor descontado e remove parcelas futuras)
         const todayStr = new Date().toISOString().split('T')[0];
 
         // 1. Criar lançamento da antecipação com o valor real com desconto
-        const amortTxId = 'tx_antecip_' + Math.random().toString(36).substring(2, 9);
+        const amortTxId = generateId('tx_antecip');
         await db.transactions.add({
           id: amortTxId,
           description: `Antecipação (${selectedIds.size}x parcelas - ${contract.title})`,
@@ -329,9 +329,10 @@ export const AmortizacaoModal: React.FC = () => {
             },
           });
         }
-
-        handleClose();
       }
+    });
+
+    handleClose();
     } finally {
       setIsProcessing(false);
     }

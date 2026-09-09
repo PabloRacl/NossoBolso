@@ -22,6 +22,8 @@ import {
 import { db } from '../../servicos/db';
 import { motion } from 'framer-motion';
 import { TransferBetweenWalletsModal } from './TransferBetweenWalletsModal';
+import { auditLogService } from '../../servicos/auditLogService';
+import { useConfirm } from '../../estado/useConfirmStore';
 
 interface WalletCardsProps {
   wallets: Wallet[];
@@ -40,6 +42,7 @@ const containerVariants = {
 
 export const WalletCards: React.FC<WalletCardsProps> = ({ wallets }) => {
   const { setWalletModalOpen, setEditingWalletId, isPrivacyMode } = useAppStore();
+  const confirm = useConfirm();
   const [isTransferModalOpen, setTransferModalOpen] = useState(false);
 
   const handleEdit = (id: string) => {
@@ -49,19 +52,41 @@ export const WalletCards: React.FC<WalletCardsProps> = ({ wallets }) => {
 
   const handleDelete = async (id: string) => {
     if (wallets.length <= 1) {
-      alert('Você precisa ter pelo menos uma carteira ativa no sistema.');
+      await confirm({
+        title: 'Ação Não Permitida',
+        message: 'Você precisa ter pelo menos uma carteira ativa no sistema.',
+        confirmText: 'Entendido',
+        variant: 'warning',
+      });
       return;
     }
-    if (confirm('Deseja realmente excluir esta carteira? As transações vinculadas serão remapeadas para sua carteira principal.')) {
+
+    const isConfirmed = await confirm({
+      title: 'Excluir Carteira',
+      message: 'Deseja realmente excluir esta carteira? As transações vinculadas serão remapeadas para sua carteira principal.',
+      confirmText: 'Excluir Carteira',
+      variant: 'danger',
+    });
+
+    if (isConfirmed) {
       const remainingWallet = wallets.find((w) => w.id !== id);
-      if (remainingWallet) {
-        // Remapeia transações órfãs para a carteira remanescente
-        const orphanTxs = await db.transactions.where('walletId').equals(id).toArray();
-        for (const tx of orphanTxs) {
-          await db.transactions.update(tx.id, { walletId: remainingWallet.id });
+      const deletedWalletName = wallets.find((w) => w.id === id)?.name || id;
+
+      await db.transaction('rw', [db.transactions, db.wallets], async () => {
+        if (remainingWallet) {
+          // Remapeia transações órfãs para a carteira remanescente
+          const orphanTxs = await db.transactions.where('walletId').equals(id).toArray();
+          for (const tx of orphanTxs) {
+            await db.transactions.update(tx.id, { walletId: remainingWallet.id });
+          }
         }
-      }
-      await db.wallets.delete(id);
+        await db.wallets.delete(id);
+      });
+
+      auditLogService.log('wallet_delete', `Exclusão da carteira "${deletedWalletName}" com remapeamento de lançamentos para "${remainingWallet?.name || 'Principal'}"`, {
+        deletedWalletId: id,
+        reassignedWalletId: remainingWallet?.id,
+      });
     }
   };
 

@@ -8,6 +8,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { getTodayStr } from '../../utilidades/dateUtils';
 import { formatBRL } from '../../utilidades/formatters';
 import { generateDebtSchedule } from '../../utilidades/debtCalculations';
+import { generateId } from '../../utilidades/idUtils';
 import { DebtContractSummary } from './DebtContractSummary';
 import { Car, CreditCard, Sparkles, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -115,7 +116,7 @@ export const DebtContractModal: React.FC = () => {
 
     if (totalInstallmentsNum <= 0 || startNum <= 0) return;
 
-    const contractId = editingDebtContractId || ('debt_' + Math.random().toString(36).substring(2, 9));
+    const contractId = editingDebtContractId || generateId('debt');
     const selectedWalletId = walletId || (wallets[0]?.id ?? 'w1');
 
     const baseDate = new Date(startDate + 'T12:00:00');

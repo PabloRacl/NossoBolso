@@ -6,6 +6,7 @@ import { db } from '../../servicos/db';
 import { formatBRL } from '../../utilidades/formatters';
 import { useAppStore } from '../../estado/useAppStore';
 import { ShoppingCart, CreditCard, Banknote, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useAlert } from '../../estado/useConfirmStore';
 
 interface FinishShoppingModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export const FinishShoppingModal: React.FC<FinishShoppingModalProps> = ({
   wallets,
   onConfirmFinish,
 }) => {
+  const showAlert = useAlert();
   const { isPrivacyMode } = useAppStore();
 
   const [description, setDescription] = useState('Compras de Mercado');
@@ -69,7 +71,7 @@ export const FinishShoppingModal: React.FC<FinishShoppingModalProps> = ({
       onClose();
     } catch (err) {
       console.error('Erro ao finalizar feira:', err);
-      alert('Ocorreu um erro ao lançar as compras no sistema.');
+      await showAlert('Erro na Operação', 'Ocorreu um problema ao lançar as compras no sistema. Seus itens foram mantidos intactos.', 'danger');
     } finally {
       setIsSubmitting(false);
     }

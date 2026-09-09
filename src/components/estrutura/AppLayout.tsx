@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
+import { UpdateBanner } from '../ui/UpdateBanner';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -16,6 +17,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           {children}
         </main>
       </div>
+      <UpdateBanner />
     </div>
   );
 };

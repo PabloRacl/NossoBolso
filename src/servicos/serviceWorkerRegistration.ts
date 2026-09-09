@@ -8,10 +8,26 @@ interface ServiceWorkerConfig {
   onUpdate?: (registration: ServiceWorkerRegistration) => void;
 }
 
+let refreshing = false;
+
+export function applyUpdate(registration: ServiceWorkerRegistration): void {
+  if (registration.waiting) {
+    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+  }
+}
+
 export function registerServiceWorker(config?: ServiceWorkerConfig): void {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
     return;
   }
+
+  // Recarrega a página de forma fluida quando o novo Service Worker assume o controle
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
+  });
 
   window.addEventListener('load', () => {
     const swUrl = '/sw.js';
@@ -19,6 +35,16 @@ export function registerServiceWorker(config?: ServiceWorkerConfig): void {
     navigator.serviceWorker
       .register(swUrl)
       .then((registration) => {
+        // Se já existe um worker em waiting ao carregar
+        if (registration.waiting && navigator.serviceWorker.controller) {
+          if (config?.onUpdate) {
+            config.onUpdate(registration);
+          }
+          window.dispatchEvent(
+            new CustomEvent('nossobolso:update-available', { detail: { registration } })
+          );
+        }
+
         registration.onupdatefound = () => {
           const installingWorker = registration.installing;
           if (installingWorker == null) {
@@ -28,10 +54,13 @@ export function registerServiceWorker(config?: ServiceWorkerConfig): void {
           installingWorker.onstatechange = () => {
             if (installingWorker.state === 'installed') {
               if (navigator.serviceWorker.controller) {
-                // Novo conteúdo disponível após fechamento das abas
+                // Novo conteúdo disponível
                 if (config?.onUpdate) {
                   config.onUpdate(registration);
                 }
+                window.dispatchEvent(
+                  new CustomEvent('nossobolso:update-available', { detail: { registration } })
+                );
               } else {
                 // Conteúdo armazenado em cache para uso offline
                 if (config?.onSuccess) {
@@ -61,3 +90,4 @@ export function unregisterServiceWorker(): void {
       });
   }
 }
+

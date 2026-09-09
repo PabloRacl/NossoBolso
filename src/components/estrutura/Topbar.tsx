@@ -7,6 +7,9 @@ import { db } from '../../servicos/db';
 import { BioCyberLogo } from './BioCyberLogo';
 import { requestNotificationPermission } from '../../servicos/notificationService';
 
+import { calculateFinancialHealthScore } from '../../utilidades/financialScore';
+import { UserAvatar } from '../ui/UserAvatar';
+
 export const Topbar: React.FC = () => {
   const {
     user,
@@ -33,26 +36,7 @@ export const Topbar: React.FC = () => {
 
   // Score de Saúde Financeira ao vivo com pulsing icon
   const liveScore = useMemo(() => {
-    const savingsBalance = wallets.reduce((acc, w) => acc + (w.balance || 0), 0);
-    const totalExpenses = transactions.filter((t) => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
-    const monthlyExpensesEst = Math.max(totalExpenses, 3000);
-    const monthsOfReserve = savingsBalance / monthlyExpensesEst;
-    const reserveScore = Math.min(Math.round((monthsOfReserve / 6) * 300), 300);
-
-    const totalDebt = debtContracts.reduce((acc, d) => acc + (d.totalAmount || d.installmentAmount * d.totalInstallments), 0);
-    const debtRatio = savingsBalance > 0 ? (totalDebt / savingsBalance) : 1;
-    let debtScore = 300;
-    if (debtRatio > 2) debtScore = 50;
-    else if (debtRatio > 1) debtScore = 150;
-    else if (debtRatio > 0.5) debtScore = 220;
-
-    const income = transactions.filter((t) => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-    const savingsRate = income > 0 ? Math.max((income - totalExpenses) / income, 0) : 0.15;
-    const savingsScore = Math.min(Math.round((savingsRate / 0.3) * 200), 200);
-
-    const walletScore = Math.min(wallets.length * 66, 200);
-
-    return Math.min(reserveScore + debtScore + savingsScore + walletScore, 1000);
+    return calculateFinancialHealthScore(transactions, wallets, debtContracts).score;
   }, [transactions, wallets, debtContracts]);
 
   // Quantidade de contas vencendo nos próximos 7 dias para o badge do Sino
@@ -314,10 +298,10 @@ export const Topbar: React.FC = () => {
             className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full bg-[#162032] border border-[#2E3B52] hover:border-[#00FF88]/50 transition-all group"
             title={`Perfil de ${user.name}`}
           >
-            <img
-              src={user.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user'}
-              alt={user.name}
-              className="w-6 h-6 rounded-full object-cover border border-[#00FF88]/40"
+            <UserAvatar
+              src={user.avatarUrl}
+              name={user.name}
+              size="xs"
             />
             <span className="text-xs font-medium text-white truncate max-w-[100px] hidden md:inline group-hover:text-[#00FF88] transition-colors">
               {user.name.split(' ')[0]}
